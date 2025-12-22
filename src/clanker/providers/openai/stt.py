@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 import httpx
 
-from ..constants import DEFAULT_STT_MODEL
-from .errors import PermanentProviderError, TransientProviderError
-from .stt import STT
+from ...constants import DEFAULT_STT_MODEL
+from ..base import STT
+from ..errors import PermanentProviderError, TransientProviderError
 
 
 @dataclass(frozen=True)

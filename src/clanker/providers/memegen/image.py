@@ -7,8 +7,8 @@ from urllib.parse import quote
 
 import httpx
 
-from .errors import PermanentProviderError, TransientProviderError
-from .image import ImageGen
+from ..base import ImageGen
+from ..errors import PermanentProviderError, TransientProviderError
 
 
 @dataclass(frozen=True)
@@ -19,9 +19,9 @@ class MemegenImage(ImageGen):
     timeout_s: float = 30.0
     http_client: httpx.AsyncClient | None = None
 
-    async def generate(self, spec: dict) -> bytes:
-        template = str(spec.get("template", "buzz"))
-        text = spec.get("text") or ""
+    async def generate(self, params: dict) -> bytes | str:
+        template = str(params.get("template", "buzz"))
+        text = params.get("text") or ""
         top, bottom = _split_text(text)
         url = f"{self.base_url}/{template}/{quote(top)}/{quote(bottom)}.png"
         client = self.http_client or httpx.AsyncClient(timeout=self.timeout_s)

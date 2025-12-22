@@ -5,9 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from clanker.models import Context, Message
-from clanker.providers.llm import LLM
-from clanker.providers.stt import STT
-from clanker.providers.tts import TTS
+from clanker.providers.base import LLM, STT, TTS
 
 
 @dataclass(frozen=True)

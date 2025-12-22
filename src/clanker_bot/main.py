@@ -12,7 +12,6 @@ from aiohttp import web
 
 from clanker.config import load_config
 from clanker.models import Persona
-from clanker.policies import SimpleProfanityPolicy
 from clanker.providers.factory import ProviderConfig, ProviderFactory
 
 from .admin import AdminState
@@ -66,7 +65,6 @@ def build_dependencies() -> BotDependencies:
         image=image,
         persona=persona,
         voice_manager=voice_manager,
-        policy=SimpleProfanityPolicy(),
         metrics=metrics,
         admin_user_ids=admin_ids,
         admin_state=admin_state,

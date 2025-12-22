@@ -7,11 +7,11 @@ from typing import Any
 
 import httpx
 
-from ..constants import DEFAULT_LLM_MODEL
-from ..models import Context, Message
-from ..prompting import build_messages_with_persona
-from .errors import PermanentProviderError, TransientProviderError
-from .llm import LLM
+from ...constants import DEFAULT_LLM_MODEL
+from ...models import Context, Message
+from ...prompting import build_messages_with_persona
+from ..base import LLM
+from ..errors import PermanentProviderError, TransientProviderError
 
 
 @dataclass(frozen=True)

@@ -7,14 +7,10 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import TypeVar
 
-from .elevenlabs_tts import ElevenLabsTTS
-from .image import ImageGen
-from .llm import LLM
+from .base import LLM, STT, TTS, ImageGen
+from .elevenlabs import ElevenLabsTTS
 from .memegen import MemegenImage
-from .openai_llm import OpenAILLM
-from .openai_stt import OpenAISTT
-from .stt import STT
-from .tts import TTS
+from .openai import OpenAILLM, OpenAISTT
 
 
 @dataclass(frozen=True)

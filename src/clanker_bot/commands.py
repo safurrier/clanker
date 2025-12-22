@@ -13,11 +13,11 @@ import discord
 from discord import app_commands
 
 from clanker.models import Context, Message, Persona
-from clanker.providers.image import ImageGen
-from clanker.providers.llm import LLM
-from clanker.providers.policy import Policy
-from clanker.providers.stt import STT
-from clanker.providers.tts import TTS
+from clanker.providers.base import LLM, STT, TTS, ImageGen
+from clanker.providers.errors import (
+    PermanentProviderError,
+    TransientProviderError,
+)
 from clanker.respond import respond
 from clanker.shitposts import (
     build_request,
@@ -48,7 +48,6 @@ class BotDependencies:
     persona: Persona
     voice_manager: VoiceSessionManager
     image: ImageGen | None = None
-    policy: Policy | None = None
     replay_log_path: Path | None = None
     metrics: Metrics | None = None
     admin_user_ids: set[int] | None = None
@@ -124,22 +123,41 @@ async def handle_chat(
     prompt: str,
     deps: BotDependencies,
 ) -> None:
-    message = Message(role="user", content=prompt)
-    context = build_context(interaction, deps.persona, message)
-    _increment_metric(deps, "chat_requests")
-    reply, _audio = await respond(
-        context,
-        deps.llm,
-        policy=deps.policy,
-        tts=None,
-        replay_log_path=deps.replay_log_path,
-    )
-    thread = await _ensure_thread(interaction)
-    if thread:
-        await thread.send(reply.content)
-        await interaction.response.send_message("Reply posted in thread.")
-        return
-    await interaction.response.send_message(reply.content)
+    logger = logging.getLogger(__name__)
+    await interaction.response.defer()
+
+    try:
+        message = Message(role="user", content=prompt)
+        context = build_context(interaction, deps.persona, message)
+        _increment_metric(deps, "chat_requests")
+        reply, _audio = await respond(
+            context,
+            deps.llm,
+            tts=None,
+            replay_log_path=deps.replay_log_path,
+        )
+        thread = await _ensure_thread(interaction)
+        if thread:
+            await thread.send(reply.content)
+            await interaction.followup.send("Reply posted in thread.")
+        else:
+            await interaction.followup.send(reply.content)
+    except ValueError as e:
+        await interaction.followup.send(f"❌ Request blocked: {e}", ephemeral=True)
+    except TransientProviderError:
+        await interaction.followup.send(
+            "⏳ Service temporarily unavailable. Please try again.", ephemeral=True
+        )
+    except PermanentProviderError as e:
+        await interaction.followup.send(
+            "❌ Configuration error. Please contact an admin.", ephemeral=True
+        )
+        logger.error("Provider error in chat", exc_info=True, extra={"error": str(e)})
+    except Exception as e:
+        await interaction.followup.send(
+            "❌ An unexpected error occurred.", ephemeral=True
+        )
+        logger.error("Unexpected error in chat", exc_info=True, extra={"error": str(e)})
 
 
 async def handle_speak(
@@ -147,30 +165,51 @@ async def handle_speak(
     prompt: str,
     deps: BotDependencies,
 ) -> None:
-    message = Message(role="user", content=prompt)
-    context = build_context(interaction, deps.persona, message)
-    _increment_metric(deps, "speak_requests")
-    reply, audio = await respond(
-        context,
-        deps.llm,
-        policy=deps.policy,
-        tts=deps.tts,
-        replay_log_path=deps.replay_log_path,
-    )
-    thread = await _ensure_thread(interaction)
-    if audio:
-        file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
-        if thread:
-            await thread.send(reply.content, file=file)
-            await interaction.response.send_message("Reply posted in thread.")
-            return
-        await interaction.response.send_message(reply.content, file=file)
-        return
-    if thread:
-        await thread.send(reply.content)
-        await interaction.response.send_message("Reply posted in thread.")
-        return
-    await interaction.response.send_message(reply.content)
+    logger = logging.getLogger(__name__)
+    await interaction.response.defer()
+
+    try:
+        message = Message(role="user", content=prompt)
+        context = build_context(interaction, deps.persona, message)
+        _increment_metric(deps, "speak_requests")
+        reply, audio = await respond(
+            context,
+            deps.llm,
+            tts=deps.tts,
+            replay_log_path=deps.replay_log_path,
+        )
+        thread = await _ensure_thread(interaction)
+        if audio:
+            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
+            if thread:
+                await thread.send(reply.content, file=file)
+                await interaction.followup.send("Reply posted in thread.")
+            else:
+                await interaction.followup.send(reply.content, file=file)
+        else:
+            if thread:
+                await thread.send(reply.content)
+                await interaction.followup.send("Reply posted in thread.")
+            else:
+                await interaction.followup.send(reply.content)
+    except ValueError as e:
+        await interaction.followup.send(f"❌ Request blocked: {e}", ephemeral=True)
+    except TransientProviderError:
+        await interaction.followup.send(
+            "⏳ Service temporarily unavailable. Please try again.", ephemeral=True
+        )
+    except PermanentProviderError as e:
+        await interaction.followup.send(
+            "❌ Configuration error. Please contact an admin.", ephemeral=True
+        )
+        logger.error("Provider error in speak", exc_info=True, extra={"error": str(e)})
+    except Exception as e:
+        await interaction.followup.send(
+            "❌ An unexpected error occurred.", ephemeral=True
+        )
+        logger.error(
+            "Unexpected error in speak", exc_info=True, extra={"error": str(e)}
+        )
 
 
 async def handle_shitpost(
@@ -179,27 +218,51 @@ async def handle_shitpost(
     category: str | None,
     deps: BotDependencies,
 ) -> None:
-    templates = load_templates()
-    template = sample_template(templates, category=category)
-    request = build_request(template, topic)
-    _increment_metric(deps, "shitpost_requests")
-    reply = await render_shitpost(
-        build_context(interaction, deps.persona, Message(role="user", content="")),
-        deps.llm,
-        request,
-    )
-    if deps.image and template.category == "meme":
-        image_payload = await deps.image.generate(
-            {"template": template.name, "text": reply.content}
+    logger = logging.getLogger(__name__)
+    await interaction.response.defer()
+
+    try:
+        templates = load_templates()
+        template = sample_template(templates, category=category)
+        request = build_request(template, topic)
+        _increment_metric(deps, "shitpost_requests")
+        reply = await render_shitpost(
+            build_context(interaction, deps.persona, Message(role="user", content="")),
+            deps.llm,
+            request,
         )
-        if isinstance(image_payload, str):
-            image_bytes = image_payload.encode()
+        if deps.image and template.category == "meme":
+            image_payload = await deps.image.generate(
+                {"template": template.name, "text": reply.content}
+            )
+            if isinstance(image_payload, str):
+                image_bytes = image_payload.encode()
+            else:
+                image_bytes = image_payload
+            file = discord.File(fp=BytesIO(image_bytes), filename="meme.png")
+            await interaction.followup.send(reply.content, file=file)
         else:
-            image_bytes = image_payload
-        file = discord.File(fp=BytesIO(image_bytes), filename="meme.png")
-        await interaction.response.send_message(reply.content, file=file)
-        return
-    await interaction.response.send_message(reply.content)
+            await interaction.followup.send(reply.content)
+    except ValueError as e:
+        await interaction.followup.send(f"❌ Invalid category: {e}", ephemeral=True)
+    except TransientProviderError:
+        await interaction.followup.send(
+            "⏳ Service temporarily unavailable. Please try again.", ephemeral=True
+        )
+    except PermanentProviderError as e:
+        await interaction.followup.send(
+            "❌ Configuration error. Please contact an admin.", ephemeral=True
+        )
+        logger.error(
+            "Provider error in shitpost", exc_info=True, extra={"error": str(e)}
+        )
+    except Exception as e:
+        await interaction.followup.send(
+            "❌ An unexpected error occurred.", ephemeral=True
+        )
+        logger.error(
+            "Unexpected error in shitpost", exc_info=True, extra={"error": str(e)}
+        )
 
 
 async def handle_join(

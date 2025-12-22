@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 from ..models import Context, Message
-from ..providers.llm import LLM
+from ..providers.base import LLM
 from .models import ShitpostRequest, ShitpostTemplate
 
 TEMPLATES_PATH = Path(__file__).with_name("templates.yaml")

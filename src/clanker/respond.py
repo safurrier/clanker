@@ -9,22 +9,16 @@ from pathlib import Path
 
 from .constants import REPLAY_LOG_FILENAME
 from .models import Context, Message, ReplayEntry
-from .providers.llm import LLM
-from .providers.policy import Policy
-from .providers.tts import TTS
+from .providers.base import LLM, TTS
 
 
 async def respond(
     context: Context,
     llm: LLM,
-    policy: Policy | None = None,
     tts: TTS | None = None,
     replay_log_path: Path | None = None,
 ) -> tuple[Message, bytes | None]:
     """Generate a response for the given context."""
-    if policy is not None:
-        policy.validate(context)
-
     _log_context(context)
     reply = await llm.generate(context, list(context.messages))
 
