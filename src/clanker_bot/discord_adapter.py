@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 import discord
@@ -23,6 +24,7 @@ class VoiceSessionManager:
 
     def __init__(self) -> None:
         self.state = VoiceSessionState()
+        self._lock = asyncio.Lock()
 
     @property
     def active_channel_id(self) -> int | None:
@@ -41,20 +43,22 @@ class VoiceSessionManager:
         *,
         voice_client_cls: type[discord.VoiceClient] | None = None,
     ) -> tuple[bool, str]:
-        if self.state.is_busy():
-            return False, "BUSY"
-        if voice_client_cls:
-            voice_client = await channel.connect(cls=voice_client_cls)
-        else:
-            voice_client = await channel.connect()
-        self.state.voice_client = voice_client
-        self.state.active_channel_id = channel.id
-        return True, "OK"
+        async with self._lock:
+            if self.state.is_busy():
+                return False, "BUSY"
+            if voice_client_cls:
+                voice_client = await channel.connect(cls=voice_client_cls)
+            else:
+                voice_client = await channel.connect()
+            self.state.voice_client = voice_client
+            self.state.active_channel_id = channel.id
+            return True, "OK"
 
     async def leave(self) -> tuple[bool, str]:
-        if not self.state.voice_client:
-            return False, "NOT_CONNECTED"
-        await self.state.voice_client.disconnect()
-        self.state.voice_client = None
-        self.state.active_channel_id = None
-        return True, "OK"
+        async with self._lock:
+            if not self.state.voice_client:
+                return False, "NOT_CONNECTED"
+            await self.state.voice_client.disconnect()
+            self.state.voice_client = None
+            self.state.active_channel_id = None
+            return True, "OK"

@@ -55,8 +55,8 @@ clean: clean-pyc clean-test clean-venv
 
 # Testing and Quality Checks
 #########################
-test: setup  # Run pytest with coverage
-	uv run -m pytest tests --cov=$(MODULE_NAME) --cov-report=term-missing
+test: setup  # Run pytest with coverage (excluding network tests)
+	uv run -m pytest tests -m "not network" --cov=$(MODULE_NAME) --cov-report=term-missing
 
 ty: setup  # Run type checking
 	uv run ty check $(SRC_DIR)

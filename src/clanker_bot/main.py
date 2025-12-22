@@ -124,4 +124,16 @@ def _load_admin_ids() -> set[int]:
     raw = os.getenv("CLANKER_ADMIN_IDS", "")
     if not raw:
         return set()
-    return {int(value.strip()) for value in raw.split(",") if value.strip()}
+    result = set()
+    for value in raw.split(","):
+        value = value.strip()
+        if not value:
+            continue
+        try:
+            result.add(int(value))
+        except ValueError:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Invalid admin ID in CLANKER_ADMIN_IDS: {value!r}")
+    return result

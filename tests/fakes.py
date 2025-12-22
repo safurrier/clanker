@@ -37,6 +37,6 @@ class FakeTTS(TTS):
     audio_bytes: bytes = b"audio"
 
     async def synthesize(
-        self, text: str, voice: str | None, params: dict | None = None
+        self, text: str, voice: str, params: dict | None = None
     ) -> bytes:
         return self.audio_bytes

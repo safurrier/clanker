@@ -30,9 +30,18 @@ async def respond(
     log_task = asyncio.create_task(
         _persist_replay_entry(log_path, context, reply, audio)
     )
-    log_task.add_done_callback(lambda _task: None)
+    log_task.add_done_callback(_log_task_errors)
 
     return reply, audio
+
+
+def _log_task_errors(task: asyncio.Task) -> None:
+    """Log exceptions from background tasks."""
+    try:
+        task.result()
+    except Exception:
+        logger = logging.getLogger(__name__)
+        logger.exception("Error in background replay logging task")
 
 
 async def _persist_replay_entry(

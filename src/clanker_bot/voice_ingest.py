@@ -6,6 +6,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 import discord
 import discord.ext.voice_recv as voice_recv
@@ -24,7 +25,7 @@ class VoiceIngestWorker:
     """Buffers PCM frames and invokes STT pipeline."""
 
     stt: STT
-    sample_rate_hz: int = 48000
+    sample_rate_hz: int = 48000  # Discord voice uses 48kHz sample rate
     chunk_seconds: float = 2.0
     buffers: dict[int, bytearray] = field(default_factory=dict)
 
@@ -84,11 +85,17 @@ class VoiceIngestSink:
 
 
 async def start_voice_ingest(
-    voice_client,
+    voice_client: Any,
     stt: STT,
     on_transcript: Callable[[str], Awaitable[None]] | None = None,
 ) -> None:
-    """Start voice ingest on a voice_recv-enabled voice client."""
+    """Start voice ingest on a voice_recv-enabled voice client.
+
+    Args:
+        voice_client: A VoiceRecvClient instance (typed as Any for duck typing).
+        stt: Speech-to-text provider.
+        on_transcript: Optional callback for transcript events.
+    """
     worker = VoiceIngestWorker(stt=stt)
     sink = VoiceIngestSink(worker, on_transcript=on_transcript)
     voice_client.listen(sink)
