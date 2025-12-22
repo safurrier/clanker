@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import time
 from pathlib import Path
@@ -121,6 +122,8 @@ if __name__ == "__main__":
 
 
 def _load_admin_ids() -> set[int]:
+    """Load admin user IDs from environment variable."""
+    logger = logging.getLogger(__name__)
     raw = os.getenv("CLANKER_ADMIN_IDS", "")
     if not raw:
         return set()
@@ -132,8 +135,5 @@ def _load_admin_ids() -> set[int]:
         try:
             result.add(int(value))
         except ValueError:
-            import logging
-
-            logger = logging.getLogger(__name__)
             logger.warning(f"Invalid admin ID in CLANKER_ADMIN_IDS: {value!r}")
     return result
