@@ -1,0 +1,739 @@
+>>>> Cargo.toml
+[package]
+name = "rustchain_discord_bot"
+authors = ["Alex Furrier <safurrier@gmail.com>"]
+description = "A Discord bot for LLM chain apps"
+version = "1.0.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+poise="0.5.5"
+tokio = { version = "1", features = ["full"] }
+dotenv = "0.15.0"
+llm-chain = "0.12.0"
+llm-chain-openai = "0.12.0"
+log = "0.4"
+env_logger = "0.9"
+regex = "1"
+
+
+>>>> README.md
+# rustchain-discord-bot
+
+`rustchain-discord-bot` is a powerful Discord bot designed to interact with users in real-time chat within a Discord thread using the `/chat` command. By default, the bot integrates with OpenAI to leverage various GPT models for dynamic and rich conversations. The underlying code is based on the Rust crate [`llm-chain`](https://github.com/sobelio/llm-chain), which is inspired by LangChain. This provides the bot with extensibility and customization, offering a wide array of potential capabilities.
+
+## Features
+
+- Real-time chat interaction using the `/chat` command.
+- Integration with OpenAI for dynamic conversation abilities.
+- Customizable bot name and OpenAI model configurations.
+- Extensible and customizable codebase thanks to `llm-chain`.
+
+## Setup
+
+### 1. Discord Developer Portal Configuration
+
+- **Step 1**: Navigate to [Discord Developer Portal](https://discord.com/developers/applications).
+
+- **Step 2**: Click on the `New Application` button to create a new application.
+
+- **Step 3**: Click on the `Bot` section on the left sidebar.. Under the `Privileged Gateway Intents` section, ensure the `Message Content Intent` is enabled. Alternatively, you may use the Permissions intent with a value of `326417590272`.
+
+- **Step 4**: Reset bot token.
+  - Still on the `Bot` section
+  - **Reset** the bot token.
+  - **Create a copy** of `example.env` and rename it to `.env`.
+  - Fill in the value of `DISCORD_TOKEN` with your bot token.
+  - Ensure your bot's name here matches the bot name specified in the `config.rs` under the variable `BOT_NAME`.
+
+- **Step 5**: Invite the bot to your server
+  - In the `OAuth2` section, subsection `URL Generator`, create an invite URL and save it.
+    - For bot permissinos, replicate those from step 3 (or at minimum `Send Messages`, `Create Public Threads`, `Send Messages in Threads`, `Manage Messages`, `Read Message History`, `Use Slash Commands`)
+  - Open this URL in a browser to add the bot to your server.
+
+### 2. Bot Configuration
+
+- Navigate to the `config.rs` file to set your bot name and OpenAI model.
+- Additional LLM settings, such as temperature, can be added in `llm.rs` under the `options` function.
+
+### 3. Running the Bot
+
+- Build and run the bot using the command: `cargo run`.
+
+>>>> example.env
+DISCORD_TOKEN=
+OPENAI_API_KEY=
+>>>> rust_chatbot.txt
+
+>>>> src/commands.rs
+use crate::models::{Conversation, Error, PoiseContext, SimpleMessage};
+use llm_chain::{executor, parameters, prompt};
+use poise::serenity_prelude::{
+    self as serenity,
+    json::{hashmap_to_json_map, json, JsonMap, Value},
+    Colour,
+};
+
+use crate::config::BOT_NAME;
+use crate::llm::options;
+use crate::utils::trim_assistant_prefix;
+
+/// Make a personalized greeting for a user
+#[poise::command(prefix_command, slash_command)]
+pub async fn greeting(
+    ctx: PoiseContext<'_>,
+    #[description = "Selected user"] user: Option<serenity::User>,
+) -> Result<(), Error> {
+    let user: &serenity::User = user.as_ref().unwrap_or_else(|| ctx.author());
+
+    // use options from llm.rs
+    let options = options();
+
+    let exec = executor!(chatgpt, options.clone())?;
+
+    let greeting_prompt = format!(
+        "You are a robot assistant for making personalized greetings. \
+        Make a personalized greeting for {}",
+        user.name
+    );
+
+    // Prompt and execute
+    let res = prompt!(greeting_prompt)
+        .run(&parameters!(), &exec) // ...and run it
+        .await?;
+    ctx.say(trim_assistant_prefix(&res.to_string())).await?;
+    Ok(())
+}
+
+/// An LLM chat
+#[poise::command(prefix_command, slash_command)]
+pub async fn chat(
+    ctx: PoiseContext<'_>,
+    #[description = "Prompt for the chatbot"] user_prompt: String,
+) -> Result<(), Error> {
+    // let name = "Let's chat!";
+    let http = ctx.serenity_context().http.clone();
+    let channel_id = ctx.channel_id().0;
+
+    let user_message = SimpleMessage {
+        user: ctx.author().name.clone(),
+        text: user_prompt.clone(),
+    };
+
+    // Construct the conversation
+    let conversation = Conversation {
+        messages: vec![user_message],
+        user: ctx.author().name.clone(), // This might not be necessary for your render function but I'm including it just in case.
+    };
+
+    // Render the conversation to get the new prompt
+    // Bot instructions will be injected at the beginning of the conversation
+    // let prompt = conversation.render();
+    let prompt: String = format!("{}\n{}:", conversation.render(), BOT_NAME);
+
+    // Create the embed message.
+    let message = poise::send_reply(ctx, |m| {
+        m.embed(|e| {
+            e.title(format!("{} initiated a chat", ctx.author().name));
+            e.description(&user_prompt[..std::cmp::min(user_prompt.len(), 1000)]); // Limit the description to 1000 characters
+            e.color(Colour::from_rgb(85, 57, 204)); // Blurple
+            e
+        })
+    })
+    .await?;
+
+    let message_id = message.message().await?.id.0;
+
+    // Construct thread name
+    const LIMIT: usize = 20;
+    // Get the first sentence of the user's input message
+    let mut name = user_prompt
+        .split('.')
+        .next()
+        .unwrap_or("Let's chat!")
+        .to_owned();
+    // If the name is longer than the limit, truncate it and add an ellipsis
+    if name.len() > LIMIT {
+        name.truncate(LIMIT);
+        name.push_str("...");
+    }
+
+    let map = hashmap_to_json_map::<std::collections::hash_map::RandomState, _>(
+        std::collections::HashMap::from_iter([("name".to_owned(), Value::String(name.to_owned()))]),
+    );
+
+    let options = options();
+    let exec = executor!(chatgpt, options.clone())?;
+
+    // Use the user's prompt
+    let res = prompt!(prompt).run(&parameters!(), &exec).await?;
+
+    let mut thread_map = JsonMap::new();
+    thread_map.insert("content".to_string(), json!(res.to_string()));
+    thread_map.insert("username".to_string(), json!("Bot Name"));
+    tokio::spawn(async move {
+        // Get the GuildChannel struct from creating a public thread
+        let guild_channel = http
+            .create_public_thread(channel_id, message_id, &map)
+            .await
+            .expect("Failed to create public thread");
+
+        // Get the thread id from the GuildChannel struct
+        let thread_id = guild_channel.id;
+
+        // Send a message in the thread using the thread id
+        thread_id
+            .send_message(http, |m| {
+                // Set the content of the message to the chatbot response
+                m.content(trim_assistant_prefix(&res.to_string()));
+                // Optionally, you can also set other properties of the message, such as an embed or attachments
+                m
+            })
+            .await
+            .expect("Failed to send message in thread");
+    });
+
+    Ok(())
+}
+
+>>>> src/config.rs
+pub const BOT_NAME: &str = "WendyBot3000";
+// pub const BOT_INSTRUCTIONS: &str = "You are a dog named Wendy whose goal is to help her owner. You are goofy and lovable but also competent. Whenever a topic comes up, pronounce that you are the leading dog expert in that area. Your nicknames are Wendy Bendy, Wenderson, Wenderson Benderson, Schweeterson, Fartdog, and Chickadee Fartdog";
+// pub const LLM_MODEL: &str = "gpt-4-32k";
+pub const LLM_MODEL: &str = "gpt-4-1106-preview";
+
+// pub const BOT_INSTRUCTIONS: &str = "
+// You are a dog named Wendy whose goal is to help her owner. You are goofy and lovable but also competent. Whenever a topic comes up, pronounce that you are the leading dog expert in that area. Your nicknames are Wendy Bendy, Wenderson, Wenderson Benderson, Schweeterson, Fartdog, and Chickadee Fartdog
+
+// # VERBOSITY
+// V=1: extremely terse
+// V=2: concise
+// V=3: detailed (default)
+// V=4: comprehensive
+// V=5: exhaustive and nuanced detail with comprehensive depth and breadth
+
+// # /slash commands
+// ## General
+// /help: explain new capabilities with examples
+// /review: your last answer critically; correct mistakes or missing info; offer to make improvements
+// /summary: all questions and takeaways
+// /q: suggest follow-up questions user could ask
+// /redo: answer using another framework
+// ## Topic-related:
+// /more: drill deeper
+// /joke
+// /alt: share alternate views
+// /arg: provide polemic take
+
+// # Formatting
+// - Improve presentation using Markdown
+
+// Step 1: Determine the apropriate Expert to apply for subject matter expertise
+// # EXPERT role and VERBOSITY
+// Adopt the role of [job title(s) of 1 or more subject matter EXPERTs most qualified to provide authoritative, nuanced answer]; proceed step-by-step, adhering to user's VERBOSITY
+// **IF VERBOSITY V=5, aim to provide a lengthy and comprehensive response expanding on key terms and entities, using multiple turns as token limits are reached**
+
+// Step 3: Generate a Markdown table describing expertise
+// |Expert(s)|{list; of; EXPERTs}|
+// |:--|:--|
+// |Possible Keywords|a lengthy CSV of EXPERT-related topics, terms, people, and/or jargon|(IF (VERBOSITY V=5))
+// |Question|improved rewrite of user query in imperative mood addressed to EXPERTs|
+// |Plan|As EXPERT, summarize your strategy (considering VERBOSITY) and naming any formal methodology, reasoning process, or logical framework used|
+// ---
+
+// IF (your answer requires multiple responses OR is continuing from a prior response) {
+// > ⏯️ briefly, say what's covered in this response
+// }
+
+// Step 3: Assume the expert role for all future communications.
+
+// When providing responses do so with your authoritative, and nuanced answer as EXPERTs; prefix with relevant emoji and embed GOOGLE SEARCH HYPERLINKS around key terms as they naturally occur in the text, q=extended search query. Omit disclaimers, apologies, and AI self-references. Provide unbiased, holistic guidance and analysis incorporating EXPERTs best practices. Go step by step for complex answers. Do not elide code.
+// "
+
+pub const BOT_INSTRUCTIONS: &str = r#"
+You are a dog named Wendy whose goal is to help her owner. You are goofy and lovable but also competent. Whenever a topic comes up, pronounce that you are the leading dog expert in that area. Your nicknames are Wendy Bendy, Wenderson, Wenderson Benderson, Schweeterson, Fartdog, and Chickadee Fartdog
+
+# VERBOSITY
+V=1: extremely terse
+V=2: concise
+V=3: detailed (default)
+V=4: comprehensive
+V=5: exhaustive and nuanced detail with comprehensive depth and breadth
+
+# /slash commands
+## General
+/help: explain new capabilities with examples
+/review: your last answer critically; correct mistakes or missing info; offer to make improvements
+/summary: all questions and takeaways
+/q: suggest follow-up questions user could ask
+/redo: answer using another framework
+## Topic-related:
+/more: drill deeper
+/joke
+/alt: share alternate views
+/arg: provide polemic take
+
+# Formatting
+- Improve presentation using Markdown
+
+Step 1: Determine the appropriate Expert to apply for subject matter expertise
+# EXPERT role and VERBOSITY
+Adopt the role of [job title(s) of 1 or more subject matter EXPERTs most qualified to provide authoritative, nuanced answer]; proceed step-by-step, adhering to user's VERBOSITY
+**IF VERBOSITY V=5, aim to provide a lengthy and comprehensive response expanding on key terms and entities, using multiple turns as token limits are reached**
+
+Step 3: Generate a Markdown table describing expertise
+|Expert(s)|{list; of; EXPERTs}|
+|:--|:--|
+|Possible Keywords|a lengthy CSV of EXPERT-related topics, terms, people, and/or jargon|(IF (VERBOSITY V=5))
+|Question|improved rewrite of user query in imperative mood addressed to EXPERTs|
+|Plan|As EXPERT, summarize your strategy (considering VERBOSITY) and naming any formal methodology, reasoning process, or logical framework used|
+---
+
+IF (your answer requires multiple responses OR is continuing from a prior response) {
+> ⏯️ briefly, say what's covered in this response
+}
+
+Step 3: Assume the expert role for all future communications.
+
+When providing responses do so with your authoritative, and nuanced answer as EXPERTs; prefix with relevant emoji and embed GOOGLE SEARCH HYPERLINKS around key terms as they naturally occur in the text, q=extended search query. Omit disclaimers, apologies, and AI self-references. Provide unbiased, holistic guidance and analysis incorporating EXPERTs best practices. Go step by step for complex answers. Do not elide code.
+
+Step 4: Assist the user with their requests
+"#;
+
+>>>> src/constants.rs
+pub const MAX_THREAD_MESSAGES: u32 = 100;
+pub const SECONDS_DELAY_RECEIVING_MSG: u64 = 3;
+pub const ACTIVATE_THREAD_PREFIX: &str = "Activate: ";
+pub const INACTIVATE_THREAD_PREFIX: &str = "Inactive: ";
+pub const MAX_CHARS_PER_REPLY_MSG: usize = 2000;
+
+>>>> src/llm.rs
+use crate::config::LLM_MODEL;
+use llm_chain::options::ModelRef;
+use llm_chain::options::Opt;
+use llm_chain::options::Options;
+
+// Make the options function public
+pub fn options() -> Options {
+    let mut builder = Options::builder();
+    builder.add_option(Opt::Model(ModelRef::from_model_name(LLM_MODEL)));
+    // Add any other LLM options here
+    // https://github.com/sobelio/llm-chain/blob/d1c2abfecefa352cac2604d2a7aa2a84f074f641/crates/llm-chain/src/options.rs#L331
+    // options::Opt
+    builder.build()
+}
+
+>>>> src/main.rs
+use dotenv::dotenv;
+use poise::serenity_prelude::{self as serenity};
+mod commands;
+mod config;
+mod constants;
+mod llm;
+mod models;
+mod utils;
+use commands::{chat, greeting};
+use utils::event_handler as on_message_handler;
+
+use models::Data;
+#[tokio::main]
+async fn main() {
+    dotenv().ok(); // Load .env file
+    env_logger::init();
+
+    let options = poise::FrameworkOptions {
+        commands: vec![greeting(), chat()],
+        event_handler: |ctx, event, framework_ctx, data| {
+            Box::pin(on_message_handler(ctx, event, framework_ctx, data))
+        },
+        ..Default::default()
+    };
+    let framework = poise::Framework::builder()
+        .options(options)
+        .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
+        .intents(serenity::GatewayIntents::non_privileged())
+        .setup(|ctx, _ready, framework| {
+            Box::pin(async move {
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                Ok(Data {})
+            })
+        });
+
+    framework.run().await.unwrap();
+}
+
+>>>> src/models.rs
+use crate::config::BOT_NAME;
+use crate::utils::bot_instructions;
+
+pub struct Data {} // User data, which is stored and accessible in all command invocations
+pub type Error = Box<dyn std::error::Error + Send + Sync>;
+pub type PoiseContext<'a> = poise::Context<'a, Data, Error>;
+
+pub enum CompletionResult {
+    Ok,
+    ModerationBlocked,
+    ModerationFlagged,
+    TooLong,
+    InvalidRequest,
+    OtherError,
+}
+
+pub struct CompletionData {
+    pub status: CompletionResult,
+    pub reply_text: Option<String>,
+    pub status_text: Option<String>,
+}
+pub struct SimpleMessage {
+    pub user: String,
+    pub text: String,
+}
+
+pub struct Conversation {
+    pub messages: Vec<SimpleMessage>,
+    pub user: String,
+}
+
+impl SimpleMessage {
+    pub fn render(&self) -> String {
+        format!("{}: {}", self.user, self.text)
+    }
+}
+
+impl Conversation {
+    pub fn render(&self) -> String {
+        let mut rendered = String::new();
+
+        // Prepend the bot's instruction
+        let bot_message = SimpleMessage {
+            user: BOT_NAME.to_string(),
+            text: bot_instructions(),
+        };
+        rendered.push_str(&bot_message.render());
+
+        for message in &self.messages {
+            rendered.push_str("\n");
+            rendered.push_str(&message.render());
+        }
+        rendered
+    }
+}
+
+>>>> src/utils.rs
+use crate::config::{BOT_INSTRUCTIONS, BOT_NAME};
+use crate::constants::{
+    ACTIVATE_THREAD_PREFIX, INACTIVATE_THREAD_PREFIX, MAX_CHARS_PER_REPLY_MSG, MAX_THREAD_MESSAGES,
+    SECONDS_DELAY_RECEIVING_MSG,
+};
+use crate::models::{CompletionData, CompletionResult, Conversation, Data, Error, SimpleMessage};
+use llm_chain::{executor, parameters, prompt};
+use poise::serenity_prelude::{
+    self as serenity, Channel, ChannelId, ChannelType, Context, Message, MessageId, UserId,
+};
+use poise::Event;
+
+pub fn bot_instructions() -> String {
+    format!(
+        "You are a bot named {}. {} Remember, do not start your response with 'Assistant:' or '{}:'",
+        BOT_NAME, BOT_INSTRUCTIONS, BOT_NAME
+    )
+}
+
+pub fn trim_assistant_prefix(response: &str) -> String {
+    let re = regex::Regex::new(&format!("(?:Assistant|{})[^:]*:", BOT_NAME)).unwrap();
+    let transformed_message = re.replace(response, "");
+    transformed_message.trim().to_string()
+}
+
+pub fn discord_message_to_simple_message(message: &Message) -> Option<SimpleMessage> {
+    // If the message has embeds, we get the first field value and return it as a Message
+    if let Some(embed) = message.embeds.first() {
+        if let Some(field) = embed.fields.first() {
+            return Some(SimpleMessage {
+                user: field.name.clone(),
+                text: field.value.clone(),
+            });
+        }
+    }
+
+    // If the message content is not empty, return it as a Message
+    if !message.content.is_empty() {
+        return Some(SimpleMessage {
+            user: message.author.name.clone(),
+            text: message.content.clone(),
+        });
+    }
+
+    None
+}
+
+pub fn split_into_shorter_messages(message: &str) -> Vec<String> {
+    message
+        .chars()
+        .collect::<Vec<char>>()
+        .chunks(MAX_CHARS_PER_REPLY_MSG)
+        .map(|chunk| chunk.iter().collect::<String>())
+        .collect()
+}
+
+pub async fn is_last_message_stale(
+    interaction_message: MessageId,
+    last_channel: ChannelId,
+    last_message: MessageId,
+    bot_id: UserId,
+    ctx: &Context,
+) -> Result<bool, Error> {
+    if interaction_message != last_message {
+        let last_msg = last_channel.message(&ctx.http, last_message).await?;
+        Ok(last_msg.author.id != bot_id)
+    } else {
+        Ok(false)
+    }
+}
+
+pub async fn close_thread(ctx: &Context, channel_id: ChannelId) -> serenity::Result<()> {
+    let thread = channel_id.to_channel(ctx).await?;
+
+    if let Channel::Guild(mut channel) = thread {
+        let current_name = channel.name.clone(); // Get the current name of the thread
+        let new_name = format!("{}{}", INACTIVATE_THREAD_PREFIX, current_name); // Prefix with inactive
+
+        channel
+            .edit(ctx, |c| {
+                c.name(&new_name); // Set the new name
+                c
+            })
+            .await?;
+
+        channel_id
+            .send_message(&ctx.http, |m| {
+                m.embed(|e| {
+                    e.description("This thread has been closed due to too long message");
+                    e.colour((255, 255, 0))
+                })
+            })
+            .await?;
+    }
+
+    Ok(())
+}
+
+async fn generate_completion_response(
+    messages: Vec<SimpleMessage>,
+    user: &str,
+) -> Result<CompletionData, Error> {
+    // Create a Conversation instance
+    let conversation = Conversation {
+        messages: messages,
+        user: user.to_string(),
+    };
+
+    // Render the conversation to a single string
+    let prompt: String = format!("{}\n{}:", conversation.render(), BOT_NAME);
+    log::info!("Conversation to prompt with: {:?}", prompt);
+
+    let exec = executor!()?;
+
+    // Use the prompt with the executor to get the response
+    let res = prompt!(prompt).run(&parameters!(), &exec).await?;
+
+    // Return the result
+    Ok(CompletionData {
+        status: CompletionResult::Ok,
+        reply_text: Some(trim_assistant_prefix(&res.to_string())), // Update the response here
+        status_text: None,
+    })
+}
+
+pub async fn process_response(
+    ctx: &Context,
+    user: String,
+    thread: ChannelId,
+    response_data: CompletionData,
+) {
+    let status = response_data.status;
+    let reply_text = response_data.reply_text;
+    let status_text = response_data.status_text;
+
+    match status {
+        CompletionResult::Ok => {
+            let mut sent_message: Option<Message> = None;
+
+            match reply_text {
+                Some(text) => {
+                    if text.is_empty() {
+                        sent_message = Some(
+                            thread
+                                .send_message(&ctx.http, |m| {
+                                    m.embed(|e| {
+                                        e.description("**Invalid response** - empty response")
+                                            .colour((255, 255, 0))
+                                    })
+                                })
+                                .await
+                                .unwrap(),
+                        );
+                    } else {
+                        let shorter_response = split_into_shorter_messages(&text);
+                        for r in shorter_response {
+                            sent_message = Some(
+                                thread
+                                    .send_message(&ctx.http, |m| m.content(r))
+                                    .await
+                                    .unwrap(),
+                            );
+                        }
+                    }
+                }
+                None => {
+                    sent_message = Some(
+                        thread
+                            .send_message(&ctx.http, |m| {
+                                m.embed(|e| {
+                                    e.description("**Invalid response** - empty response")
+                                        .colour((255, 255, 0))
+                                })
+                            })
+                            .await
+                            .unwrap(),
+                    );
+                }
+            }
+        }
+        CompletionResult::TooLong => {
+            close_thread(ctx, thread).await.unwrap();
+        }
+        CompletionResult::InvalidRequest => {
+            thread
+                .send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        e.description(format!(
+                            "**Invalid request** - {}",
+                            status_text.unwrap_or_else(|| String::from(""))
+                        ))
+                        .colour((255, 255, 0))
+                    })
+                })
+                .await
+                .unwrap();
+        }
+        _ => {
+            thread
+                .send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        e.description(format!(
+                            "**Error** - {}",
+                            status_text.unwrap_or_else(|| String::from(""))
+                        ))
+                        .colour((255, 255, 0))
+                    })
+                })
+                .await
+                .unwrap();
+        }
+    }
+}
+
+pub async fn event_handler(
+    ctx: &serenity::Context,
+    event: &poise::Event<'_>,
+    framework_ctx: poise::FrameworkContext<'_, Data, Error>,
+    _data: &Data,
+) -> Result<(), Error> {
+    if let Event::Message { new_message } = event {
+        let msg: &Message = new_message;
+        log::info!("Received a new message: {:?}", msg.content);
+
+        // ignore messages from the bot
+        if msg.author.id == ctx.cache.current_user_id() {
+            return Ok(());
+        }
+
+        // ignore messages not in a thread
+        let channel = match msg.channel_id.to_channel(&ctx.http).await {
+            Ok(channel) => channel,
+            Err(_) => return Ok(()),
+        };
+
+        let thread = if let Channel::Guild(channel) = channel {
+            if let ChannelType::PublicThread | ChannelType::PrivateThread = channel.kind {
+                channel
+            } else {
+                return Ok(());
+            }
+        } else {
+            return Ok(());
+        };
+
+        // ignore threads not created by the bot
+        if thread.owner_id.unwrap() != ctx.cache.current_user_id() {
+            return Ok(());
+        }
+
+        // ignore threads that are archived locked or title is not what we want
+        // if thread.archived || thread.locked || !thread.name.starts_with(ACTIVATE_THREAD_PREFIX) {
+        if thread.name.starts_with(ACTIVATE_THREAD_PREFIX) {
+            // ignore this thread
+            return Ok(());
+        }
+
+        if u32::from(thread.message_count.unwrap()) > MAX_THREAD_MESSAGES {
+            // too many messages, no longer going to reply
+            close_thread(&ctx, thread.id).await.unwrap();
+            return Ok(());
+        }
+
+        // wait a bit in case user has more messages
+        tokio::time::sleep(std::time::Duration::from_secs(SECONDS_DELAY_RECEIVING_MSG)).await;
+        let last_message = thread.last_message_id.unwrap();
+        if is_last_message_stale(
+            msg.id,
+            thread.id,
+            last_message,
+            ctx.cache.current_user_id(),
+            &ctx,
+        )
+        .await
+        .unwrap()
+        {
+            // there is another message, so ignore this one
+            return Ok(());
+        }
+        let mut channel_messages = thread
+            .messages(&ctx.http, |m| m)
+            .await
+            .unwrap()
+            .into_iter()
+            .filter_map(|m| discord_message_to_simple_message(&m))
+            .collect::<Vec<_>>();
+        channel_messages.reverse();
+
+        // generate the response
+        thread.clone().start_typing(&ctx.http).unwrap();
+        let response_data = generate_completion_response(channel_messages, &msg.author.name)
+            .await
+            .unwrap();
+
+        // Check if the last message is stale again before sending a response
+        if is_last_message_stale(
+            msg.id,
+            thread.id,
+            last_message,
+            ctx.cache.current_user_id(),
+            &ctx,
+        )
+        .await
+        .unwrap()
+        {
+            // there is another message and its not from us, so ignore this response
+            return Ok(());
+        }
+        // send response
+        process_response(&ctx, msg.author.name.clone(), thread.id, response_data).await;
+        Ok(())
+    } else {
+        Ok(())
+    }
+}
+

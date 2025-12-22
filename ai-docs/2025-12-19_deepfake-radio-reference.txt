@@ -1,0 +1,1267 @@
+>>>> Makefile
+create-conda-env:
+	conda create --name deepfake_radio python=3.11 -y
+
+requirements:
+	pip install -r requirements.txt
+	chmod +x install_dependencies.sh
+	sh install_dependencies.sh
+run:
+	python main.py
+>>>> README.md
+
+![image info](radio.png)
+# Deepfake Radio
+
+Code for using Elevenlabs voice cloning for fun with friends
+
+### Discord Bot
+
+ * `/speak`
+
+    * Choose a voice, provide text and receive an audio clip in a message (embeds natively on Desktop but on mobile may need an app like VLC to open)
+
+ * `/conversation`
+
+    * Provide a script in the format `---Voice Name: hi how are you? --Voice Name: Pretty good!` and have the bot generate audio and splice it together into a conversation
+
+### Tools for processing and uploading audio samples for voice cloning
+
+  * Config for specifying
+
+    * Source (local or YouTube URL)
+
+    * Audio start and end time
+
+    * Voice isolation using an open source ML model ([Demucs](https://github.com/facebookresearch/demucs))
+
+    * Set clip sizes to automatically clip into smaller parts
+
+## Bot Setup
+
+1) Clone this repo
+> git clone https://github.com/safurrier/deepfake-radio/
+
+2) Set up the bot
+
+  * Visit the [Discord Developer portal](https://discord.com/developers/applications) to creata new bot application
+
+  * In the top right, select `New Application` and give the app a name
+
+  * If you want to update the bot avatar, description etc do so here
+
+  * On the left, click `Bot`
+
+  * Scroll down to find the section `MESSAGE CONTENT INTENT` and turn this on. Save Changes.
+
+  * Scroll back up and click `Reset Token`. Make sure to copy this information down as you'll need it to run your bot
+
+  * Create a file in the top level directory called `.env`. You can do this by making a copy of the file `example.env`
+
+  * In the `.env` file, set `BOT_TOKEN=$YOUR_TOKEN` on a line. E.g. `BOT_TOKEN=WWKDEQX8JOoxW61WPb6dXIzklNjaMHJf2zuHGk`
+
+2) Join [ElevenLabs](https://beta.elevenlabs.io/speech-synthesis) and sign up for an account with API access
+
+3) Copy your ElevenLabs API token (Top Right -> Profile -> API Key Section) to the `.env` file under `ELEVEN_API_KEY` like `ELEVEN_API_KEY=asdfaskjd123498sasw`
+
+4) Create some voice clones using ElevenLabs.
+  * See section **Add Custom Voices** for how to do this programtically, or clone them on the ElevenLabs platform
+
+  * This is a [good short guide](https://github.com/elevenlabs/discord-bot/blob/main/elevenbot.py) on some tips to creating good voice clones
+
+  * In general, quality > quantitity. (It's possible Elevenlabs doesn't use anything longer than 2 minutes for samples)
+
+  * Diversity of voice samples and short clips can help
+
+  * Consider adding many short clips and on the web UI editing the voice clones to select only the best ones
+
+  * The best samples are of a clear voice with no interruptions or background noise (like a monologue or audio book).
+
+
+5) Get a python environment
+  * This was written with a python 3.11 environment but may work with other major versions
+
+  * I would suggest using Conda as an environment manager as it's fairly simple to use
+
+  * Installing conda is outside of the scope of this tutorial (some [instructions here](https://docs.conda.io/en/latest/miniconda.html)), but if it's already installed you can run the make command to get a python env setup
+
+  > conda create --name deepfake_radio python=3.11 -y
+
+  or using the make command `make create-conda-env`
+
+  And then activate the env
+
+  > conda activate deepfake_radio
+
+
+6) Install the dependencies
+  > make requirements
+  or manually run:
+  ```
+	pip install -r requirements.txt
+	chmod +x install_dependencies.sh
+	sh install_dependencies.sh
+  ```
+
+6) Run the bot
+
+  > python main.py
+
+  * Depoying as an app on Railway
+
+    * Go to [Railway](https://railway.app/verify)
+
+    * Sign up using Github
+
+    * Verify your account
+
+    * Create a new project
+
+    * Deploy from a Github Repo -> select the repo you've cloned this to
+
+    * Add Variables -> Add the env variables for `BOT_TOKEN` and `ELEVEN_API_KEY` (optionally set `UPLOAD_VOICES` if you want to upload voices before startup. *Do not set `PROCESS_VOICES`* as it breaks the Runway deployment as of now)
+
+
+7) Invite the bot to your server
+
+  * Return to the [Discord Developer portal](https://discord.com/developers/applications)
+
+  * Select `OAuth 2` -> URL Generator
+
+  * Under Scopes, select `bot`
+
+  * Under Bot Permissions select at least `Send Messages`, `Send Messages in Threads`, `Embed Links`, `Attach Links`, and `Use Slash Commands`
+
+  * Copy the generated URL underneath (you may want to save this link somewhere if you plan on inviting the bot to multiple servers)
+
+  * Select the server that you're a modmin on and add it to server. Authorize the bot.
+
+8) Use the bot! Use the `/speak` command to select a voice add text and generate audio. If no voices are present in the options, try running `/update-voices` first. Have fun!
+
+
+## Add Custom Voices
+
+1) You will need audio samples to create voice clones in ElevenLabs. You can do this through the platform, or alternatively there are automated tools to do so included here. By default, the bot will process and upload custom voices to the ElevenLabs API before startup. Previously added voices are skipped.
+
+*There may or may not be a `voice catalog` branch with many voice samples already set up. All you would have to do is copy over the voices you'd like to into the `voices` directory and turn on env variable `UPLOAD_VOICES`. You didn't hear it from me.*
+
+2) All voice clones belong in the `voices` directory and require a `config.yaml` file. The two accepted sources for samples are a local mp3 file and a Youtube video link
+
+3) Each config file requires a `name`, an optional `description` and at minimum, a specified `source` and `location` setting.
+
+4) There is an example config under `voices/example`:
+
+```yaml
+name: Joe Biden
+description: President Joe Biden
+
+1:
+  source:
+    location: input/biden.mp3
+    type: file
+2:
+  source:
+    location: https://www.youtube.com/watch?v=KADpsS8fbg8
+    type: youtube
+    # Note: start_time and end_time are optional
+    # but must be in format "HH:MM:SS"
+    start_time: "00:00:01"
+    end_time: "00:10:01"
+  isolate: True
+  clip_size: 60
+```
+
+  Each number is a separate source, location is a URL for Youtube and filepath for file (relative to the config file). In general this should be `input/your_sample.mp3`
+
+  There are other optional configurations to facilitate creating good samples including start and end time, voice isolation and clip size.
+
+  The voice isolation uses an open source model demucs for voice isolation. This can be helpful if there is background noise, but does not always work well. It will also increase the processing time substantially.
+
+5) Make sure in the .env file `PROCESS_VOICES` and `UPLOAD_VOICES` is set to a value. Remove this env var if you don't want custom voices to be processed, and uploaded on bot startup.
+
+6) NOTE: Remove the example voice otherwise it will be uploaded as a voice clone to your ElevenLabs account
+
+7) Run the bot with env vars set for `PROCESS_VOICES` (if adding new custom voices that need processing) and/or `UPLOAD_VOICES` (if processed files present and no processing needed, just set this to upload to ElevenLabs)
+
+8) If you're looking for voice clone samples, there may or may not be a branch on this repo with available files.
+
+## Future Improvements and TODOs
+
+[] Add CLI tool for processing + uploading voices
+
+[] Add tag support for voice config
+
+[] Improve voice selection option to sort by tags
+
+[] Have the bot set the API key using a command
+
+[] Add tests
+
+## TODO: Tests
+
+Where we're going, we don't need tests. If the bot breaks on your server and your friends complain tell them to kick rocks or fix it themselves.
+
+Original inspiration of the speak command from [ElevenLabsBot](https://github.com/elevenlabs/discord-bot)
+
+>>>> deepfake_radio/api.py
+import requests
+import os
+from dotenv import load_dotenv
+from .utils import yaml_to_dataclass
+from pathlib import Path
+from typing import Dict
+from itertools import islice
+import logging
+
+logger = logging.getLogger(__name__)
+load_dotenv()
+
+def fetch_voices(max_voices: int=25) -> Dict[str, str]:
+    """
+    Fetch the available voices for the bot on startup.
+
+    Raises:
+        ValueError: Raised if no API key is provided in the .env file.
+    """
+    api_key = os.environ.get('ELEVEN_API_KEY')
+
+    if not api_key:
+        raise ValueError("ERROR: No API key provided! Please provide an API key in the .env file.")
+
+    url = "https://api.elevenlabs.io/v1/voices"
+    headers = {
+        'accept': 'application/json',
+        'xi-api-key': api_key
+    }
+    response = requests.get(url, headers=headers)
+
+    cloned_voices = [voice for voice in response.json()['voices'] if voice['category'] == 'cloned']
+    voices = {voice['name']: voice['voice_id'] for voice in cloned_voices}
+
+    if len(voices) > max_voices:
+        warning_msg = f"More than {max_voices} custom voices detected items, some items will be excluded."
+        logger.warning(warning_msg)
+        voices = dict(islice(voices.items(), max_voices))
+
+    return voices
+
+
+def split_file(file, size_limit=10 * 1024 * 1024):
+    with open(file, "rb") as f:
+        voice = f.read()
+
+    chunks = []
+    chunk_filenames = []
+    bytes_read = 0
+    while bytes_read < len(voice):
+        chunk = voice[bytes_read:bytes_read + size_limit]
+        bytes_read += len(chunk)
+        file_name = f"{file.stem}chunk{len(chunks) + 1}{file.suffix}"
+        chunks.append({'filename': file_name, 'content': chunk})
+
+    return chunks
+
+def extract_audio_files(upload_dir: Path):
+    files = []
+    for file in upload_dir.glob("*.mp3"):
+        with open(file, "rb") as f:
+            voice = f.read()
+            fsize = len(voice) / (1024 * 1024)  # Convert bytes to MB
+
+            if fsize > 20:
+                # Split the file into chunks
+                file_chunks = split_file(file)
+                for chunk in file_chunks:
+                    files.append(chunk)
+            else:
+                files.append({'filename': file.name, 'content': voice})
+    return files
+def upload_voice(voice_dir: Path):
+    voice = yaml_to_dataclass(voice_dir / "config.yaml")
+    upload_dir = voice_dir / "upload"
+
+    current_voices = fetch_voices(max_voices=999999)
+    if voice.name in current_voices:
+        logger.info(f"Voice {voice.name} already exists. Skipping upload.")
+        return
+
+    # Load in the upload files as byte string
+    files = extract_audio_files(upload_dir)
+    max_samples = 25
+    if len(files) > max_samples:
+        warning_msg = f"More than {max_samples} custom voices samples detected items, some items will be excluded. If using clips, try increasing the clip size or deleting some clips."
+        logger.warning(warning_msg)
+        print(warning_msg)
+        files = files[:max_samples]
+
+    api_key = os.environ.get("ELEVEN_API_KEY")
+
+    # Upload the voice via POST
+    url = "https://api.elevenlabs.io/v1/voices/add"
+    headers = {
+        'Accept': 'application/json',
+        'xi-api-key': api_key
+    }
+
+    data = {
+        'name': voice.name,
+        # 'labels': '{"accent": "American"}', # TODO: Add support for labels
+        'description': voice.description
+    }
+
+    multipart_form_data = [
+        ('files', (file_info['filename'], file_info['content'], 'audio/mpeg'))
+        for file_info in files
+    ]
+
+    response = requests.post(url, headers=headers, data=data, files=multipart_form_data)
+
+    # Check response status
+    if response.status_code == 200:
+        logger.info(f"All files uploaded successfully!.[voice_name: {voice.name}, n_samples: {len(files)}]")
+    else:
+        raise Exception(f"Failed to upload files. Response: {response.text}")
+
+>>>> deepfake_radio/bot.py
+import asyncio
+import datetime
+import requests
+import random
+import os
+import json
+import logging
+
+import hikari
+import lightbulb
+import miru
+
+from itertools import islice
+from typing import Dict
+from dotenv import load_dotenv
+from deepfake_radio.api import fetch_voices
+from pydub import AudioSegment
+import tempfile
+import json
+
+
+logger = logging.getLogger(__name__)
+load_dotenv()
+
+bot = lightbulb.BotApp(os.environ.get('BOT_TOKEN'))
+miru.install(bot)
+@bot.listen(hikari.StartedEvent)
+async def on_ready(event):
+    print("Ready!")
+
+
+
+def read_voices():
+    if os.path.exists("voices.json"):
+        with open("voices.json", "r") as json_file:
+            voices = json.load(json_file)
+        return voices
+    else:
+        return fetch_voices()
+
+
+@bot.command
+@lightbulb.command("update_voices", "Update the voices available to the bot. Defaults to all cloned voices.")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def update_voices(ctx: lightbulb.context.Context):
+   # Get available voices and save them to a JSON file
+    with open("voices.json", "w") as json_file:
+        json.dump(fetch_voices(), json_file)
+
+    await ctx.respond('🔄 Updated voices!')
+
+@bot.command
+@lightbulb.option("text", "Text to use the TTS. Max is 1000.", required=True)
+@lightbulb.option("voices", "Voices to utilize", choices=list(read_voices().keys()), required=True)
+@lightbulb.option("title", "Voices to utilize", required=False)
+@lightbulb.command("speak", "Create an audio file voiced by you know who")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def speak(ctx: lightbulb.context.Context):
+    VOICES = read_voices()
+    api_key = os.environ.get('ELEVEN_API_KEY')
+
+    if not api_key:
+        await ctx.respond("ERROR: No API key provided! Please provide an API key in the .env file.")
+        return
+
+    text = ctx.options.text
+    voice_id = VOICES[ctx.options.voices]
+
+    if len(text) > 1000:
+        await ctx.respond(f"WARNING: Text is over 1000 characters! Please try a sentence less than 1000 characters.\nTranscript: ||{text}||")
+    else:
+        await ctx.respond(f"Sending request... ⏰\nTranscript: ||{text}||")
+        headers = {
+            'accept': 'audio/mpeg',
+            'xi-api-key': api_key,
+            'Content-Type': 'application/json'
+        }
+        payload = {"text": text}
+
+        if ctx.options.use_stream:
+            url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"
+        else:
+            url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+
+        response = requests.post(url, json=payload, headers=headers)
+
+        if response.status_code == 400:
+            await ctx.edit_last_response("ERROR: Entered voice ID does not exist! Did you enter the ID correctly?")
+        else:
+            if ctx.options.title:
+                audio_filename = f"audio-{ctx.options.voices}-{ctx.options.title}.mp3"
+            else:
+              audio_filename = f"audio-{ctx.options.voices}-{random.randint(1, 372855)}.mp3"
+            with open(audio_filename, 'wb') as output_file:
+                output_file.write(response.content)
+
+            hikari_file = hikari.File(audio_filename)
+            await ctx.respond(hikari_file)
+            os.remove(audio_filename)
+
+    return
+
+async def generate_audio(text, voice_id, pause_duration=250):
+    api_key = os.environ.get('ELEVEN_API_KEY')
+    if not api_key:
+        raise Exception("ERROR: No API key provided! Please provide an API key in the .env file.")
+
+    headers = {
+        'accept': 'audio/mpeg',
+        'xi-api-key': api_key,
+        'Content-Type': 'application/json'
+    }
+    payload = {"text": text}
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+
+    response = requests.post(url, json=payload, headers=headers)
+    if response.status_code == 400:
+        raise Exception("ERROR: Entered voice ID does not exist! Did you enter the ID correctly?")
+
+    # Save the response content to a temporary file
+    temp_file = tempfile.NamedTemporaryFile(suffix='.mp3')
+    temp_file.write(response.content)
+    temp_file.seek(0)
+    # Convert the mp3 file to wav and add the pause duration
+    audio_segment = AudioSegment.from_file(temp_file, format='mp3')
+    audio_segment += AudioSegment.silent(duration=pause_duration)
+
+    return audio_segment
+
+@bot.command
+@lightbulb.option("text", "Text to use the TTS. Max is 1000.", required=True)
+@lightbulb.option("delimiter", "Delimiter used to separate voices", required=False, default="---")
+@lightbulb.option("pause_length", "Pause time in seconds to put between each speaker", required=False, default=.25)
+@lightbulb.option("title", "Voices to utilize", required=False)
+@lightbulb.command("conversation", "Use voices in a convo. Use the format 'Voice Name: script ---' (the delimiter) to separate voices.")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def conversation(ctx: lightbulb.context.Context):
+    VOICES = read_voices()
+    text = ctx.options.text
+    delimiter = ctx.options.delimiter
+
+    if len(text) > 1000:
+        await ctx.respond(f"WARNING: Text is over 1000 characters! Please try a sentence less than 1000 characters.\nTranscript: {text}")
+        return
+    # Defer the response to have more time for processing
+    await ctx.respond("Processing your request...")
+
+    # Parse text, call generate_audio for each voice, and combine the resulting AudioSegments
+    combined_audio = AudioSegment.empty()
+
+    # Split the text into sections using the delimiter
+    sections = text.split(delimiter)
+    if not sections[0].strip():  # If the first section is empty, remove it
+        sections.pop(0)
+
+    for section in sections:
+        colon_index = section.find(':')
+        if colon_index != -1:
+            voice_key = section[:colon_index].strip()
+            voice_text = section[colon_index + 1:].strip()
+            if voice_key in VOICES:
+                voice_id = VOICES[voice_key]
+                try:
+                    audio_segment = await generate_audio(voice_text, voice_id, pause_duration=ctx.options.pause_length*1000) # Convert from seconds to milliseconds
+                    combined_audio += audio_segment
+                except Exception as e:
+                    await ctx.respond(str(e))
+                    return
+            else:
+                await ctx.respond(f"ERROR: Invalid voice key '{voice_key}'. Please use a valid voice.")
+                return
+        else:
+            await ctx.respond(f"ERROR: Incorrect formatting of the text. Please use 'voice: text' format and separate speakers with the delimiter '{delimiter}'.")
+            return
+
+    # Save the combined audio to an mp3 file
+    if ctx.options.title:
+        audio_filename = f"audio-converse-{ctx.options.title}.mp3"
+    else:
+        audio_filename = f"audio-converse-{random.randint(1, 372855)}.mp3"
+
+    combined_audio.export(audio_filename, format='mp3')
+    hikari_file = hikari.File(audio_filename)
+    await ctx.respond(hikari_file)
+    os.remove(audio_filename)
+
+    return
+
+@bot.command
+@lightbulb.command("user_info", "Gets more info about character count, sub tier, etc")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def user_info(ctx: lightbulb.context.Context):
+    if not os.environ.get('ELEVEN_API_KEY'):
+        await ctx.respond("ERROR: No API key provided! Please provide an API key in the .env file.")
+        return
+    else:
+        site = "https://api.elevenlabs.io/v1/user"
+        headers = {
+                'accept': 'application/json',
+                'xi-api-key': os.environ.get('ELEVEN_API_KEY')
+            }
+        await ctx.respond("Getting user info... ⏰")
+        r = requests.get(site, headers=headers)
+        await ctx.edit_last_response(f"User info for user {ctx.user.username}:\n\nSubscription: {r.json()['subscription']['tier']}\nCharacter count: {r.json()['subscription']['character_count']}\nCharacter limit: {r.json()['subscription']['character_limit']}\nCan user extend character limit? {r.json()['subscription']['can_extend_character_limit']}\nIs user allowed to extend character limit? {r.json()['subscription']['allowed_to_extend_character_limit']}\nTime until next character reset (in datetime format): {datetime.datetime.fromtimestamp(int(r.json()['subscription']['next_character_count_reset_unix'])).strftime('%m-%d-%Y %H:%M:%S')}\nVoice limit: {r.json()['subscription']['voice_limit']}\nCan user extend voice limit? {r.json()['subscription']['can_extend_voice_limit']}\nCan user use instant voice cloning? {r.json()['subscription']['can_use_instant_voice_cloning']}\nIs user a new user? {r.json()['is_new_user']}")
+
+
+@lightbulb.command(name="ping", description="Gets the bot's ping.")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def ping_command(ctx: lightbulb.context.Context):
+    latency = round(ctx.bot.heartbeat_latency * 1000, 2)
+    response_message = f"🏓 Ping: {latency}ms"
+
+    await ctx.respond(response_message)
+
+>>>> deepfake_radio/data_models.py
+
+from dataclasses import dataclass
+from typing import Optional, List
+
+@dataclass
+class Source:
+    location: Optional[str] = None
+    type: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+
+@dataclass
+class VoiceClip:
+    name: str
+    idx: int
+    description: Optional[str] = None
+    source: Optional[Source] = None
+    isolate: Optional[bool] = None
+    clip_size: Optional[int] = None
+
+@dataclass
+class Voice:
+    name: str
+    description: Optional[str] = None
+    clips: Optional[List[VoiceClip]] = None
+
+>>>> deepfake_radio/process/clip_audio.py
+import os
+from pydub import AudioSegment
+from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+
+def split_audio_clips(input_file, output_directory, max_clip_size=10):
+    fname = Path(input_file).stem
+    audio = AudioSegment.from_mp3(input_file)
+
+    clip_length = max_clip_size * 1000  # Convert max_clip_size to milliseconds
+    num_clips = len(audio) // clip_length
+
+    output_files = []
+    for i in range(num_clips):
+        start_time = i * clip_length
+        end_time = (i + 1) * clip_length
+        clip = audio[start_time:end_time]
+        output_file = os.path.join(output_directory, f"{fname}_{i}.mp3")
+        clip.export(output_file, format="mp3")
+        output_files.append(Path(output_file))
+
+    return output_files
+>>>> deepfake_radio/process/demucs_separate_updated.py
+import argparse
+import sys
+from pathlib import Path
+import subprocess
+import demucs
+
+from dora.log import fatal
+import torch as th
+import torchaudio as ta
+
+from demucs.apply import apply_model, BagOfModels
+from demucs.audio import AudioFile, convert_audio, save_audio
+from demucs.pretrained import get_model_from_args, add_model_flags, ModelLoadingError
+
+def load_track(track, audio_channels, samplerate):
+    errors = {}
+    wav = None
+
+    try:
+        wav = AudioFile(track).read(
+            streams=0,
+            samplerate=samplerate,
+            channels=audio_channels)
+    except FileNotFoundError:
+        errors['ffmpeg'] = 'FFmpeg is not installed.'
+    except subprocess.CalledProcessError:
+        errors['ffmpeg'] = 'FFmpeg could not read the file.'
+
+    if wav is None:
+        try:
+            wav, sr = ta.load(str(track))
+        except RuntimeError as err:
+            errors['torchaudio'] = err.args[0]
+        else:
+            wav = convert_audio(wav, sr, samplerate, audio_channels)
+
+    if wav is None:
+        print(f"Could not load file {track}. "
+              "Maybe it is not a supported file format? ")
+        for backend, error in errors.items():
+            print(f"When trying to load using {backend}, got the following error: {error}")
+        sys.exit(1)
+    return wav
+
+def main(opts=None):
+    parser = argparse.ArgumentParser("demucs.separate",
+                                     description="Separate the sources for the given tracks")
+    parser.add_argument("tracks", nargs='+', type=Path, default=[], help='Path to tracks')
+    add_model_flags(parser)
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-o",
+                        "--out",
+                        type=Path,
+                        default=Path("separated"),
+                        help="Folder where to put extracted tracks. A subfolder "
+                        "with the model name will be created.")
+    parser.add_argument("--filename",
+                        default="{track}/{stem}.{ext}",
+                        help="Set the name of output file. \n"
+                        'Use "{track}", "{trackext}", "{stem}", "{ext}" to use '
+                        "variables of track name without extension, track extension, "
+                        "stem name and default output file extension. \n"
+                        'Default is "{track}/{stem}.{ext}".')
+    parser.add_argument("-d",
+                        "--device",
+                        default="cuda" if th.cuda.is_available() else "cpu",
+                        help="Device to use, default is cuda if available else cpu")
+    parser.add_argument("--shifts",
+                        default=1,
+                        type=int,
+                        help="Number of random shifts for equivariant stabilization."
+                        "Increase separation time but improves quality for Demucs. 10 was used "
+                        "in the original paper.")
+    parser.add_argument("--overlap",
+                        default=0.25,
+                        type=float,
+                        help="Overlap between the splits.")
+    split_group = parser.add_mutually_exclusive_group()
+    split_group.add_argument("--no-split",
+                             action="store_false",
+                             dest="split",
+                             default=True,
+                             help="Doesn't split audio in chunks. "
+                             "This can use large amounts of memory.")
+    split_group.add_argument("--segment", type=int,
+                             help="Set split size of each chunk. "
+                             "This can help save memory of graphic card. ")
+    parser.add_argument("--two-stems",
+                        dest="stem", metavar="STEM",
+                        help="Only separate audio into {STEM} and no_{STEM}. ")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--int24", action="store_true",
+                       help="Save wav output as 24 bits wav.")
+    group.add_argument("--float32", action="store_true",
+                       help="Save wav output as float32 (2x bigger).")
+    parser.add_argument("--clip-mode", default="rescale", choices=["rescale", "clamp"],
+                        help="Strategy for avoiding clipping: rescaling entire signal "
+                             "if necessary  (rescale) or hard clipping (clamp).")
+    parser.add_argument("--mp3", action="store_true",
+                        help="Convert the output wavs to mp3.")
+    parser.add_argument("--mp3-bitrate",
+                        default=320,
+                        type=int,
+                        help="Bitrate of converted mp3.")
+    parser.add_argument("-j", "--jobs",
+                        default=0,
+                        type=int,
+                        help="Number of jobs. This can increase memory usage but will "
+                             "be much faster when multiple cores are available.")
+
+    args = parser.parse_args(opts)
+
+    try:
+        model = get_model_from_args(args)
+    except ModelLoadingError as error:
+        fatal(error.args[0])
+
+    if args.segment is not None and args.segment < 8:
+        fatal("Segment must greater than 8. ")
+
+    if '..' in args.filename.replace("\\", "/").split("/"):
+        fatal('".." must not appear in filename. ')
+
+    if isinstance(model, BagOfModels):
+        print(f"Selected model is a bag of {len(model.models)} models. "
+              "You will see that many progress bars per track.")
+        if args.segment is not None:
+            for sub in model.models:
+                sub.segment = args.segment
+    else:
+        if args.segment is not None:
+            model.segment = args.segment
+
+    model.cpu()
+    model.eval()
+
+    if args.stem is not None and args.stem not in model.sources:
+        fatal(
+            'error: stem "{stem}" is not in selected model. STEM must be one of {sources}.'.format(
+                stem=args.stem, sources=', '.join(model.sources)))
+    out = args.out / args.name
+    out.mkdir(parents=True, exist_ok=True)
+    print(f"Separated tracks will be stored in {out.resolve()}")
+    for track in args.tracks:
+        if not track.exists():
+            print(
+                f"File {track} does not exist. If the path contains spaces, "
+                "please try again after surrounding the entire path with quotes \"\".",
+                file=sys.stderr)
+            continue
+        print(f"Separating track {track}")
+        wav = load_track(track, model.audio_channels, model.samplerate)
+
+        ref = wav.mean(0)
+        wav = (wav - ref.mean()) / ref.std()
+        sources = apply_model(model, wav[None], device=args.device, shifts=args.shifts,
+                              split=args.split, overlap=args.overlap, progress=True,
+                              num_workers=args.jobs)[0]
+        sources = sources * ref.std() + ref.mean()
+
+        if args.mp3:
+            ext = "mp3"
+        else:
+            ext = "wav"
+        kwargs = {
+            'samplerate': model.samplerate,
+            'bitrate': args.mp3_bitrate,
+            'clip': args.clip_mode,
+            'as_float': args.float32,
+            'bits_per_sample': 24 if args.int24 else 16,
+        }
+        if args.stem is None:
+            for source, name in zip(sources, model.sources):
+                stem = out / args.filename.format(track=track.name.rsplit(".", 1)[0],
+                                                  trackext=track.name.rsplit(".", 1)[-1],
+                                                  stem=name, ext=ext)
+                stem.parent.mkdir(parents=True, exist_ok=True)
+                save_audio(source, str(stem), **kwargs)
+        else:
+            sources = list(sources)
+            stem = out / args.filename.format(track=track.name.rsplit(".", 1)[0],
+                                              trackext=track.name.rsplit(".", 1)[-1],
+                                              stem=args.stem, ext=ext)
+            stem.parent.mkdir(parents=True, exist_ok=True)
+            save_audio(sources.pop(model.sources.index(args.stem)), str(stem), **kwargs)
+            # Warning : after poping the stem, selected stem is no longer in the list 'sources'
+            other_stem = th.zeros_like(sources[0])
+            for i in sources:
+                other_stem += i
+            stem = out / args.filename.format(track=track.name.rsplit(".", 1)[0],
+                                              trackext=track.name.rsplit(".", 1)[-1],
+                                              stem="no_"+args.stem, ext=ext)
+            stem.parent.mkdir(parents=True, exist_ok=True)
+            save_audio(other_stem, str(stem), **kwargs)
+
+>>>> deepfake_radio/process/download_yt.py
+import yt_dlp
+import subprocess
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+def download_youtube_video(url, output_file, start_time=None, end_time=None):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': output_file,
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '0',
+        }],
+    }
+    # Handle start time, end time
+    post_processor_args = []
+    if start_time:
+        post_processor_args.append(f'-ss {start_time}')
+    if end_time:
+        post_processor_args.append(f'-t {end_time}')
+
+    if post_processor_args:
+        ydl_opts['ppa'] = ' '.join(post_processor_args)
+
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        logger.info(f"Downloading youtube video.[url={url}]")
+        ydl.download([url])
+
+
+def trim_mp3(input_file, output_file, start_time=None, end_time=None):
+    ffmpeg_cmd = ["ffmpeg", "-y", "-i", input_file]
+
+    if start_time:
+        ffmpeg_cmd.extend(["-ss", start_time])
+
+    if end_time:
+        ffmpeg_cmd.extend(["-to", end_time])
+
+    ffmpeg_cmd.extend(["-codec:a", "libmp3lame", output_file])
+    try:
+
+        subprocess.run(ffmpeg_cmd, check=True, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        print(f"FFmpeg returned an error:\n{e.stderr.decode('utf-8')}")
+        raise e
+
+def compress_wav_to_mp3(input_file, output_file, bitrate="128k"):
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i", input_file,
+        "-codec:a", "libmp3lame",
+        "-b:a", bitrate,
+        output_file
+    ]
+    subprocess.run(cmd, check=True)
+>>>> deepfake_radio/process/isolate_vocals.py
+import os
+import subprocess
+from pydub import AudioSegment
+from pathlib import Path
+import shutil
+import demucs.separate
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+# TODO: Update demucs version once updated separate.py is released
+# NOTE: This is a hacky way to get the updated separate.py
+# demucs latest release does not have the updated separate.py
+# https://github.com/facebookresearch/demucs/pull/474
+# jankily replace the main function with local copy of updated main
+from .demucs_separate_updated import main
+demucs.separate.main = main
+
+def isolate_voice(input_fpath: Path, output_directory: Path, bitrate="320k", file_format="mp3") -> Path:
+    processing_dir = Path('tmp_demucs')
+    os.makedirs(processing_dir, exist_ok=True)
+
+    # https://github.com/facebookresearch/demucs
+    DEMUCS_MODEL = 'htdemucs' # Default model
+    # TODO: Voice isolation seems to work, but
+    # sometimes seems to speed up the cloned voice
+    # Should investigate if there's a way to improve thi
+    demucs.separate.main(["-n", DEMUCS_MODEL, "-d", "cpu", "--two-stems=vocals", "--overlap", ".01", "-o", processing_dir.as_posix(), input_fpath.as_posix()])
+    processed_audio_dir = Path(os.path.join(processing_dir.as_posix(), DEMUCS_MODEL, input_fpath.stem))
+    # Find the separated vocal track
+    output_voice_file = None
+    if "vocals.wav" not in os.listdir(processed_audio_dir):
+        shutil.rmtree(processing_dir)
+        raise FileNotFoundError("Vocals file not found in the processed audio directory")
+    else:
+        output_voice_file = Path(os.path.join(output_directory, f"{input_fpath.stem}_voice_isolated.mp3"))
+        # audio = AudioSegment.from_mp3(output_voice_file)
+        audio = AudioSegment.from_wav(processed_audio_dir / "vocals.wav")
+        audio.export(output_voice_file, format=file_format, bitrate=bitrate)
+        shutil.rmtree(processing_dir)
+    return output_voice_file
+>>>> deepfake_radio/process/slow_audio.py
+from pydub import AudioSegment
+
+def slow_down_audio(filepath, speed=0.75):
+    # Load your mp3 file like a boss 😎
+    original_audio = AudioSegment.from_mp3(filepath)
+
+    # Calculate the new frame rate (speed reduction)
+    new_frame_rate = int(original_audio.frame_rate * speed)
+
+    # Apply the new frame rate and export the slowed down audio 🎧
+    slowed_audio = original_audio.set_frame_rate(new_frame_rate)
+    slowed_audio.export("slowed_audio.mp3", format="mp3")
+
+    print("Voila! 🎉 Your slowed down masterpiece has been created!")
+
+def trim_mp3(input_filepath, output_filepath, start_time=None, end_time=None):
+
+>>>> deepfake_radio/process/trim_audio.py
+from pydub import AudioSegment
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def time_str_to_ms(time_str):
+
+    h, m, s = time_str.split(':')
+    return int(h) * 3600000 + int(m) * 60000 + int(s) * 1000
+
+def trim_mp3(input_filepath, output_filepath, start_time=None, end_time=None):
+    # Load the MP3 file
+    audio = AudioSegment.from_mp3(input_filepath)
+
+    # Convert input HH:MM:SS format to milliseconds and validate the values
+    start_time = time_str_to_ms(start_time) if start_time else 0
+    end_time = time_str_to_ms(end_time) if end_time else len(audio)
+    # Trim the audio and export the result
+    trimmed_audio = audio[start_time:end_time]
+    trimmed_audio.export(output_filepath, format="mp3")
+>>>> deepfake_radio/process_voice.py
+from pathlib import Path
+import shutil
+import os
+import logging
+
+
+from .data_models import VoiceClip
+from .process.download_yt import download_youtube_video
+from .process.trim_audio import trim_mp3
+from .process.isolate_vocals import isolate_voice
+from .process.clip_audio import split_audio_clips
+
+logger = logging.getLogger(__name__)
+
+def process_voice_clip(voice_clip:VoiceClip, voice_dir:Path):
+    # Create directories to hold audio files
+    for dir in ['input', 'interim', 'upload']:
+        os.makedirs(voice_dir / dir, exist_ok=True)
+    # Remove any spaces from fname
+    voice_name_fpath_compatible = voice_clip.name.replace(" ", "_")
+    fname = Path(f"{voice_clip.idx}_{voice_name_fpath_compatible}.mp3")
+    interim_output_dir = voice_dir / "interim"
+    output_dir = voice_dir / "upload"
+
+    # Track which files will ultimately be uploaded
+    output_files = []
+    # Download the voice
+    if voice_clip.source.type == "youtube":
+        # Download the voice
+        interim_output_path = (interim_output_dir / fname)
+        ydl_output_fpath = (interim_output_path.parent / interim_output_path.stem).as_posix()
+        if not os.path.exists(ydl_output_fpath + ".mp3"):
+          logger.info(f"Youtube clip not found, downloading.[clip_path={ydl_output_fpath}]]")
+          download_youtube_video(voice_clip.source.location, ydl_output_fpath)
+
+    elif voice_clip.source.type == "file":
+        # Copy the voice to /interim
+        if not os.path.exists(interim_output_dir / fname):
+          shutil.copy(voice_dir /voice_clip.source.location, interim_output_dir / fname)
+    output_files = [interim_output_dir / fname]
+    # Trim to start and end time
+    if voice_clip.source.start_time or voice_clip.source.end_time:
+        logger.info(f"Trimming clip.[clip_start={voice_clip.source.start_time}, clip_end={voice_clip.source.end_time}, clip_path={interim_output_dir / fname}]]")
+        trim_mp3(interim_output_dir / fname, interim_output_dir / fname, voice_clip.source.start_time, voice_clip.source.end_time)
+    # Isolate the voice
+    if voice_clip.isolate:
+        logger.info(f"Isolating voice.[clip_path={interim_output_dir / fname}]]")
+        isolated_voice_fname = Path(fname.stem + "_voice_isolated.mp3")
+        if not os.path.exists(interim_output_dir / isolated_voice_fname):
+          logger.info(f"Voice isolated clip not found, Processing.[clip_path={interim_output_dir / fname}]]")
+          isolate_voice(interim_output_dir / fname, interim_output_dir)
+        fname = Path(fname.stem + "_voice_isolated.mp3")
+        output_files = [interim_output_dir / fname]
+    # Clip the voice
+    if voice_clip.clip_size:
+        logger.info(f"Clipping voice.[clip_size={voice_clip.clip_size}, clip_path={interim_output_dir / fname}]]")
+        output_files = split_audio_clips(interim_output_dir / fname, interim_output_dir, voice_clip.clip_size)
+    # Move the voice to upload dir
+    logger.info(f"Moving voice to upload dir.[output_dir={output_dir}]]")
+    logger.info(f"Files to upload.[output_files={[f.stem for f in output_files]}]]")
+    for file in output_files:
+        shutil.copy(file, output_dir / file.name)
+
+>>>> deepfake_radio/utils.py
+from .data_models import Voice, VoiceClip, Source
+import yaml
+import logging
+
+def yaml_to_dataclass(yaml_file: str):
+    with open(yaml_file, 'r') as file:
+        data = yaml.safe_load(file)
+
+    name = data.get("name")
+    description = data.get("description")
+
+    clips = []
+
+    for key, info in data.items():
+        if key in ["name", "description"]:
+            continue
+
+        source_data = info.get("source", {})
+
+        source = Source(
+            location=source_data.get("location"),
+            type=source_data.get("type"),
+            start_time=source_data.get("start_time"),
+            end_time=source_data.get("end_time")
+        )
+
+        voice_clip = VoiceClip(
+            name=name,
+            idx=int(key),
+            description=description,
+            source=source,
+            isolate=info.get("isolate"),
+            clip_size=info.get("clip_size")
+        )
+        clips.append(voice_clip)
+
+    return Voice(name=name, description=description, clips=clips)
+
+
+
+def setup_logger(name, level=logging.INFO):
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
+
+    # Create a formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # Add the formatter to the console handler
+    console_handler.setFormatter(formatter)
+
+    # Add the console handler to the logger
+    logger.addHandler(console_handler)
+
+    return logger
+
+def init_logger(log_level=logging.INFO):
+    logging.basicConfig(level=log_level,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        handlers=[logging.StreamHandler()])
+>>>> deepfake_radio_codebase.txt
+
+>>>> example.env
+BOT_TOKEN=abc
+ELEVEN_API_KEY=abc123
+PROCESS_VOICES=True
+UPLOAD_VOICES=True
+NIXPACKS_PYTHON_VERSION=3.11
+>>>> example/config.yaml
+name: Joe Biden
+description: President Joe Biden
+
+1:
+  source:
+    location: input/biden.mp3
+    type: file
+2:
+  source:
+    location: https://www.youtube.com/watch?v=KADpsS8fbg8
+    type: youtube
+    # Note: start_time and end_time are optional
+    # but must be in format "HH:MM:SS"
+    start_time: "00:00:01"
+    end_time: "00:10:01"
+  isolate: True
+  clip_size: 60
+
+>>>> install_dependencies.sh
+curl -L -o yt-dlp.tar.gz https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz >/dev/null 2>&1 && \
+pip install ./yt-dlp.tar.gz >/dev/null 2>&1 && \
+rm yt-dlp.tar.gz
+>>>> main.py
+import os
+import hikari
+import logging
+import json
+from pathlib import Path
+from deepfake_radio.utils import yaml_to_dataclass, init_logger
+from deepfake_radio.process_voice import process_voice_clip
+from deepfake_radio.api import upload_voice, fetch_voices
+from deepfake_radio.bot import bot
+
+init_logger()
+logger = logging.getLogger(__name__)
+
+def process_voice(voice_dir: Path):
+    voice = yaml_to_dataclass(voice_dir / "config.yaml")
+    for clip in voice.clips:
+      process_voice_clip(clip, voice_dir)
+
+
+def process_and_upload_all_voices(voices_dir: Path):
+    for voice_dir in voices_dir.glob("*"):
+      process_voice(voice_dir)
+      upload_voice(voice_dir)
+
+
+
+if __name__ == "__main__":
+    if not os.environ.get('BOT_TOKEN'):
+        raise ValueError("No bot token provided! Please provide a bot token in the .env file under BOT_TOKEN.")
+    if not os.environ.get('ELEVEN_API_KEY'):
+        raise ValueError("No API key provided! Please provide an API key in the .env file under ELEVEN_API_KEY.")
+    if os.environ.get('PROCESS_VOICES'):
+        logger.warning(f"PROCESS_VOICES is set to {os.environ.get('PROCESS_AND_UPLOAD_VOICES_ON_STARTUP')}. Processing all voices.")
+        logger.warning("This may take some time, especially if voice isolation is enabled and you have many voices.")
+        for voice_dir in Path("voices").glob("*"):
+            process_voice(voice_dir)
+
+    if os.environ.get('UPLOAD_VOICES'):
+        for voice_dir in Path("voices").glob("*"):
+            upload_voice(voice_dir)
+
+    # Get available voices and save them to a JSON file
+    with open("voices.json", "w") as json_file:
+        json.dump(fetch_voices(), json_file)
+
+
+    bot.run(
+        activity=hikari.Activity(
+            name="Deepfake Radio",
+            type=hikari.ActivityType.LISTENING
+        ),
+        ignore_session_start_limit=True,
+        check_for_updates=False,
+        status=hikari.Status.ONLINE,
+        coroutine_tracking_depth=20,
+        propagate_interrupts=True
+    )
+>>>> railway.toml
+[build]
+builder = "nixpacks"
+buildCommand = """
+apt-get update && \
+apt-get install -y ffmpeg && \
+pip install -r requirements.txt && \
+curl -L -o yt-dlp.tar.gz https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz >/dev/null 2>&1 && \
+pip install ./yt-dlp.tar.gz >/dev/null 2>&1 && \
+rm yt-dlp.tar.gz
+"""
+
+[deploy]
+startCommand = "python main.py"
+
+
+>>>> requirements.txt
+requests==2.28.1
+demucs==4.0.0
+requests==2.28.1
+hikari==2.0.0.dev115
+pydub==0.25.1
+hikari-lightbulb==2.3.1
+hikari-miru==2.0.4
+pyyaml==6.0
+python_dotenv==1.0.0
+-e .
+>>>> setup.py
+from setuptools import setup, find_packages
+import os
+
+def _get_dependencies():
+    with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as f:
+        return f.read().splitlines()
+
+setup(
+    name="deepfake_radio",
+    version="0.1.0",
+    author="Alex Furrier",
+    description="T2S4FWF -> (Text to Speech for Fun With Friends)",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    packages=find_packages(),
+    # install_requires=_get_dependencies(),
+)
+>>>> voices/Jason_Citron/config.yaml
+name: Jason Citron
+description: CEO of Discord messaging app Jason Citron
+
+1:
+  source:
+    location: https://www.youtube.com/watch?v=KWziPJvxkmc
+    type: youtube
+    # Note: start_time and end_time are optional
+    # but must be in format "HH:MM:SS"
+    start_time: "00:05:45"
+    end_time: "00:06:48"
+  isolate: False
+  clip_size: 10
+2:
+  source:
+    location: https://www.youtube.com/watch?v=KWziPJvxkmc
+    type: youtube
+    # Note: start_time and end_time are optional
+    # but must be in format "HH:MM:SS"
+    start_time: "00:06:57"
+    end_time: "00:07:20"
+  isolate: False
+  clip_size: 10
+3:
+  source:
+    location: https://www.youtube.com/watch?v=KWziPJvxkmc
+    type: youtube
+    # Note: start_time and end_time are optional
+    # but must be in format "HH:MM:SS"
+    start_time: "00:09:06"
+    end_time: "00:09:16"
+  isolate: False
+  clip_size: 10
+4:
+  source:
+    location: https://www.youtube.com/watch?v=KWziPJvxkmc
+    type: youtube
+    # Note: start_time and end_time are optional
+    # but must be in format "HH:MM:SS"
+    start_time: "00:09:27"
+    end_time: "00:09:40"
+  isolate: False
+  clip_size: 10
+5:
+  source:
+    location: https://www.youtube.com/watch?v=KWziPJvxkmc
+    type: youtube
+    # Note: start_time and end_time are optional
+    # but must be in format "HH:MM:SS"
+    start_time: "00:11:44"
+    end_time: "00:12:03"
+  isolate: False
+  clip_size: 10
+
+>>>> voices/example/config.yaml
+name: Joe Biden
+description: President Joe Biden
+
+1:
+  source:
+    location: input/biden.mp3
+    type: file
+2:
+  source:
+    location: https://www.youtube.com/watch?v=KADpsS8fbg8
+    type: youtube
+    # Note: start_time and end_time are optional
+    # but must be in format "HH:MM:SS"
+    start_time: "00:00:01"
+    end_time: "00:10:01"
+  isolate: True
+  clip_size: 60
+

@@ -1,0 +1,17 @@
+version: "3.7"
+services:
+  dev:
+    tty: true # Keep Alive
+    image: dev
+    container_name: composed_dev
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      EXAMPLE: ${EXAMPLE}
+      EXAMPLE_SECRET: ${EXAMPLE_SECRET}
+    command: /bin/bash
+    # Note: user mapping handled by Podman rootless automatically
+    # Bind whole project directory for simplicity  
+    volumes:
+      - ../:/workspace:Z
