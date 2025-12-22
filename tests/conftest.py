@@ -35,13 +35,27 @@ def context(persona: Persona) -> Context:
 
 
 @dataclass
+class FakeFollowup:
+    """Capture followup messages for tests."""
+
+    messages: list[str]
+
+    async def send(self, content: str, **_kwargs: object) -> None:
+        self.messages.append(content)
+
+
+@dataclass
 class FakeInteractionResponse:
     """Capture interaction responses for tests."""
 
     messages: list[str]
+    deferred: bool = False
 
     async def send_message(self, content: str, **_kwargs: object) -> None:
         self.messages.append(content)
+
+    async def defer(self, **_kwargs: object) -> None:
+        self.deferred = True
 
 
 @dataclass
@@ -73,6 +87,7 @@ class FakeInteraction:
     guild_id: int | None
     channel_id: int | None
     response: FakeInteractionResponse
+    followup: FakeFollowup
     channel: FakeChannel | None = None
 
 
@@ -83,7 +98,9 @@ class FakeUser:
 
 @pytest.fixture()
 def fake_interaction() -> FakeInteraction:
-    response = FakeInteractionResponse(messages=[])
+    messages: list[str] = []
+    response = FakeInteractionResponse(messages=messages)
+    followup = FakeFollowup(messages=messages)
     thread = FakeThread(messages=[])
     channel = FakeChannel(thread=thread)
     return FakeInteraction(
@@ -91,5 +108,6 @@ def fake_interaction() -> FakeInteraction:
         guild_id=999,
         channel_id=321,
         response=response,
+        followup=followup,
         channel=channel,
     )

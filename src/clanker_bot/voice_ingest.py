@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 import discord
 import discord.ext.voice_recv as voice_recv
 
-from clanker.providers.stt import STT
+from clanker.providers.base import STT
 from clanker.voice.worker import transcript_loop_once
 
 
@@ -61,10 +61,13 @@ class VoiceIngestSink:
         self.logger = logging.getLogger(__name__)
         self._tasks: set[asyncio.Task] = set()
 
-    def write(self, user, data) -> None:  # type: ignore[override]
-        if not user:
+    def write(self, user: object, data: object) -> None:
+        """Write audio data from a user (called by discord voice_recv)."""
+        if not user or not hasattr(user, "id"):
             return
-        self.worker.add_pcm(user.id, data.pcm)
+        if not hasattr(data, "pcm"):
+            return
+        self.worker.add_pcm(user.id, data.pcm)  # type: ignore[attr-defined]
         if self.worker.should_process():
             task = asyncio.create_task(self._flush())
             self._tasks.add(task)

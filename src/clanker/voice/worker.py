@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
 
 from ..models import Context, Message
-from ..providers.stt import STT
+from ..providers.base import STT
 from .chunker import AudioChunk, chunk_segments
 from .vad import detect_speech_segments
 
@@ -66,6 +67,38 @@ def build_context_from_event(
 
 
 def _slice_pcm(pcm_bytes: bytes, sample_rate_hz: int, chunk: AudioChunk) -> bytes:
+    """Slice PCM bytes for a chunk and wrap in WAV container."""
     start_index = int(chunk.start_ms / 1000 * sample_rate_hz) * 2
     end_index = int(chunk.end_ms / 1000 * sample_rate_hz) * 2
-    return pcm_bytes[start_index:end_index]
+    pcm_chunk = pcm_bytes[start_index:end_index]
+    return _wrap_pcm_as_wav(pcm_chunk, sample_rate_hz)
+
+
+def _wrap_pcm_as_wav(pcm_bytes: bytes, sample_rate_hz: int) -> bytes:
+    """Wrap raw PCM bytes in a WAV container with proper headers."""
+    num_channels = 1  # Mono
+    bits_per_sample = 16  # 16-bit PCM
+    byte_rate = sample_rate_hz * num_channels * bits_per_sample // 8
+    block_align = num_channels * bits_per_sample // 8
+    data_size = len(pcm_bytes)
+    file_size = 36 + data_size  # WAV header is 44 bytes, file size excludes first 8
+
+    # Build WAV header
+    header = struct.pack(
+        "<4sI4s4sIHHIIHH4sI",
+        b"RIFF",  # ChunkID
+        file_size,  # ChunkSize
+        b"WAVE",  # Format
+        b"fmt ",  # Subchunk1ID
+        16,  # Subchunk1Size (16 for PCM)
+        1,  # AudioFormat (1 for PCM)
+        num_channels,  # NumChannels
+        sample_rate_hz,  # SampleRate
+        byte_rate,  # ByteRate
+        block_align,  # BlockAlign
+        bits_per_sample,  # BitsPerSample
+        b"data",  # Subchunk2ID
+        data_size,  # Subchunk2Size
+    )
+
+    return header + pcm_bytes

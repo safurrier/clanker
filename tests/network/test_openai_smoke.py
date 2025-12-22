@@ -10,8 +10,7 @@ import pytest
 
 from clanker.models import Context, Message, Persona
 from clanker.providers.errors import TransientProviderError
-from clanker.providers.openai_llm import OpenAILLM
-from clanker.providers.openai_stt import OpenAISTT
+from clanker.providers.openai import OpenAILLM, OpenAISTT
 
 
 @pytest.mark.network()
