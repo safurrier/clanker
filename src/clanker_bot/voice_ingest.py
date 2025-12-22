@@ -6,7 +6,6 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any
 
 import discord
 import discord.ext.voice_recv as voice_recv
@@ -49,7 +48,7 @@ class VoiceIngestWorker:
         return any(len(buffer) >= min_bytes for buffer in self.buffers.values())
 
 
-class VoiceIngestSink:
+class VoiceIngestSink(voice_recv.AudioSink):
     """voice_recv sink that forwards PCM frames to the worker."""
 
     def __init__(
@@ -57,6 +56,7 @@ class VoiceIngestSink:
         worker: VoiceIngestWorker,
         on_transcript: Callable[[str], Awaitable[None]] | None = None,
     ) -> None:
+        super().__init__()
         self.worker = worker
         self.on_transcript = on_transcript
         self.logger = logging.getLogger(__name__)
@@ -85,14 +85,14 @@ class VoiceIngestSink:
 
 
 async def start_voice_ingest(
-    voice_client: Any,
+    voice_client: voice_recv.VoiceRecvClient,
     stt: STT,
     on_transcript: Callable[[str], Awaitable[None]] | None = None,
 ) -> None:
     """Start voice ingest on a voice_recv-enabled voice client.
 
     Args:
-        voice_client: A VoiceRecvClient instance (typed as Any for duck typing).
+        voice_client: A VoiceRecvClient instance with listen() support.
         stt: Speech-to-text provider.
         on_transcript: Optional callback for transcript events.
     """
