@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Protocol, cast
 
 import discord
+import discord.ext.voice_recv as voice_recv
 from discord import app_commands
 
 from clanker.models import Context, Message, Persona
@@ -298,7 +299,9 @@ async def handle_join(
                     voice_client = deps.voice_manager.voice_client
                     if voice_client is None:
                         raise RuntimeError("Voice client not available.")
-                    await start_voice_ingest(voice_client, deps.stt)
+                    # Safe cast: we just joined with voice_recv.VoiceRecvClient class
+                    recv_client = cast(voice_recv.VoiceRecvClient, voice_client)
+                    await start_voice_ingest(recv_client, deps.stt)
                     response += " (Transcription enabled.)"
                 except Exception:
                     logger.exception("Failed to start voice ingest.")

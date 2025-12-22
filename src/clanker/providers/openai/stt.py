@@ -11,7 +11,7 @@ from ..base import STT
 from ..errors import PermanentProviderError, TransientProviderError
 
 
-@dataclass(frozen=True)
+@dataclass
 class OpenAISTT(STT):
     """OpenAI speech-to-text adapter."""
 
@@ -20,6 +20,12 @@ class OpenAISTT(STT):
     base_url: str = "https://api.openai.com/v1"
     timeout_s: float = 30.0
     http_client: httpx.AsyncClient | None = None
+    _managed_client: httpx.AsyncClient | None = None
+
+    def __post_init__(self) -> None:
+        """Initialize managed HTTP client if not provided."""
+        if self.http_client is None:
+            self._managed_client = httpx.AsyncClient(timeout=self.timeout_s)
 
     async def transcribe(self, audio_bytes: bytes, params: dict | None = None) -> str:
         headers = {"Authorization": f"Bearer {self.api_key}"}
@@ -29,18 +35,15 @@ class OpenAISTT(STT):
         files = {
             "file": ("audio.wav", audio_bytes, "audio/wav"),
         }
-        client = self.http_client or httpx.AsyncClient(timeout=self.timeout_s)
-        close_client = self.http_client is None
-        try:
-            response = await client.post(
-                f"{self.base_url}/audio/transcriptions",
-                headers=headers,
-                data=data,
-                files=files,
-            )
-        finally:
-            if close_client:
-                await client.aclose()
+        client = self.http_client or self._managed_client
+        if client is None:
+            raise RuntimeError("No HTTP client available")
+        response = await client.post(
+            f"{self.base_url}/audio/transcriptions",
+            headers=headers,
+            data=data,
+            files=files,
+        )
 
         if response.status_code in {429, 500, 502, 503, 504}:
             raise TransientProviderError(
@@ -54,3 +57,8 @@ class OpenAISTT(STT):
         payload = response.json()
         text = payload.get("text") or ""
         return str(text)
+
+    async def aclose(self) -> None:
+        """Close the managed HTTP client if it exists."""
+        if self._managed_client is not None:
+            await self._managed_client.aclose()

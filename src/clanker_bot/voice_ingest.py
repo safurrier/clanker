@@ -24,7 +24,7 @@ class VoiceIngestWorker:
     """Buffers PCM frames and invokes STT pipeline."""
 
     stt: STT
-    sample_rate_hz: int = 48000
+    sample_rate_hz: int = 48000  # Discord voice uses 48kHz sample rate
     chunk_seconds: float = 2.0
     buffers: dict[int, bytearray] = field(default_factory=dict)
 
@@ -48,7 +48,7 @@ class VoiceIngestWorker:
         return any(len(buffer) >= min_bytes for buffer in self.buffers.values())
 
 
-class VoiceIngestSink:
+class VoiceIngestSink(voice_recv.AudioSink):
     """voice_recv sink that forwards PCM frames to the worker."""
 
     def __init__(
@@ -56,6 +56,7 @@ class VoiceIngestSink:
         worker: VoiceIngestWorker,
         on_transcript: Callable[[str], Awaitable[None]] | None = None,
     ) -> None:
+        super().__init__()
         self.worker = worker
         self.on_transcript = on_transcript
         self.logger = logging.getLogger(__name__)
@@ -84,11 +85,17 @@ class VoiceIngestSink:
 
 
 async def start_voice_ingest(
-    voice_client,
+    voice_client: voice_recv.VoiceRecvClient,
     stt: STT,
     on_transcript: Callable[[str], Awaitable[None]] | None = None,
 ) -> None:
-    """Start voice ingest on a voice_recv-enabled voice client."""
+    """Start voice ingest on a voice_recv-enabled voice client.
+
+    Args:
+        voice_client: A VoiceRecvClient instance with listen() support.
+        stt: Speech-to-text provider.
+        on_transcript: Optional callback for transcript events.
+    """
     worker = VoiceIngestWorker(stt=stt)
     sink = VoiceIngestSink(worker, on_transcript=on_transcript)
     voice_client.listen(sink)
