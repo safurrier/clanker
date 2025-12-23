@@ -12,6 +12,7 @@ import discord
 import discord.ext.voice_recv as voice_recv
 
 from clanker.providers.base import STT
+from clanker.voice.vad import SpeechDetector, resolve_detector
 from clanker.voice.worker import AudioBuffer, TranscriptEvent, transcript_loop_once
 
 
@@ -27,6 +28,8 @@ class VoiceIngestWorker:
     stt: STT
     sample_rate_hz: int = 48000  # Discord voice uses 48kHz sample rate
     chunk_seconds: float = 2.0
+    max_silence_ms: int = 500
+    detector: SpeechDetector = field(default_factory=resolve_detector)
     buffers: dict[int, bytearray] = field(default_factory=dict)
     buffer_start_times: dict[int, datetime] = field(default_factory=dict)
 
@@ -52,7 +55,13 @@ class VoiceIngestWorker:
         }
         self.buffers.clear()
         self.buffer_start_times.clear()
-        events = await transcript_loop_once(payload, self.stt, self.sample_rate_hz)
+        events = await transcript_loop_once(
+            payload,
+            self.stt,
+            self.sample_rate_hz,
+            detector=self.detector,
+            max_silence_ms=self.max_silence_ms,
+        )
         return sorted(events, key=lambda event: event.start_time)
 
     def should_process(self) -> bool:
@@ -109,6 +118,8 @@ async def start_voice_ingest(
     voice_client: voice_recv.VoiceRecvClient,
     stt: STT,
     on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
+    detector: SpeechDetector | None = None,
+    max_silence_ms: int = 500,
 ) -> None:
     """Start voice ingest on a voice_recv-enabled voice client.
 
@@ -116,7 +127,13 @@ async def start_voice_ingest(
         voice_client: A VoiceRecvClient instance with listen() support.
         stt: Speech-to-text provider.
         on_transcript: Optional callback for transcript events.
+        detector: Optional speech detector override.
+        max_silence_ms: Gap size used to split utterances.
     """
-    worker = VoiceIngestWorker(stt=stt)
+    worker = VoiceIngestWorker(
+        stt=stt,
+        detector=detector or resolve_detector(),
+        max_silence_ms=max_silence_ms,
+    )
     sink = VoiceIngestSink(worker, on_transcript=on_transcript)
     voice_client.listen(sink)
