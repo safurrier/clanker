@@ -7,14 +7,14 @@ import pytest
 from clanker.models import Persona
 from clanker_bot.commands import (
     BotDependencies,
+    ResponseMessage,
     handle_chat,
-    handle_shitpost,
-    handle_speak,
     handle_join,
     handle_leave,
+    handle_shitpost,
+    handle_speak,
 )
-from clanker_bot.discord_adapter import VoiceSessionManager
-from clanker_bot.discord_adapter import VoiceStatus
+from clanker_bot.discord_adapter import VoiceSessionManager, VoiceStatus
 from tests.conftest import FakeInteraction
 from tests.fakes import FakeLLM, FakeTTS
 
@@ -69,7 +69,7 @@ async def test_handle_chat(fake_interaction: FakeInteraction) -> None:
         voice_manager=VoiceSessionManager(),
     )
     await handle_chat(fake_interaction, "prompt", deps)
-    assert fake_interaction.response.messages == ["Reply posted in thread."]
+    assert fake_interaction.followup.messages == [ResponseMessage.REPLY_IN_THREAD]
     assert fake_interaction.channel
     assert fake_interaction.channel.thread.messages[0].startswith("thread:")
     assert fake_interaction.channel.thread.messages[-1] == "hi"
@@ -85,7 +85,7 @@ async def test_handle_speak(fake_interaction: FakeInteraction) -> None:
         voice_manager=VoiceSessionManager(),
     )
     await handle_speak(fake_interaction, "prompt", deps)
-    assert fake_interaction.response.messages == ["Reply posted in thread."]
+    assert fake_interaction.followup.messages == [ResponseMessage.REPLY_IN_THREAD]
     assert fake_interaction.channel
     assert fake_interaction.channel.thread.messages[0].startswith("thread:")
     assert fake_interaction.channel.thread.messages[-1] == "hi"
@@ -120,7 +120,7 @@ async def test_handle_join_requires_voice_channel(
         ),
     )
     await handle_join(fake_interaction, deps)
-    assert fake_interaction.response.messages == ["Join a voice channel first."]
+    assert fake_interaction.response.messages == [ResponseMessage.JOIN_VOICE_FIRST]
 
 
 @pytest.mark.asyncio()
@@ -138,7 +138,7 @@ async def test_handle_join_success(fake_interaction: FakeInteraction) -> None:
         ),
     )
     await handle_join(fake_interaction, deps)
-    assert fake_interaction.response.messages == ["Joined voice channel."]
+    assert fake_interaction.response.messages == [ResponseMessage.JOINED_VOICE]
 
 
 @pytest.mark.asyncio()

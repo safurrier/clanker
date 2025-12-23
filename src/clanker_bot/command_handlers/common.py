@@ -5,13 +5,13 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Awaitable, Callable
-from typing import Protocol, cast
 
 import discord
 
 from clanker.models import Context, Message, Persona
 from clanker.providers.errors import PermanentProviderError, TransientProviderError
 
+from .messages import ResponseMessage
 from .types import BotDependencies
 
 
@@ -37,15 +37,16 @@ def increment_metric(deps: BotDependencies, key: str) -> None:
         deps.metrics.increment(key)
 
 
-class ThreadCreator(Protocol):
-    async def create_thread(self, name: str, **kwargs: object) -> discord.Thread: ...
-
-
 async def ensure_thread(interaction: discord.Interaction) -> discord.Thread | None:
+    """Create a thread for the interaction if the channel supports it."""
     channel = interaction.channel
-    if channel and hasattr(channel, "create_thread"):
-        creator = cast(ThreadCreator, channel)
-        return await creator.create_thread(
+    # Check specific channel types that support threads
+    # Note: Using isinstance for production code, but also support duck-typing for tests
+    if isinstance(channel, discord.TextChannel | discord.ForumChannel) or (
+        hasattr(channel, "create_thread")
+        and not isinstance(channel, discord.VoiceChannel | discord.StageChannel)
+    ):
+        return await channel.create_thread(  # type: ignore[union-attr, call-arg]
             name=f"clanker-{uuid.uuid4().hex[:6]}",
             type=discord.ChannelType.public_thread,
         )
@@ -67,12 +68,10 @@ async def run_with_provider_handling(
         await interaction.followup.send(f"{invalid_prefix}: {exc}", ephemeral=True)
     except TransientProviderError:
         await interaction.followup.send(
-            "⏳ Service temporarily unavailable. Please try again.", ephemeral=True
+            ResponseMessage.SERVICE_UNAVAILABLE, ephemeral=True
         )
     except PermanentProviderError as exc:
-        await interaction.followup.send(
-            "❌ Configuration error. Please contact an admin.", ephemeral=True
-        )
+        await interaction.followup.send(ResponseMessage.CONFIG_ERROR, ephemeral=True)
         logger.error(
             "Provider error in %s",
             error_context,
@@ -81,7 +80,7 @@ async def run_with_provider_handling(
         )
     except Exception as exc:
         await interaction.followup.send(
-            "❌ An unexpected error occurred.", ephemeral=True
+            ResponseMessage.UNEXPECTED_ERROR, ephemeral=True
         )
         logger.error(
             "Unexpected error in %s",

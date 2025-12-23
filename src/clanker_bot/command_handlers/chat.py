@@ -22,7 +22,31 @@ from .common import (
     increment_metric,
     run_with_provider_handling,
 )
+from .messages import ResponseMessage
 from .types import BotDependencies
+
+
+async def _send_reply(
+    interaction: discord.Interaction,
+    reply: Message,
+    audio: bytes | None = None,
+) -> None:
+    """Send reply to thread or channel with optional audio."""
+    thread = await ensure_thread(interaction)
+
+    if thread:
+        if audio:
+            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
+            await thread.send(reply.content, file=file)
+        else:
+            await thread.send(reply.content)
+        await interaction.followup.send(ResponseMessage.REPLY_IN_THREAD)
+    else:
+        if audio:
+            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
+            await interaction.followup.send(reply.content, file=file)
+        else:
+            await interaction.followup.send(reply.content)
 
 
 async def handle_chat(
@@ -42,17 +66,12 @@ async def handle_chat(
             tts=None,
             replay_log_path=deps.replay_log_path,
         )
-        thread = await ensure_thread(interaction)
-        if thread:
-            await thread.send(reply.content)
-            await interaction.followup.send("Reply posted in thread.")
-        else:
-            await interaction.followup.send(reply.content)
+        await _send_reply(interaction, reply)
 
     await run_with_provider_handling(
         interaction,
         logger=logger,
-        invalid_prefix="❌ Request blocked",
+        invalid_prefix=ResponseMessage.REQUEST_BLOCKED,
         error_context="chat",
         action=action,
     )
@@ -75,25 +94,12 @@ async def handle_speak(
             tts=deps.tts,
             replay_log_path=deps.replay_log_path,
         )
-        thread = await ensure_thread(interaction)
-        if audio:
-            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
-            if thread:
-                await thread.send(reply.content, file=file)
-                await interaction.followup.send("Reply posted in thread.")
-            else:
-                await interaction.followup.send(reply.content, file=file)
-        else:
-            if thread:
-                await thread.send(reply.content)
-                await interaction.followup.send("Reply posted in thread.")
-            else:
-                await interaction.followup.send(reply.content)
+        await _send_reply(interaction, reply, audio)
 
     await run_with_provider_handling(
         interaction,
         logger=logger,
-        invalid_prefix="❌ Request blocked",
+        invalid_prefix=ResponseMessage.REQUEST_BLOCKED,
         error_context="speak",
         action=action,
     )
@@ -133,7 +139,7 @@ async def handle_shitpost(
     await run_with_provider_handling(
         interaction,
         logger=logger,
-        invalid_prefix="❌ Invalid category",
+        invalid_prefix=ResponseMessage.INVALID_CATEGORY,
         error_context="shitpost",
         action=action,
     )

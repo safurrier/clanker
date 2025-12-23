@@ -10,6 +10,7 @@ from discord import app_commands
 
 from .command_handlers import (
     BotDependencies,
+    ResponseMessage,
     handle_admin_active_meetings,
     handle_admin_allow_new_meetings,
     handle_admin_stop_new_meetings,
@@ -19,6 +20,8 @@ from .command_handlers import (
     handle_shitpost,
     handle_speak,
 )
+
+__all__ = ["BotDependencies", "ClankerClient", "ResponseMessage", "register_commands"]
 
 
 class ClankerClient(discord.Client):

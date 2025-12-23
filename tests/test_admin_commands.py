@@ -6,6 +6,7 @@ from clanker.models import Persona
 from clanker_bot.admin import AdminState
 from clanker_bot.commands import (
     BotDependencies,
+    ResponseMessage,
     handle_admin_active_meetings,
     handle_admin_allow_new_meetings,
     handle_admin_stop_new_meetings,
@@ -27,7 +28,7 @@ async def test_admin_commands_require_auth(fake_interaction: FakeInteraction) ->
         admin_state=AdminState(),
     )
     await handle_admin_active_meetings(fake_interaction, deps)
-    assert fake_interaction.response.messages == ["Not authorized."]
+    assert fake_interaction.response.messages == [ResponseMessage.NOT_AUTHORIZED]
 
 
 @pytest.mark.asyncio()
@@ -47,8 +48,8 @@ async def test_admin_toggle_meetings(fake_interaction: FakeInteraction) -> None:
     assert deps.admin_state
     assert deps.admin_state.allow_new_meetings is True
     assert fake_interaction.response.messages == [
-        "New meetings disabled.",
-        "New meetings enabled.",
+        ResponseMessage.NEW_MEETINGS_DISABLED,
+        ResponseMessage.NEW_MEETINGS_ENABLED,
     ]
 
 
