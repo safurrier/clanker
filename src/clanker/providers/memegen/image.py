@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from urllib.parse import quote
 
@@ -22,8 +23,11 @@ class MemegenImage(ImageGen):
     async def generate(self, params: dict) -> bytes | str:
         template = str(params.get("template", "buzz"))
         text = params.get("text") or ""
-        top, bottom = _split_text(text)
-        url = f"{self.base_url}/{template}/{quote(top)}/{quote(bottom)}.png"
+        segments = _split_text(text)
+        if len(segments) == 1:
+            segments.append("")
+        encoded_segments = "/".join(quote(segment) for segment in segments)
+        url = f"{self.base_url}/{template}/{encoded_segments}.png"
         client = self.http_client or httpx.AsyncClient(timeout=self.timeout_s)
         close_client = self.http_client is None
         try:
@@ -41,10 +45,14 @@ class MemegenImage(ImageGen):
         return response.content
 
 
-def _split_text(text: str) -> tuple[str, str]:
+def _split_text(text: str | Sequence[str]) -> list[str]:
+    if isinstance(text, str):
+        if not text:
+            return ["", ""]
+        if "|" in text:
+            top, bottom = text.split("|", 1)
+            return [top.strip(), bottom.strip()]
+        return [text.strip()]
     if not text:
-        return "", ""
-    if "|" in text:
-        top, bottom = text.split("|", 1)
-        return top.strip(), bottom.strip()
-    return text.strip(), ""
+        return ["", ""]
+    return [str(segment).strip() for segment in text]

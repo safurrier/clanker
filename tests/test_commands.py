@@ -3,6 +3,8 @@
 import pytest
 
 from clanker.models import Persona
+from clanker.shitposts.memes import load_meme_templates, sample_meme_template
+from clanker_bot import commands
 from clanker_bot.commands import (
     BotDependencies,
     handle_chat,
@@ -11,7 +13,7 @@ from clanker_bot.commands import (
 )
 from clanker_bot.discord_adapter import VoiceSessionManager
 from tests.conftest import FakeInteraction
-from tests.fakes import FakeLLM, FakeTTS
+from tests.fakes import FakeImage, FakeLLM, FakeTTS
 
 
 @pytest.mark.asyncio()
@@ -55,5 +57,27 @@ async def test_handle_shitpost(fake_interaction: FakeInteraction) -> None:
         persona=Persona(id="p", display_name="p", system_prompt="sys"),
         voice_manager=VoiceSessionManager(),
     )
-    await handle_shitpost(fake_interaction, "topic", None, deps)
+    await handle_shitpost(fake_interaction, "topic", "quip", deps)
     assert fake_interaction.response.messages == ["joke"]
+
+
+@pytest.mark.asyncio()
+async def test_handle_shitpost_meme(
+    fake_interaction: FakeInteraction, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    meme_template = sample_meme_template(
+        load_meme_templates(), template_id="aag"
+    )
+    monkeypatch.setattr(
+        commands, "sample_meme_template", lambda _templates: meme_template
+    )
+    deps = BotDependencies(
+        llm=FakeLLM(reply_text='["top", "bottom"]'),
+        stt=None,
+        tts=None,
+        persona=Persona(id="p", display_name="p", system_prompt="sys"),
+        voice_manager=VoiceSessionManager(),
+        image=FakeImage(image_bytes=b"meme"),
+    )
+    await handle_shitpost(fake_interaction, "topic", "meme", deps)
+    assert fake_interaction.response.messages == ["top | bottom"]

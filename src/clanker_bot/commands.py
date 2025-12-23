@@ -26,6 +26,11 @@ from clanker.shitposts import (
     render_shitpost,
     sample_template,
 )
+from clanker.shitposts.memes import (
+    load_meme_templates,
+    render_meme_text,
+    sample_meme_template,
+)
 
 from .admin import AdminState
 from .discord_adapter import VoiceSessionManager
@@ -225,24 +230,30 @@ async def handle_shitpost(
     try:
         templates = load_templates()
         template = sample_template(templates, category=category)
-        request = build_request(template, topic)
         _increment_metric(deps, "shitpost_requests")
-        reply = await render_shitpost(
-            build_context(interaction, deps.persona, Message(role="user", content="")),
-            deps.llm,
-            request,
+        context = build_context(
+            interaction, deps.persona, Message(role="user", content="")
         )
-        if deps.image and template.category == "meme":
-            image_payload = await deps.image.generate(
-                {"template": template.name, "text": reply.content}
-            )
-            if isinstance(image_payload, str):
-                image_bytes = image_payload.encode()
+        if template.category == "meme":
+            meme_templates = load_meme_templates()
+            meme_template = sample_meme_template(meme_templates)
+            lines = await render_meme_text(context, deps.llm, meme_template, topic)
+            caption = " | ".join(lines)
+            if deps.image:
+                image_payload = await deps.image.generate(
+                    {"template": meme_template.template_id, "text": lines}
+                )
+                if isinstance(image_payload, str):
+                    image_bytes = image_payload.encode()
+                else:
+                    image_bytes = image_payload
+                file = discord.File(fp=BytesIO(image_bytes), filename="meme.png")
+                await interaction.followup.send(caption, file=file)
             else:
-                image_bytes = image_payload
-            file = discord.File(fp=BytesIO(image_bytes), filename="meme.png")
-            await interaction.followup.send(reply.content, file=file)
+                await interaction.followup.send(caption)
         else:
+            request = build_request(template, topic)
+            reply = await render_shitpost(context, deps.llm, request)
             await interaction.followup.send(reply.content)
     except ValueError as e:
         await interaction.followup.send(f"❌ Invalid category: {e}", ephemeral=True)

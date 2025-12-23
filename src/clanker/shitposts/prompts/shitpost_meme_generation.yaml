@@ -1,0 +1,28 @@
+_type: prompt
+input_variables:
+  ["topic", "template_id", "variant", "variant_description", "applicable_context", "reference", "examples", "text_slots", "additional_prompt_instructions"]
+template: |
+  You are an expert in internet culture, memes, and shitposting.
+
+  Create meme text for the template below. Respond ONLY with a JSON list of strings.
+  The list MUST contain exactly {text_slots} strings. Each string should be short and punchy.
+
+  Topic:
+  {topic}
+
+  Template ID: {template_id}
+  Variant: {variant}
+  Description:
+  {variant_description}
+
+  Applicable context:
+  {applicable_context}
+
+  Reference:
+  {reference}
+
+  Examples (JSON):
+  {examples}
+
+  Additional instructions:
+  {additional_prompt_instructions}
