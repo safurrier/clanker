@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import pytest
 
 from clanker.models import Persona
+from clanker.shitposts.memes import load_meme_templates, sample_meme_template
+from clanker_bot import commands
 from clanker_bot.commands import (
     BotDependencies,
     ResponseMessage,
@@ -16,7 +18,7 @@ from clanker_bot.commands import (
 )
 from clanker_bot.discord_adapter import VoiceSessionManager, VoiceStatus
 from tests.conftest import FakeInteraction
-from tests.fakes import FakeLLM, FakeTTS
+from tests.fakes import FakeImage, FakeLLM, FakeTTS
 
 
 @dataclass
@@ -100,7 +102,7 @@ async def test_handle_shitpost(fake_interaction: FakeInteraction) -> None:
         persona=Persona(id="p", display_name="p", system_prompt="sys"),
         voice_manager=VoiceSessionManager(),
     )
-    await handle_shitpost(fake_interaction, "topic", None, deps)
+    await handle_shitpost(fake_interaction, "topic", "quip", deps)
     assert fake_interaction.response.messages == ["joke"]
 
 
@@ -155,3 +157,25 @@ async def test_handle_leave_not_connected(fake_interaction: FakeInteraction) -> 
     )
     await handle_leave(fake_interaction, deps)
     assert fake_interaction.response.messages == [VoiceStatus.NOT_CONNECTED]
+
+
+@pytest.mark.asyncio()
+async def test_handle_shitpost_meme(
+    fake_interaction: FakeInteraction, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from clanker_bot.command_handlers import chat
+
+    meme_template = sample_meme_template(load_meme_templates(), template_id="aag")
+    monkeypatch.setattr(
+        chat, "sample_meme_template", lambda _templates: meme_template
+    )
+    deps = BotDependencies(
+        llm=FakeLLM(reply_text='["top", "bottom"]'),
+        stt=None,
+        tts=None,
+        persona=Persona(id="p", display_name="p", system_prompt="sys"),
+        voice_manager=VoiceSessionManager(),
+        image=FakeImage(image_bytes=b"meme"),
+    )
+    await handle_shitpost(fake_interaction, "topic", "meme", deps)
+    assert fake_interaction.response.messages == ["top | bottom"]
