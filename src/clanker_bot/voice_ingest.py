@@ -6,12 +6,13 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 
 import discord
 import discord.ext.voice_recv as voice_recv
 
 from clanker.providers.base import STT
-from clanker.voice.worker import transcript_loop_once
+from clanker.voice.worker import AudioBuffer, TranscriptEvent, transcript_loop_once
 
 
 def voice_client_cls() -> type[discord.VoiceClient] | None:
@@ -27,20 +28,32 @@ class VoiceIngestWorker:
     sample_rate_hz: int = 48000  # Discord voice uses 48kHz sample rate
     chunk_seconds: float = 2.0
     buffers: dict[int, bytearray] = field(default_factory=dict)
+    buffer_start_times: dict[int, datetime] = field(default_factory=dict)
 
-    def add_pcm(self, user_id: int, pcm_bytes: bytes) -> None:
+    def add_pcm(
+        self, user_id: int, pcm_bytes: bytes, recorded_at: datetime | None = None
+    ) -> None:
         """Add PCM bytes for a user and trigger processing when large enough."""
         buffer = self.buffers.setdefault(user_id, bytearray())
+        if not buffer:
+            self.buffer_start_times[user_id] = recorded_at or datetime.now()
         buffer.extend(pcm_bytes)
 
-    async def process_once(self) -> list[str]:
-        """Process current buffers once and return transcript texts."""
+    async def process_once(self) -> list[TranscriptEvent]:
+        """Process current buffers once and return transcript events."""
         if not self.buffers:
             return []
-        payload = {user_id: bytes(buf) for user_id, buf in self.buffers.items()}
+        payload = {
+            user_id: AudioBuffer(
+                pcm_bytes=bytes(buf),
+                start_time=self.buffer_start_times.get(user_id, datetime.now()),
+            )
+            for user_id, buf in self.buffers.items()
+        }
         self.buffers.clear()
+        self.buffer_start_times.clear()
         events = await transcript_loop_once(payload, self.stt, self.sample_rate_hz)
-        return [event.text for event in events]
+        return sorted(events, key=lambda event: event.start_time)
 
     def should_process(self) -> bool:
         """Check if any buffer exceeds the chunk size threshold."""
@@ -54,7 +67,7 @@ class VoiceIngestSink(voice_recv.AudioSink):
     def __init__(
         self,
         worker: VoiceIngestWorker,
-        on_transcript: Callable[[str], Awaitable[None]] | None = None,
+        on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
     ) -> None:
         super().__init__()
         self.worker = worker
@@ -75,19 +88,27 @@ class VoiceIngestSink(voice_recv.AudioSink):
             task.add_done_callback(self._tasks.discard)
 
     async def _flush(self) -> None:
-        texts = await self.worker.process_once()
-        if not texts:
+        events = await self.worker.process_once()
+        if not events:
             return
-        for text in texts:
+        for event in events:
             if self.on_transcript:
-                await self.on_transcript(text)
-            self.logger.info("voice_ingest.transcript", extra={"text": text})
+                await self.on_transcript(event)
+            self.logger.info(
+                "voice_ingest.transcript",
+                extra={
+                    "text": event.text,
+                    "speaker_id": event.speaker_id,
+                    "start_time": event.start_time.isoformat(),
+                    "end_time": event.end_time.isoformat(),
+                },
+            )
 
 
 async def start_voice_ingest(
     voice_client: voice_recv.VoiceRecvClient,
     stt: STT,
-    on_transcript: Callable[[str], Awaitable[None]] | None = None,
+    on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
 ) -> None:
     """Start voice ingest on a voice_recv-enabled voice client.
 
