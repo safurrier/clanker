@@ -127,7 +127,17 @@ async def handle_shitpost(
         if template.category == "meme":
             meme_templates = load_meme_templates()
             meme_template = sample_meme_template(meme_templates)
-            lines = await render_meme_text(context, deps.llm, meme_template, topic)
+
+            # Track which meme template was used
+            increment_metric(deps, f"meme_template_{meme_template.template_id}")
+
+            try:
+                lines = await render_meme_text(context, deps.llm, meme_template, topic)
+                increment_metric(deps, "meme_generation_success")
+            except Exception:
+                increment_metric(deps, "meme_generation_failure")
+                raise
+
             caption = " | ".join(lines)
             if deps.image:
                 image_payload = await deps.image.generate(

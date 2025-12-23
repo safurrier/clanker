@@ -6,6 +6,7 @@ import json
 import secrets
 from collections.abc import Iterable
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -31,6 +32,7 @@ class MemeTemplate:
     do_not_use: bool
     additional_prompt_instructions: str = ""
     examples_updated: bool = False
+    disable_reason: str = ""  # Optional: explains why do_not_use is True
 
     @property
     def text_slots(self) -> int:
@@ -47,10 +49,17 @@ class MemeGeneration:
     lines: list[str]
 
 
+@lru_cache(maxsize=4)
 def load_meme_templates(
     include_nsfw: bool = False, include_disabled: bool = False
-) -> list[MemeTemplate]:
-    """Load meme templates from the curated JSON registry."""
+) -> tuple[MemeTemplate, ...]:
+    """Load meme templates from the curated JSON registry.
+
+    Results are cached to avoid repeated JSON parsing. Cache size of 4 covers
+    all combinations of include_nsfw x include_disabled parameters.
+
+    Note: Returns tuple instead of list to support caching (tuples are hashable).
+    """
     raw = json.loads(MEME_INSTANCE_ARGS_PATH.read_text(encoding="utf-8"))
     templates: list[MemeTemplate] = []
     for template_id, payload in raw.items():
@@ -60,7 +69,7 @@ def load_meme_templates(
         if not include_disabled and template.do_not_use:
             continue
         templates.append(template)
-    return templates
+    return tuple(templates)
 
 
 def sample_meme_template(
@@ -149,4 +158,5 @@ def _build_template(template_id: str, payload: dict) -> MemeTemplate:
             payload.get("additional_prompt_instructions", "")
         ),
         examples_updated=bool(payload.get("examples_updated", False)),
+        disable_reason=str(payload.get("disable_reason", "")),
     )
