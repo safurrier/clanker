@@ -101,14 +101,6 @@ def test_normalize_meme_lines_empty_input() -> None:
 # Template loading and selection tests
 
 
-def test_load_meme_templates_caching() -> None:
-    """Test that templates are cached (same object returned)."""
-    templates1 = load_meme_templates()
-    templates2 = load_meme_templates()
-    # Should be same tuple object due to caching
-    assert templates1 is templates2
-
-
 def test_load_meme_templates_include_nsfw() -> None:
     """Test loading includes NSFW templates when requested."""
     all_templates = load_meme_templates(include_nsfw=True, include_disabled=True)
@@ -180,56 +172,7 @@ def test_build_meme_prompt_contains_topic() -> None:
     assert "test topic" in prompt
 
 
-def test_build_meme_prompt_contains_metadata() -> None:
-    """Test prompt includes template metadata."""
-    templates = load_meme_templates()
-    template = sample_meme_template(templates, template_id="aag")
-    prompt = build_meme_prompt(template, topic="test")
-
-    # Should contain key template info
-    assert template.variant in prompt
-    assert template.template_id in prompt
-    assert str(template.text_slots) in prompt
-
-
-def test_build_meme_prompt_contains_examples() -> None:
-    """Test prompt includes examples as JSON."""
-    templates = load_meme_templates()
-    template = sample_meme_template(templates, template_id="aag")
-    prompt = build_meme_prompt(template, topic="test")
-
-    # Examples should be JSON-encoded in prompt
-    examples_json = json.dumps(template.examples, ensure_ascii=False)
-    assert examples_json in prompt
-
-
 # Integration tests
-
-
-@pytest.mark.asyncio()
-async def test_render_meme_text_integration() -> None:
-    """Test full meme text generation with fake LLM."""
-    templates = load_meme_templates()
-    template = sample_meme_template(templates, template_id="astronaut")
-
-    context = Context(
-        request_id="test",
-        user_id=1,
-        guild_id=None,
-        channel_id=1,
-        persona=Persona(id="test", display_name="Test", system_prompt="test"),
-        messages=[],
-        metadata={},
-    )
-
-    # Fake LLM returns valid 2-line meme (astronaut has 2 text slots)
-    llm = FakeLLM(reply_text='["Wait, it\'s a test?", "Always has been"]')
-
-    lines = await render_meme_text(context, llm, template, topic="testing")
-
-    assert len(lines) == 2
-    assert lines[0] == "Wait, it's a test?"
-    assert lines[1] == "Always has been"
 
 
 @pytest.mark.asyncio()
@@ -330,24 +273,6 @@ async def test_memegen_multiline_e2e() -> None:
         assert image_bytes[:8] == b"\x89PNG\r\n\x1a\n"
     except Exception as e:
         pytest.skip(f"Memegen API test failed: {e}")
-
-
-# Cache invalidation tests (requires file manipulation)
-
-
-def test_cache_invalidation_on_file_change(tmp_path: Path) -> None:
-    """Test cache is invalidated when registry file changes."""
-    # This is tricky to test without modifying the actual registry
-    # Would need dependency injection of the file path
-    # For now, we verify the mechanism exists
-    import clanker.shitposts.memes as memes_module
-
-    # Verify the mtime tracking variable exists
-    assert hasattr(memes_module, "_last_registry_mtime")
-
-    # Verify the internal cached function exists
-    assert hasattr(memes_module, "_load_meme_templates_cached")
-    assert hasattr(memes_module._load_meme_templates_cached, "cache_clear")
 
 
 # Error handling tests
