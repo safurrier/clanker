@@ -50,3 +50,21 @@ async def test_admin_toggle_meetings(fake_interaction: FakeInteraction) -> None:
         "New meetings disabled.",
         "New meetings enabled.",
     ]
+
+
+@pytest.mark.asyncio()
+async def test_admin_active_meetings_authorized(fake_interaction: FakeInteraction) -> None:
+    fake_interaction.user = FakeUser(id=99)
+    voice_manager = VoiceSessionManager()
+    voice_manager.state.active_channel_id = 1234
+    deps = BotDependencies(
+        llm=FakeLLM(),
+        stt=None,
+        tts=None,
+        persona=Persona(id="p", display_name="p", system_prompt="sys"),
+        voice_manager=voice_manager,
+        admin_user_ids={99},
+        admin_state=AdminState(),
+    )
+    await handle_admin_active_meetings(fake_interaction, deps)
+    assert fake_interaction.response.messages == ["Active voice channel: 1234"]

@@ -2,35 +2,23 @@
 
 from __future__ import annotations
 
-import logging
-import uuid
+from collections.abc import Callable, Coroutine, Iterable
 from dataclasses import dataclass
-from io import BytesIO
-from pathlib import Path
-from typing import Protocol, cast
 
 import discord
-import discord.ext.voice_recv as voice_recv
 from discord import app_commands
 
-from clanker.models import Context, Message, Persona
-from clanker.providers.base import LLM, STT, TTS, ImageGen
-from clanker.providers.errors import (
-    PermanentProviderError,
-    TransientProviderError,
+from .command_handlers import (
+    BotDependencies,
+    handle_admin_active_meetings,
+    handle_admin_allow_new_meetings,
+    handle_admin_stop_new_meetings,
+    handle_chat,
+    handle_join,
+    handle_leave,
+    handle_shitpost,
+    handle_speak,
 )
-from clanker.respond import respond
-from clanker.shitposts import (
-    build_request,
-    load_templates,
-    render_shitpost,
-    sample_template,
-)
-
-from .admin import AdminState
-from .discord_adapter import VoiceSessionManager
-from .metrics import Metrics
-from .voice_ingest import start_voice_ingest, voice_client_cls
 
 
 class ClankerClient(discord.Client):
@@ -39,56 +27,35 @@ class ClankerClient(discord.Client):
     tree: app_commands.CommandTree
 
 
-@dataclass(frozen=True)
-class BotDependencies:
-    """Dependencies for the bot commands."""
-
-    llm: LLM
-    stt: STT | None
-    tts: TTS | None
-    persona: Persona
-    voice_manager: VoiceSessionManager
-    image: ImageGen | None = None
-    replay_log_path: Path | None = None
-    metrics: Metrics | None = None
-    admin_user_ids: set[int] | None = None
-    admin_state: AdminState | None = None
-    voice_ingest_enabled: bool = False
-
-
-def build_context(
-    interaction: discord.Interaction,
-    persona: Persona,
-    message: Message,
-) -> Context:
-    """Build a Context from a Discord interaction and prompt."""
-    return Context(
-        request_id=str(uuid.uuid4()),
-        user_id=interaction.user.id,
-        guild_id=interaction.guild_id,
-        channel_id=interaction.channel_id or 0,
-        persona=persona,
-        messages=[message],
-        metadata={"source": "discord"},
-    )
-
-
 def register_commands(bot: ClankerClient, deps: BotDependencies) -> None:
     """Register app commands on the Discord bot."""
     tree = app_commands.CommandTree(bot)
 
-    @tree.command(name="chat", description="Chat with Clanker")
-    @app_commands.describe(prompt="Prompt for Clanker")
+    commands = _build_command_specs(deps)
+    for spec in commands:
+        _register_command(tree, spec)
+
+    bot.tree = tree
+
+
+CommandCallback = Callable[..., Coroutine[object, object, None]]
+
+
+@dataclass(frozen=True)
+class CommandSpec:
+    name: str
+    description: str
+    callback: CommandCallback
+    describe: dict[str, str] | None = None
+
+
+def _build_command_specs(deps: BotDependencies) -> Iterable[CommandSpec]:
     async def chat(interaction: discord.Interaction, prompt: str) -> None:
         await handle_chat(interaction, prompt, deps)
 
-    @tree.command(name="speak", description="Chat with TTS response")
-    @app_commands.describe(prompt="Prompt for Clanker")
     async def speak(interaction: discord.Interaction, prompt: str) -> None:
         await handle_speak(interaction, prompt, deps)
 
-    @tree.command(name="shitpost", description="Generate a shitpost")
-    @app_commands.describe(topic="Topic for the shitpost", category="Template category")
     async def shitpost(
         interaction: discord.Interaction,
         topic: str,
@@ -96,292 +63,79 @@ def register_commands(bot: ClankerClient, deps: BotDependencies) -> None:
     ) -> None:
         await handle_shitpost(interaction, topic, category, deps)
 
-    @tree.command(name="join", description="Join your voice channel")
     async def join(interaction: discord.Interaction) -> None:
         await handle_join(interaction, deps)
 
-    @tree.command(name="leave", description="Leave the current voice channel")
     async def leave(interaction: discord.Interaction) -> None:
         await handle_leave(interaction, deps)
 
-    @tree.command(name="admin_active_meetings", description="List active meetings")
     async def admin_active_meetings(interaction: discord.Interaction) -> None:
         await handle_admin_active_meetings(interaction, deps)
 
-    @tree.command(name="admin_stop_new_meetings", description="Stop new meetings")
     async def admin_stop_new_meetings(interaction: discord.Interaction) -> None:
         await handle_admin_stop_new_meetings(interaction, deps)
 
-    @tree.command(name="admin_allow_new_meetings", description="Allow new meetings")
     async def admin_allow_new_meetings(interaction: discord.Interaction) -> None:
         await handle_admin_allow_new_meetings(interaction, deps)
 
-    bot.tree = tree
+    return [
+        CommandSpec(
+            name="chat",
+            description="Chat with Clanker",
+            callback=chat,
+            describe={"prompt": "Prompt for Clanker"},
+        ),
+        CommandSpec(
+            name="speak",
+            description="Chat with TTS response",
+            callback=speak,
+            describe={"prompt": "Prompt for Clanker"},
+        ),
+        CommandSpec(
+            name="shitpost",
+            description="Generate a shitpost",
+            callback=shitpost,
+            describe={
+                "topic": "Topic for the shitpost",
+                "category": "Template category",
+            },
+        ),
+        CommandSpec(
+            name="join",
+            description="Join your voice channel",
+            callback=join,
+        ),
+        CommandSpec(
+            name="leave",
+            description="Leave the current voice channel",
+            callback=leave,
+        ),
+        CommandSpec(
+            name="admin_active_meetings",
+            description="List active meetings",
+            callback=admin_active_meetings,
+        ),
+        CommandSpec(
+            name="admin_stop_new_meetings",
+            description="Stop new meetings",
+            callback=admin_stop_new_meetings,
+        ),
+        CommandSpec(
+            name="admin_allow_new_meetings",
+            description="Allow new meetings",
+            callback=admin_allow_new_meetings,
+        ),
+    ]
 
 
-async def handle_chat(
-    interaction: discord.Interaction,
-    prompt: str,
-    deps: BotDependencies,
-) -> None:
-    logger = logging.getLogger(__name__)
-    await interaction.response.defer()
-
-    try:
-        message = Message(role="user", content=prompt)
-        context = build_context(interaction, deps.persona, message)
-        _increment_metric(deps, "chat_requests")
-        reply, _audio = await respond(
-            context,
-            deps.llm,
-            tts=None,
-            replay_log_path=deps.replay_log_path,
+def _register_command(tree: app_commands.CommandTree, spec: CommandSpec) -> None:
+    callback = spec.callback
+    if spec.describe:
+        callback = app_commands.describe(**spec.describe)(callback)
+    tree.add_command(
+        app_commands.Command(
+            name=spec.name,
+            description=spec.description,
+            callback=callback,
         )
-        thread = await _ensure_thread(interaction)
-        if thread:
-            await thread.send(reply.content)
-            await interaction.followup.send("Reply posted in thread.")
-        else:
-            await interaction.followup.send(reply.content)
-    except ValueError as e:
-        await interaction.followup.send(f"❌ Request blocked: {e}", ephemeral=True)
-    except TransientProviderError:
-        await interaction.followup.send(
-            "⏳ Service temporarily unavailable. Please try again.", ephemeral=True
-        )
-    except PermanentProviderError as e:
-        await interaction.followup.send(
-            "❌ Configuration error. Please contact an admin.", ephemeral=True
-        )
-        logger.error("Provider error in chat", exc_info=True, extra={"error": str(e)})
-    except Exception as e:
-        await interaction.followup.send(
-            "❌ An unexpected error occurred.", ephemeral=True
-        )
-        logger.error("Unexpected error in chat", exc_info=True, extra={"error": str(e)})
-
-
-async def handle_speak(
-    interaction: discord.Interaction,
-    prompt: str,
-    deps: BotDependencies,
-) -> None:
-    logger = logging.getLogger(__name__)
-    await interaction.response.defer()
-
-    try:
-        message = Message(role="user", content=prompt)
-        context = build_context(interaction, deps.persona, message)
-        _increment_metric(deps, "speak_requests")
-        reply, audio = await respond(
-            context,
-            deps.llm,
-            tts=deps.tts,
-            replay_log_path=deps.replay_log_path,
-        )
-        thread = await _ensure_thread(interaction)
-        if audio:
-            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
-            if thread:
-                await thread.send(reply.content, file=file)
-                await interaction.followup.send("Reply posted in thread.")
-            else:
-                await interaction.followup.send(reply.content, file=file)
-        else:
-            if thread:
-                await thread.send(reply.content)
-                await interaction.followup.send("Reply posted in thread.")
-            else:
-                await interaction.followup.send(reply.content)
-    except ValueError as e:
-        await interaction.followup.send(f"❌ Request blocked: {e}", ephemeral=True)
-    except TransientProviderError:
-        await interaction.followup.send(
-            "⏳ Service temporarily unavailable. Please try again.", ephemeral=True
-        )
-    except PermanentProviderError as e:
-        await interaction.followup.send(
-            "❌ Configuration error. Please contact an admin.", ephemeral=True
-        )
-        logger.error("Provider error in speak", exc_info=True, extra={"error": str(e)})
-    except Exception as e:
-        await interaction.followup.send(
-            "❌ An unexpected error occurred.", ephemeral=True
-        )
-        logger.error(
-            "Unexpected error in speak", exc_info=True, extra={"error": str(e)}
-        )
-
-
-async def handle_shitpost(
-    interaction: discord.Interaction,
-    topic: str,
-    category: str | None,
-    deps: BotDependencies,
-) -> None:
-    logger = logging.getLogger(__name__)
-    await interaction.response.defer()
-
-    try:
-        templates = load_templates()
-        template = sample_template(templates, category=category)
-        request = build_request(template, topic)
-        _increment_metric(deps, "shitpost_requests")
-        reply = await render_shitpost(
-            build_context(interaction, deps.persona, Message(role="user", content="")),
-            deps.llm,
-            request,
-        )
-        if deps.image and template.category == "meme":
-            image_payload = await deps.image.generate(
-                {"template": template.name, "text": reply.content}
-            )
-            if isinstance(image_payload, str):
-                image_bytes = image_payload.encode()
-            else:
-                image_bytes = image_payload
-            file = discord.File(fp=BytesIO(image_bytes), filename="meme.png")
-            await interaction.followup.send(reply.content, file=file)
-        else:
-            await interaction.followup.send(reply.content)
-    except ValueError as e:
-        await interaction.followup.send(f"❌ Invalid category: {e}", ephemeral=True)
-    except TransientProviderError:
-        await interaction.followup.send(
-            "⏳ Service temporarily unavailable. Please try again.", ephemeral=True
-        )
-    except PermanentProviderError as e:
-        await interaction.followup.send(
-            "❌ Configuration error. Please contact an admin.", ephemeral=True
-        )
-        logger.error(
-            "Provider error in shitpost", exc_info=True, extra={"error": str(e)}
-        )
-    except Exception as e:
-        await interaction.followup.send(
-            "❌ An unexpected error occurred.", ephemeral=True
-        )
-        logger.error(
-            "Unexpected error in shitpost", exc_info=True, extra={"error": str(e)}
-        )
-
-
-async def handle_join(
-    interaction: discord.Interaction,
-    deps: BotDependencies,
-) -> None:
-    logger = logging.getLogger(__name__)
-    if deps.admin_state and not deps.admin_state.allow_new_meetings:
-        await interaction.response.send_message("New meetings are disabled.")
-        return
-    if not interaction.user or not isinstance(interaction.user, discord.Member):
-        await interaction.response.send_message("Unable to resolve voice channel.")
-        return
-    voice_state = interaction.user.voice
-    if not voice_state or not voice_state.channel:
-        await interaction.response.send_message("Join a voice channel first.")
-        return
-    ingest_voice_client_cls = None
-    if deps.voice_ingest_enabled:
-        ingest_voice_client_cls = voice_client_cls()
-    ok, status = await deps.voice_manager.join(
-        voice_state.channel, voice_client_cls=ingest_voice_client_cls
     )
-    if ok:
-        response = "Joined voice channel."
-        if deps.voice_ingest_enabled:
-            if deps.stt is None:
-                response += " (Transcription unavailable; STT not configured.)"
-            elif ingest_voice_client_cls is None:
-                response += " (Transcription unavailable in this host build.)"
-            else:
-                try:
-                    voice_client = deps.voice_manager.voice_client
-                    if voice_client is None:
-                        raise RuntimeError("Voice client not available.")
-                    # Safe cast: we just joined with voice_recv.VoiceRecvClient class
-                    recv_client = cast(voice_recv.VoiceRecvClient, voice_client)
-                    await start_voice_ingest(recv_client, deps.stt)
-                    response += " (Transcription enabled.)"
-                except Exception:
-                    logger.exception("Failed to start voice ingest.")
-                    response += " (Transcription unavailable due to setup error.)"
-        await interaction.response.send_message(response)
-        return
-    await interaction.response.send_message(status)
-
-
-async def handle_leave(
-    interaction: discord.Interaction,
-    deps: BotDependencies,
-) -> None:
-    ok, status = await deps.voice_manager.leave()
-    if ok:
-        await interaction.response.send_message("Left voice channel.")
-        return
-    await interaction.response.send_message(status)
-
-
-async def handle_admin_active_meetings(
-    interaction: discord.Interaction,
-    deps: BotDependencies,
-) -> None:
-    if not _is_admin(interaction, deps):
-        await interaction.response.send_message("Not authorized.")
-        return
-    active = deps.voice_manager.active_channel_id
-    await interaction.response.send_message(f"Active voice channel: {active or 'none'}")
-
-
-async def handle_admin_stop_new_meetings(
-    interaction: discord.Interaction,
-    deps: BotDependencies,
-) -> None:
-    if not _is_admin(interaction, deps):
-        await interaction.response.send_message("Not authorized.")
-        return
-    if deps.admin_state:
-        deps.admin_state.allow_new_meetings = False
-    await interaction.response.send_message("New meetings disabled.")
-
-
-async def handle_admin_allow_new_meetings(
-    interaction: discord.Interaction,
-    deps: BotDependencies,
-) -> None:
-    if not _is_admin(interaction, deps):
-        await interaction.response.send_message("Not authorized.")
-        return
-    if deps.admin_state:
-        deps.admin_state.allow_new_meetings = True
-    await interaction.response.send_message("New meetings enabled.")
-
-
-def _is_admin(interaction: discord.Interaction, deps: BotDependencies) -> bool:
-    if not deps.admin_user_ids:
-        return False
-    if not interaction.user:
-        return False
-    return interaction.user.id in deps.admin_user_ids
-
-
-def _increment_metric(deps: BotDependencies, key: str) -> None:
-    if deps.metrics:
-        deps.metrics.increment(key)
-
-
-class ThreadCreator(Protocol):
-    async def create_thread(self, name: str, **kwargs: object) -> discord.Thread: ...
-
-
-async def _ensure_thread(
-    interaction: discord.Interaction,
-) -> discord.Thread | None:
-    channel = interaction.channel
-    if channel and hasattr(channel, "create_thread"):
-        creator = cast(ThreadCreator, channel)
-        return await creator.create_thread(
-            name=f"clanker-{uuid.uuid4().hex[:6]}",
-            type=discord.ChannelType.public_thread,
-        )
-    return None
