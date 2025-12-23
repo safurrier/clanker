@@ -17,6 +17,9 @@ from ..providers.base import LLM
 MEME_INSTANCE_ARGS_PATH = Path(__file__).with_name("meme_instance_args.json")
 MEME_PROMPT_PATH = Path(__file__).with_name("prompts") / "shitpost_meme_generation.yaml"
 
+# Track file modification time for cache invalidation
+_last_registry_mtime: float | None = None
+
 
 @dataclass(frozen=True)
 class MemeTemplate:
@@ -50,15 +53,14 @@ class MemeGeneration:
 
 
 @lru_cache(maxsize=4)
-def load_meme_templates(
-    include_nsfw: bool = False, include_disabled: bool = False
+def _load_meme_templates_cached(
+    include_nsfw: bool = False,
+    include_disabled: bool = False,
+    _cache_key: float = 0.0,  # mtime used as cache key
 ) -> tuple[MemeTemplate, ...]:
-    """Load meme templates from the curated JSON registry.
+    """Load meme templates from JSON with caching.
 
-    Results are cached to avoid repeated JSON parsing. Cache size of 4 covers
-    all combinations of include_nsfw x include_disabled parameters.
-
-    Note: Returns tuple instead of list to support caching (tuples are hashable).
+    Internal function - use load_meme_templates() instead.
     """
     raw = json.loads(MEME_INSTANCE_ARGS_PATH.read_text(encoding="utf-8"))
     templates: list[MemeTemplate] = []
@@ -70,6 +72,37 @@ def load_meme_templates(
             continue
         templates.append(template)
     return tuple(templates)
+
+
+def load_meme_templates(
+    include_nsfw: bool = False, include_disabled: bool = False
+) -> tuple[MemeTemplate, ...]:
+    """Load meme templates from the curated JSON registry.
+
+    Results are cached to avoid repeated JSON parsing. Cache is automatically
+    invalidated when the registry file is modified (hot-reload support).
+
+    Args:
+        include_nsfw: Include potentially NSFW templates
+        include_disabled: Include templates marked do_not_use=True
+
+    Returns:
+        Tuple of MemeTemplate objects matching the filters
+
+    Note: Returns tuple instead of list to support caching (tuples are hashable).
+    """
+    global _last_registry_mtime
+
+    # Check if file was modified since last load
+    current_mtime = MEME_INSTANCE_ARGS_PATH.stat().st_mtime
+
+    if _last_registry_mtime != current_mtime:
+        # File changed - clear cache
+        _load_meme_templates_cached.cache_clear()
+        _last_registry_mtime = current_mtime
+
+    # Use mtime as cache key to ensure fresh data after file changes
+    return _load_meme_templates_cached(include_nsfw, include_disabled, current_mtime)
 
 
 def sample_meme_template(
