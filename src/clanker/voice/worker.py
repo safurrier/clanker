@@ -5,6 +5,7 @@ from __future__ import annotations
 import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from ..models import Context, Message
 from ..providers.base import STT
@@ -20,27 +21,42 @@ class TranscriptEvent:
     chunk_id: str
     text: str
     chunk: AudioChunk
+    start_time: datetime
+    end_time: datetime
+
+
+@dataclass(frozen=True)
+class AudioBuffer:
+    """PCM buffer with a start timestamp."""
+
+    pcm_bytes: bytes
+    start_time: datetime
 
 
 async def transcript_loop_once(
-    buffers: Mapping[int, bytes],
+    buffers: Mapping[int, AudioBuffer],
     stt: STT,
     sample_rate_hz: int,
 ) -> list[TranscriptEvent]:
     """Process per-user audio buffers once and return transcript events."""
     events: list[TranscriptEvent] = []
-    for speaker_id, pcm_bytes in buffers.items():
+    for speaker_id, buffer in buffers.items():
+        pcm_bytes = buffer.pcm_bytes
         segments = detect_speech_segments(pcm_bytes, sample_rate_hz)
         chunks = chunk_segments(segments)
         for index, chunk in enumerate(chunks):
             chunk_bytes = _slice_pcm(pcm_bytes, sample_rate_hz, chunk)
             text = await stt.transcribe(chunk_bytes)
+            start_time = buffer.start_time + timedelta(milliseconds=chunk.start_ms)
+            end_time = buffer.start_time + timedelta(milliseconds=chunk.end_ms)
             events.append(
                 TranscriptEvent(
                     speaker_id=speaker_id,
                     chunk_id=f"{speaker_id}-{index}",
                     text=text,
                     chunk=chunk,
+                    start_time=start_time,
+                    end_time=end_time,
                 )
             )
     return events
