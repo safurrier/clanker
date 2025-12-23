@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from clanker.models import Context, Message
-from clanker.providers.base import LLM, STT, TTS
+from clanker.providers.base import ImageGen, LLM, STT, TTS
 
 
 @dataclass(frozen=True)
@@ -40,3 +40,13 @@ class FakeTTS(TTS):
         self, text: str, voice: str, params: dict | None = None
     ) -> bytes:
         return self.audio_bytes
+
+
+@dataclass(frozen=True)
+class FakeImage(ImageGen):
+    """Deterministic image generation fake."""
+
+    image_bytes: bytes = b"image"
+
+    async def generate(self, params: dict) -> bytes:
+        return self.image_bytes
