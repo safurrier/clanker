@@ -27,6 +27,10 @@ dev = [
     "tomli>=2.0.1",     # TOML reading
     "tomli-w>=1.0.0",   # TOML writing
 ]
+web = [
+    "fastapi>=0.115.0",  # Web framework for examples
+    "uvicorn>=0.32.0",   # ASGI server
+]
 
 [build-system]
 requires = ["hatchling"]
