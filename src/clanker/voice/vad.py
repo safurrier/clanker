@@ -70,23 +70,41 @@ class EnergyVAD:
 class SileroVAD:
     """Silero VAD-based speech detector (requires torch/numpy)."""
 
-    def __init__(self) -> None:
+    def __init__(self, warmup: bool = False) -> None:
         self._model = None
         self._torch = None
         self._np = None
+        if warmup:
+            self._load()
 
     def _load(self) -> None:
         if self._model is not None:
             return
-        import numpy as np  # type: ignore[import-not-found]
-        import torch  # type: ignore[import-not-found]
 
-        model, _ = torch.hub.load(
-            repo_or_dir="snakers4/silero-vad",
-            model="silero_vad",
-            force_reload=False,
-            onnx=True,
-        )
+        try:
+            import numpy as np
+            import torch
+        except ImportError as e:
+            msg = (
+                "Silero VAD requires torch and numpy. "
+                "Install with: uv pip install 'clanker9000[voice]'"
+            )
+            raise RuntimeError(msg) from e
+
+        try:
+            model, _ = torch.hub.load(
+                repo_or_dir="snakers4/silero-vad",
+                model="silero_vad",
+                force_reload=False,
+                onnx=True,
+            )
+        except Exception as e:
+            msg = (
+                f"Failed to load Silero VAD model: {e}. "
+                "Ensure you have network access or the model is cached."
+            )
+            raise RuntimeError(msg) from e
+
         self._model = model
         self._torch = torch
         self._np = np

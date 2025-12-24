@@ -90,6 +90,45 @@ uv run pytest tests -m "not network"
 | `ELEVENLABS_API_KEY` | For TTS | Text-to-speech |
 | `CLANKER_CONFIG_PATH` | No | Custom config path |
 
+## Voice Processing with VAD
+
+Two voice activity detection (VAD) implementations:
+
+| Implementation | Accuracy | Dependencies | Size |
+|----------------|----------|--------------|------|
+| **SileroVAD** (default) | High (ML-based) | torch, numpy | ~500MB |
+| **EnergyVAD** (fallback) | Moderate (RMS) | Built-in | Minimal |
+
+**Install voice support:**
+```bash
+uv pip install -e ".[voice]"
+```
+
+**Warmup on bot startup** (recommended):
+```python
+from clanker_bot.voice_ingest import warmup_voice_detector
+
+# Pre-load Silero VAD model
+detector = await warmup_voice_detector(prefer_silero=True)
+```
+
+The warmup function validates dependencies, loads the model, and falls back gracefully to EnergyVAD if Silero is unavailable.
+
+## Docker Deployment
+
+See `DOCKER_DEPLOYMENT.md` for full documentation.
+
+**Quick start:**
+```bash
+# Create .env with DISCORD_TOKEN and OPENAI_API_KEY
+docker-compose up -d
+```
+
+The Dockerfile includes:
+- Pre-downloaded Silero VAD model (no runtime downloads)
+- Voice support (torch/numpy) pre-installed
+- Optimized multi-stage build
+
 ## Adding New Providers
 
 1. Define protocol in `providers/` (if new type)

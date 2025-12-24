@@ -12,8 +12,10 @@ import discord
 import discord.ext.voice_recv as voice_recv
 
 from clanker.providers.base import STT
-from clanker.voice.vad import SpeechDetector, resolve_detector
+from clanker.voice.vad import EnergyVAD, SileroVAD, SpeechDetector, resolve_detector
 from clanker.voice.worker import AudioBuffer, TranscriptEvent, transcript_loop_once
+
+logger = logging.getLogger(__name__)
 
 
 def voice_client_cls() -> type[discord.VoiceClient] | None:
@@ -137,3 +139,35 @@ async def start_voice_ingest(
     )
     sink = VoiceIngestSink(worker, on_transcript=on_transcript)
     voice_client.listen(sink)
+
+
+async def warmup_voice_detector(prefer_silero: bool = True) -> SpeechDetector:
+    """Warmup and return the best available speech detector.
+
+    This should be called on bot startup to pre-load the Silero VAD model
+    and validate that dependencies are available.
+
+    Args:
+        prefer_silero: Whether to prefer Silero VAD over EnergyVAD.
+
+    Returns:
+        A warmed-up SpeechDetector (SileroVAD or EnergyVAD fallback).
+    """
+    if not prefer_silero:
+        logger.info("Using EnergyVAD (Silero disabled by config)")
+        return EnergyVAD()
+
+    try:
+        logger.info("Warming up Silero VAD...")
+        detector = SileroVAD(warmup=True)
+
+        # Test with dummy audio to ensure model is loaded
+        dummy_pcm = b"\x00\x00" * 16000  # 1 second of silence at 16kHz
+        detector.detect(dummy_pcm, 16000)
+
+        logger.info("Silero VAD ready")
+        return detector
+
+    except Exception as e:
+        logger.warning(f"Silero VAD unavailable, falling back to EnergyVAD: {e}")
+        return EnergyVAD()

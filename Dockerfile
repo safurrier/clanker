@@ -1,0 +1,47 @@
+# Dockerfile for Clanker9000 Discord Bot
+# Based on the Sparky reference implementation
+
+# Builder stage for cloning dependencies
+FROM python:3.11 AS builder
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone Silero VAD model (avoids rate limiting in production)
+FROM builder AS silero-vad
+RUN git clone https://github.com/snakers4/silero-vad.git /silero-vad && \
+    rm -rf /silero-vad/.git
+
+# Main application stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy application code
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+COPY tests/ ./tests/
+
+# Install uv for fast package management
+RUN pip install --no-cache-dir uv
+
+# Install dependencies including voice support
+RUN uv pip install --system --no-cache -e ".[voice]"
+
+# Copy pre-downloaded Silero model
+COPY --from=silero-vad /silero-vad ./silero-vad
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV TORCH_HOME=/app/.cache/torch
+ENV SILERO_VAD_PATH=/app/silero-vad
+
+# Health check (optional - adjust port if needed)
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+#   CMD python -c "import sys; sys.exit(0)"
+
+# Run the bot
+CMD ["python", "-m", "clanker_bot.main"]
