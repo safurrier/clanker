@@ -1,0 +1,65 @@
+{
+  "samples": [
+    {
+      "filename": "sample1_monologue.wav",
+      "duration_sec": 5.0,
+      "sample_rate": 16000,
+      "transcript": "This is a test of the audio transcription system.",
+      "description": "5 second monologue, single speaker"
+    },
+    {
+      "filename": "sample2_paused.wav",
+      "duration_sec": 6.5,
+      "sample_rate": 16000,
+      "transcript": "First utterance. Second utterance after pause.",
+      "utterances": [
+        {
+          "start_sec": 0.0,
+          "end_sec": 2.5,
+          "text": "First utterance."
+        },
+        {
+          "start_sec": 3.5,
+          "end_sec": 6.5,
+          "text": "Second utterance after pause."
+        }
+      ],
+      "description": "Two utterances separated by 1 second silence"
+    },
+    {
+      "filename": "sample3_multispeaker.wav",
+      "duration_sec": 5.8,
+      "sample_rate": 16000,
+      "transcript": "Hello there. How are you? I am doing well.",
+      "speakers": [
+        {
+          "id": 1,
+          "frequency": 190,
+          "segments": [
+            [
+              0.0,
+              1.5
+            ],
+            [
+              3.0,
+              4.5
+            ]
+          ]
+        },
+        {
+          "id": 2,
+          "frequency": 250,
+          "segments": [
+            [
+              1.8,
+              3.0
+            ]
+          ]
+        }
+      ],
+      "description": "Two speakers alternating, simulated by different frequencies"
+    }
+  ],
+  "total_duration_sec": 17.3,
+  "generated_by": "tests/data/generate_samples.py"
+}
