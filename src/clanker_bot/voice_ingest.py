@@ -25,12 +25,22 @@ def voice_client_cls() -> type[discord.VoiceClient] | None:
 
 @dataclass
 class VoiceIngestWorker:
-    """Buffers PCM frames and invokes STT pipeline."""
+    """Buffers PCM frames and invokes STT pipeline.
+
+    Args:
+        stt: Speech-to-text provider
+        sample_rate_hz: Audio sample rate (Discord uses 48kHz)
+        chunk_seconds: Buffer threshold - process every N seconds
+                      (10s = good for conversations, 30s = meetings/monologues)
+        max_silence_ms: Silence gap to split utterances
+                       (1000ms = natural pauses in speech)
+        detector: Voice activity detector (SileroVAD or EnergyVAD)
+    """
 
     stt: STT
     sample_rate_hz: int = 48000  # Discord voice uses 48kHz sample rate
-    chunk_seconds: float = 2.0
-    max_silence_ms: int = 500
+    chunk_seconds: float = 10.0  # Process every 10 seconds (was 2.0)
+    max_silence_ms: int = 1000  # 1 second silence = new utterance (was 500ms)
     detector: SpeechDetector = field(default_factory=resolve_detector)
     buffers: dict[int, bytearray] = field(default_factory=dict)
     buffer_start_times: dict[int, datetime] = field(default_factory=dict)
@@ -121,7 +131,8 @@ async def start_voice_ingest(
     stt: STT,
     on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
     detector: SpeechDetector | None = None,
-    max_silence_ms: int = 500,
+    chunk_seconds: float = 10.0,
+    max_silence_ms: int = 1000,
 ) -> None:
     """Start voice ingest on a voice_recv-enabled voice client.
 
@@ -130,11 +141,13 @@ async def start_voice_ingest(
         stt: Speech-to-text provider.
         on_transcript: Optional callback for transcript events.
         detector: Optional speech detector override.
-        max_silence_ms: Gap size used to split utterances.
+        chunk_seconds: Process buffer every N seconds (10s = conversations, 30s = meetings).
+        max_silence_ms: Silence gap to split utterances (1000ms = natural pauses).
     """
     worker = VoiceIngestWorker(
         stt=stt,
         detector=detector or resolve_detector(),
+        chunk_seconds=chunk_seconds,
         max_silence_ms=max_silence_ms,
     )
     sink = VoiceIngestSink(worker, on_transcript=on_transcript)

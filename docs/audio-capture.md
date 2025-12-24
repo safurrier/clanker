@@ -199,6 +199,70 @@ events = [
 - Meeting notes
 - Context for LLM prompts
 
+## Configuration
+
+### Buffer Size (`chunk_seconds`)
+
+Controls **when** to process accumulated audio buffers.
+
+| Value | Latency | API Calls | Use Case |
+|-------|---------|-----------|----------|
+| **10s** (default) | ~10s | Moderate | Conversations, voice chat |
+| **30s** | ~30s | Few | Meetings, monologues |
+| **60s** | ~60s | Minimal | Long-form (podcasts, lectures) |
+| **2s** | ~2s | Many | Real-time (NOT recommended) |
+
+**Trade-off:**
+- **Smaller** = Lower latency, more API calls, may cut off speakers
+- **Larger** = Higher latency, fewer API calls, captures complete thoughts
+
+**Example:**
+```python
+# For voice chat (recommended)
+worker = VoiceIngestWorker(stt=stt, chunk_seconds=10.0)
+
+# For meeting transcription
+worker = VoiceIngestWorker(stt=stt, chunk_seconds=30.0)
+
+# For podcasts/lectures
+worker = VoiceIngestWorker(stt=stt, chunk_seconds=60.0)
+```
+
+**Memory impact:**
+- 10s buffer = ~960 KB per speaker
+- 30s buffer = ~2.9 MB per speaker
+- 10 speakers × 30s = ~29 MB total (acceptable)
+
+### Silence Gap (`max_silence_ms`)
+
+Controls **how** to split utterances within a buffer.
+
+| Value | Behavior | Use Case |
+|-------|----------|----------|
+| **1000ms** (default) | 1 second silence = new utterance | Natural speech pauses |
+| **500ms** | 0.5 second silence = new utterance | Faster speakers |
+| **1500ms** | 1.5 second silence = new utterance | Thoughtful/slow speakers |
+
+**Trade-off:**
+- **Smaller** = More utterances, fragmented speech
+- **Larger** = Fewer utterances, merged pauses
+
+**Example:**
+```python
+# Fast speakers (split on short pauses)
+worker = VoiceIngestWorker(stt=stt, max_silence_ms=500)
+
+# Normal speech (recommended)
+worker = VoiceIngestWorker(stt=stt, max_silence_ms=1000)
+
+# Slow/thoughtful speakers (allow longer pauses)
+worker = VoiceIngestWorker(stt=stt, max_silence_ms=1500)
+```
+
+**Important:** Even with large `chunk_seconds`, utterances still split naturally by silence!
+
+---
+
 ## Integration
 
 ### Bot Startup

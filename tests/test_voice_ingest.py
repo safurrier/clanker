@@ -28,6 +28,7 @@ async def test_voice_ingest_worker_process_once_returns_transcripts() -> None:
     worker = VoiceIngestWorker(
         stt=FakeSTT(transcript="hello"),
         sample_rate_hz=sample_rate,
+        chunk_seconds=2.0,  # Use shorter threshold for test
         detector=detector,
     )
     worker.add_pcm(123, pcm_bytes, recorded_at=start_time)
@@ -51,7 +52,10 @@ def test_voice_ingest_worker_should_process_requires_threshold() -> None:
         sample_rate = wf.getframerate()
     detector = FakeDetector([SpeechSegment(start_ms=0, end_ms=2000)])
     worker = VoiceIngestWorker(
-        stt=FakeSTT(), sample_rate_hz=sample_rate, detector=detector
+        stt=FakeSTT(),
+        sample_rate_hz=sample_rate,
+        chunk_seconds=2.0,  # Use shorter threshold for test
+        detector=detector,
     )
     half_second_bytes = pcm_bytes[: sample_rate * 1 * 2]
     worker.add_pcm(42, half_second_bytes)
@@ -66,6 +70,7 @@ async def test_voice_ingest_worker_orders_events_across_speakers() -> None:
     worker = VoiceIngestWorker(
         stt=FakeSTT(transcript="hello"),
         sample_rate_hz=sample_rate,
+        chunk_seconds=2.0,  # Use shorter threshold for test
         detector=detector,
     )
     worker.add_pcm(1, pcm_bytes, recorded_at=datetime(2024, 1, 1, 12, 0, 0))
