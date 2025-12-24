@@ -23,7 +23,9 @@ Clanker9000 provides a clean separation between a reusable SDK (`clanker`) and a
 | [Architecture](ARCHITECTURE.md) | System design and components |
 | [Contributing](CONTRIBUTING.md) | Development setup and guidelines |
 | [Configuration](config_schema.md) | Full config reference |
-| [Voice Pipeline](voice_ingest_pipeline.md) | Voice processing details |
+| [Audio Capture](audio-capture.md) | Voice transcription pipeline (VAD, utterances, multi-speaker) |
+| [Meme Pipeline](meme-pipeline.md) | Curated meme generation system |
+| [Container Setup](container-setup.md) | Docker development and deployment |
 
 ## Installation
 
