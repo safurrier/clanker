@@ -8,10 +8,24 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     environment:
-      EXAMPLE: ${EXAMPLE}
-      EXAMPLE_SECRET: ${EXAMPLE_SECRET}
+      # Discord and API keys
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+
+      # Configuration
+      CLANKER_CONFIG_PATH: ${CLANKER_CONFIG_PATH:-/workspace/config.yaml}
+
+      # Python settings
+      PYTHONUNBUFFERED: 1
+      TORCH_HOME: /workspace/.cache/torch
     command: /bin/bash
     # Note: user mapping handled by Podman rootless automatically
-    # Bind whole project directory for simplicity  
+    # Bind whole project directory for simplicity
     volumes:
       - ../:/workspace:Z
+      - torch-cache:/workspace/.cache/torch
+
+volumes:
+  torch-cache:
+    driver: local

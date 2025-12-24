@@ -6,12 +6,16 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 
 import discord
 import discord.ext.voice_recv as voice_recv
 
 from clanker.providers.base import STT
-from clanker.voice.worker import transcript_loop_once
+from clanker.voice.vad import EnergyVAD, SileroVAD, SpeechDetector, resolve_detector
+from clanker.voice.worker import AudioBuffer, TranscriptEvent, transcript_loop_once
+
+logger = logging.getLogger(__name__)
 
 
 def voice_client_cls() -> type[discord.VoiceClient] | None:
@@ -21,26 +25,56 @@ def voice_client_cls() -> type[discord.VoiceClient] | None:
 
 @dataclass
 class VoiceIngestWorker:
-    """Buffers PCM frames and invokes STT pipeline."""
+    """Buffers PCM frames and invokes STT pipeline.
+
+    Args:
+        stt: Speech-to-text provider
+        sample_rate_hz: Audio sample rate (Discord uses 48kHz)
+        chunk_seconds: Buffer threshold - process every N seconds
+                      (10s = good for conversations, 30s = meetings/monologues)
+        max_silence_ms: Silence gap to split utterances
+                       (1000ms = natural pauses in speech)
+        detector: Voice activity detector (SileroVAD or EnergyVAD)
+    """
 
     stt: STT
     sample_rate_hz: int = 48000  # Discord voice uses 48kHz sample rate
-    chunk_seconds: float = 2.0
+    chunk_seconds: float = 10.0  # Process every 10 seconds (was 2.0)
+    max_silence_ms: int = 1000  # 1 second silence = new utterance (was 500ms)
+    detector: SpeechDetector = field(default_factory=resolve_detector)
     buffers: dict[int, bytearray] = field(default_factory=dict)
+    buffer_start_times: dict[int, datetime] = field(default_factory=dict)
 
-    def add_pcm(self, user_id: int, pcm_bytes: bytes) -> None:
+    def add_pcm(
+        self, user_id: int, pcm_bytes: bytes, recorded_at: datetime | None = None
+    ) -> None:
         """Add PCM bytes for a user and trigger processing when large enough."""
         buffer = self.buffers.setdefault(user_id, bytearray())
+        if not buffer:
+            self.buffer_start_times[user_id] = recorded_at or datetime.now()
         buffer.extend(pcm_bytes)
 
-    async def process_once(self) -> list[str]:
-        """Process current buffers once and return transcript texts."""
+    async def process_once(self) -> list[TranscriptEvent]:
+        """Process current buffers once and return transcript events."""
         if not self.buffers:
             return []
-        payload = {user_id: bytes(buf) for user_id, buf in self.buffers.items()}
+        payload = {
+            user_id: AudioBuffer(
+                pcm_bytes=bytes(buf),
+                start_time=self.buffer_start_times.get(user_id, datetime.now()),
+            )
+            for user_id, buf in self.buffers.items()
+        }
         self.buffers.clear()
-        events = await transcript_loop_once(payload, self.stt, self.sample_rate_hz)
-        return [event.text for event in events]
+        self.buffer_start_times.clear()
+        events = await transcript_loop_once(
+            payload,
+            self.stt,
+            self.sample_rate_hz,
+            detector=self.detector,
+            max_silence_ms=self.max_silence_ms,
+        )
+        return sorted(events, key=lambda event: event.start_time)
 
     def should_process(self) -> bool:
         """Check if any buffer exceeds the chunk size threshold."""
@@ -54,7 +88,7 @@ class VoiceIngestSink(voice_recv.AudioSink):
     def __init__(
         self,
         worker: VoiceIngestWorker,
-        on_transcript: Callable[[str], Awaitable[None]] | None = None,
+        on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
     ) -> None:
         super().__init__()
         self.worker = worker
@@ -75,19 +109,30 @@ class VoiceIngestSink(voice_recv.AudioSink):
             task.add_done_callback(self._tasks.discard)
 
     async def _flush(self) -> None:
-        texts = await self.worker.process_once()
-        if not texts:
+        events = await self.worker.process_once()
+        if not events:
             return
-        for text in texts:
+        for event in events:
             if self.on_transcript:
-                await self.on_transcript(text)
-            self.logger.info("voice_ingest.transcript", extra={"text": text})
+                await self.on_transcript(event)
+            self.logger.info(
+                "voice_ingest.transcript",
+                extra={
+                    "text": event.text,
+                    "speaker_id": event.speaker_id,
+                    "start_time": event.start_time.isoformat(),
+                    "end_time": event.end_time.isoformat(),
+                },
+            )
 
 
 async def start_voice_ingest(
     voice_client: voice_recv.VoiceRecvClient,
     stt: STT,
-    on_transcript: Callable[[str], Awaitable[None]] | None = None,
+    on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
+    detector: SpeechDetector | None = None,
+    chunk_seconds: float = 10.0,
+    max_silence_ms: int = 1000,
 ) -> None:
     """Start voice ingest on a voice_recv-enabled voice client.
 
@@ -95,7 +140,47 @@ async def start_voice_ingest(
         voice_client: A VoiceRecvClient instance with listen() support.
         stt: Speech-to-text provider.
         on_transcript: Optional callback for transcript events.
+        detector: Optional speech detector override.
+        chunk_seconds: Process buffer every N seconds (10s = conversations, 30s = meetings).
+        max_silence_ms: Silence gap to split utterances (1000ms = natural pauses).
     """
-    worker = VoiceIngestWorker(stt=stt)
+    worker = VoiceIngestWorker(
+        stt=stt,
+        detector=detector or resolve_detector(),
+        chunk_seconds=chunk_seconds,
+        max_silence_ms=max_silence_ms,
+    )
     sink = VoiceIngestSink(worker, on_transcript=on_transcript)
     voice_client.listen(sink)
+
+
+async def warmup_voice_detector(prefer_silero: bool = True) -> SpeechDetector:
+    """Warmup and return the best available speech detector.
+
+    This should be called on bot startup to pre-load the Silero VAD model
+    and validate that dependencies are available.
+
+    Args:
+        prefer_silero: Whether to prefer Silero VAD over EnergyVAD.
+
+    Returns:
+        A warmed-up SpeechDetector (SileroVAD or EnergyVAD fallback).
+    """
+    if not prefer_silero:
+        logger.info("Using EnergyVAD (Silero disabled by config)")
+        return EnergyVAD()
+
+    try:
+        logger.info("Warming up Silero VAD...")
+        detector = SileroVAD(warmup=True)
+
+        # Test with dummy audio to ensure model is loaded
+        dummy_pcm = b"\x00\x00" * 16000  # 1 second of silence at 16kHz
+        detector.detect(dummy_pcm, 16000)
+
+        logger.info("Silero VAD ready")
+        return detector
+
+    except Exception as e:
+        logger.warning(f"Silero VAD unavailable, falling back to EnergyVAD: {e}")
+        return EnergyVAD()

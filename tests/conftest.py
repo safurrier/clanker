@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -110,4 +112,78 @@ def fake_interaction() -> FakeInteraction:
         response=response,
         followup=followup,
         channel=channel,
+    )
+
+
+# Audio test fixtures
+
+
+@dataclass(frozen=True)
+class AudioSample:
+    """Test audio sample with metadata."""
+
+    path: Path
+    pcm_path: Path
+    sample_rate: int
+    duration_sec: float
+    transcript: str
+    description: str
+    metadata: dict
+
+
+@pytest.fixture(scope="session")
+def test_data_dir() -> Path:
+    """Return path to test data directory."""
+    return Path(__file__).parent / "data"
+
+
+@pytest.fixture(scope="session")
+def audio_metadata(test_data_dir: Path) -> dict:
+    """Load test audio metadata."""
+    with open(test_data_dir / "metadata.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture(scope="session")
+def sample_monologue(test_data_dir: Path, audio_metadata: dict) -> AudioSample:
+    """5 second monologue sample."""
+    meta = audio_metadata["samples"][0]
+    return AudioSample(
+        path=test_data_dir / meta["filename"],
+        pcm_path=test_data_dir / "sample1_monologue.pcm",
+        sample_rate=meta["sample_rate"],
+        duration_sec=meta["duration_sec"],
+        transcript=meta["transcript"],
+        description=meta["description"],
+        metadata=meta,
+    )
+
+
+@pytest.fixture(scope="session")
+def sample_paused(test_data_dir: Path, audio_metadata: dict) -> AudioSample:
+    """Two utterances with 1 second pause."""
+    meta = audio_metadata["samples"][1]
+    return AudioSample(
+        path=test_data_dir / meta["filename"],
+        pcm_path=test_data_dir / "sample2_paused.pcm",
+        sample_rate=meta["sample_rate"],
+        duration_sec=meta["duration_sec"],
+        transcript=meta["transcript"],
+        description=meta["description"],
+        metadata=meta,
+    )
+
+
+@pytest.fixture(scope="session")
+def sample_multispeaker(test_data_dir: Path, audio_metadata: dict) -> AudioSample:
+    """Multi-speaker conversation simulation."""
+    meta = audio_metadata["samples"][2]
+    return AudioSample(
+        path=test_data_dir / meta["filename"],
+        pcm_path=test_data_dir / "sample3_multispeaker.pcm",
+        sample_rate=meta["sample_rate"],
+        duration_sec=meta["duration_sec"],
+        transcript=meta["transcript"],
+        description=meta["description"],
+        metadata=meta,
     )

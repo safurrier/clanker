@@ -5,11 +5,12 @@ from __future__ import annotations
 import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from ..models import Context, Message
 from ..providers.base import STT
-from .chunker import AudioChunk, chunk_segments
-from .vad import detect_speech_segments
+from .chunker import AudioChunk
+from .vad import SpeechDetector, SpeechSegment, detect_speech_segments
 
 
 @dataclass(frozen=True)
@@ -20,30 +21,62 @@ class TranscriptEvent:
     chunk_id: str
     text: str
     chunk: AudioChunk
+    start_time: datetime
+    end_time: datetime
+
+
+@dataclass(frozen=True)
+class AudioBuffer:
+    """PCM buffer with a start timestamp."""
+
+    pcm_bytes: bytes
+    start_time: datetime
+
+
+@dataclass(frozen=True)
+class Utterance:
+    """Utterance boundaries derived from speech segments."""
+
+    start_ms: int
+    end_ms: int
+    segments: tuple[SpeechSegment, ...]
 
 
 async def transcript_loop_once(
-    buffers: Mapping[int, bytes],
+    buffers: Mapping[int, AudioBuffer],
     stt: STT,
     sample_rate_hz: int,
+    detector: SpeechDetector | None = None,
+    max_silence_ms: int = 500,
 ) -> list[TranscriptEvent]:
     """Process per-user audio buffers once and return transcript events."""
     events: list[TranscriptEvent] = []
-    for speaker_id, pcm_bytes in buffers.items():
-        segments = detect_speech_segments(pcm_bytes, sample_rate_hz)
-        chunks = chunk_segments(segments)
-        for index, chunk in enumerate(chunks):
-            chunk_bytes = _slice_pcm(pcm_bytes, sample_rate_hz, chunk)
+    for speaker_id, buffer in buffers.items():
+        pcm_bytes = buffer.pcm_bytes
+        segments = detect_speech_segments(pcm_bytes, sample_rate_hz, detector=detector)
+        utterances = _build_utterances(segments, max_silence_ms=max_silence_ms)
+        for index, utterance in enumerate(utterances):
+            chunk_bytes = _slice_pcm(
+                pcm_bytes,
+                sample_rate_hz,
+                AudioChunk(start_ms=utterance.start_ms, end_ms=utterance.end_ms),
+            )
             text = await stt.transcribe(chunk_bytes)
+            start_time = buffer.start_time + timedelta(milliseconds=utterance.start_ms)
+            end_time = buffer.start_time + timedelta(milliseconds=utterance.end_ms)
             events.append(
                 TranscriptEvent(
                     speaker_id=speaker_id,
                     chunk_id=f"{speaker_id}-{index}",
                     text=text,
-                    chunk=chunk,
+                    chunk=AudioChunk(
+                        start_ms=utterance.start_ms, end_ms=utterance.end_ms
+                    ),
+                    start_time=start_time,
+                    end_time=end_time,
                 )
             )
-    return events
+    return sorted(events, key=lambda event: event.start_time)
 
 
 def build_context_from_event(
@@ -72,6 +105,45 @@ def _slice_pcm(pcm_bytes: bytes, sample_rate_hz: int, chunk: AudioChunk) -> byte
     end_index = int(chunk.end_ms / 1000 * sample_rate_hz) * 2
     pcm_chunk = pcm_bytes[start_index:end_index]
     return _wrap_pcm_as_wav(pcm_chunk, sample_rate_hz)
+
+
+def _build_utterances(
+    segments: list[SpeechSegment],
+    max_silence_ms: int,
+) -> list[Utterance]:
+    """Group speech segments into utterances separated by silence gaps."""
+    if not segments:
+        return []
+    utterances: list[Utterance] = []
+    current_segments: list[SpeechSegment] = [segments[0]]
+    current_start = segments[0].start_ms
+    current_end = segments[0].end_ms
+
+    for segment in segments[1:]:
+        gap = segment.start_ms - current_end
+        if gap <= max_silence_ms:
+            current_segments.append(segment)
+            current_end = max(current_end, segment.end_ms)
+        else:
+            utterances.append(
+                Utterance(
+                    start_ms=current_start,
+                    end_ms=current_end,
+                    segments=tuple(current_segments),
+                )
+            )
+            current_segments = [segment]
+            current_start = segment.start_ms
+            current_end = segment.end_ms
+
+    utterances.append(
+        Utterance(
+            start_ms=current_start,
+            end_ms=current_end,
+            segments=tuple(current_segments),
+        )
+    )
+    return utterances
 
 
 def _wrap_pcm_as_wav(pcm_bytes: bytes, sample_rate_hz: int) -> bytes:

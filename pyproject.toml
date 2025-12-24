@@ -27,6 +27,12 @@ dev = [
     "tomli>=2.0.1",     # TOML reading
     "tomli-w>=1.0.0",   # TOML writing
 ]
+voice = [
+    "torch>=2.0.1",     # Required for Silero VAD
+    "torchaudio>=2.0.1",  # Required for Silero VAD
+    "onnxruntime>=1.15.0",  # Required for Silero VAD ONNX model
+    "numpy>=1.25.0",    # Required for Silero VAD and audio processing
+]
 
 [build-system]
 requires = ["hatchling"]
