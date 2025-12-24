@@ -386,3 +386,73 @@ async def test_utterance_boundaries_preserve_audio_chunk_references() -> None:
     assert len(events) == 1
     assert events[0].chunk.start_ms == 500
     assert events[0].chunk.end_ms == 1500
+
+
+@pytest.mark.asyncio()
+async def test_silero_vad_timestamps_match_window_size() -> None:
+    """Regression test: Verify Silero VAD timestamps use correct window duration.
+
+    Bug fixed: Timestamps were hardcoded to 100ms steps while windows are 32ms
+    (512 samples at 16kHz). This caused 3x timing errors in transcript events.
+
+    This test verifies that segment timestamps align with actual audio positions
+    based on the window size, not a hardcoded step.
+    """
+    pytest.importorskip("torch")
+    pytest.importorskip("numpy")
+
+    from clanker.voice.vad import SileroVAD
+
+    # Generate 1 second of silent audio
+    sample_rate = 16000
+    duration_sec = 1.0
+    total_samples = int(sample_rate * duration_sec)
+    pcm_bytes = b"\x00\x00" * total_samples
+
+    detector = SileroVAD(warmup=True)
+    segments = detector.detect(pcm_bytes, sample_rate)
+
+    # Verify: Window duration is 32ms at 16kHz (512 samples / 16000 Hz * 1000 ms/s)
+    expected_window_ms = int((512 / sample_rate) * 1000)  # Should be 32ms
+    assert expected_window_ms == 32, "Test assumption: window size is 512 samples"
+
+    # If Silero detects speech (it might not with silent audio), verify timestamps
+    # are multiples of the actual window duration, not hardcoded 100ms
+    if segments:
+        for segment in segments:
+            # Timestamps should be aligned to 32ms boundaries, not 100ms
+            assert (
+                segment.start_ms % expected_window_ms == 0
+            ), f"start_ms={segment.start_ms} not aligned to {expected_window_ms}ms"
+
+    # Additional verification: Generate audio with a known pattern
+    # Create audio with a short burst of "noise" to trigger Silero detection
+    import numpy as np
+
+    # Create 500ms of low amplitude sine wave to simulate speech
+    duration_ms = 500
+    samples_count = int(sample_rate * duration_ms / 1000)
+    t = np.linspace(0, duration_ms / 1000, samples_count)
+    # 200 Hz sine wave at moderate amplitude
+    audio_signal = (np.sin(2 * np.pi * 200 * t) * 10000).astype(np.int16)
+    pcm_with_speech = audio_signal.tobytes()
+
+    segments_with_speech = detector.detect(pcm_with_speech, sample_rate)
+
+    # Verify: All segment boundaries are multiples of 32ms, not 100ms
+    for segment in segments_with_speech:
+        # start_ms and end_ms should be multiples of window_duration_ms (32ms)
+        assert (
+            segment.start_ms % expected_window_ms == 0
+        ), f"Speech segment start_ms={segment.start_ms} not aligned to {expected_window_ms}ms"
+        assert (
+            segment.end_ms % expected_window_ms == 0
+        ), f"Speech segment end_ms={segment.end_ms} not aligned to {expected_window_ms}ms"
+
+        # Verify timestamps are NOT using old buggy 100ms step
+        # (A segment at 100ms would be impossible with 32ms windows)
+        if segment.start_ms == 100 or segment.end_ms == 100:
+            # This would indicate the bug is still present
+            pytest.fail(
+                f"Segment uses 100ms timestamp (buggy behavior): {segment}"
+            )

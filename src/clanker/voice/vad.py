@@ -137,11 +137,14 @@ class SileroVAD:
 
         self._model.reset_states()
 
+        # Calculate actual window duration based on window size and sample rate
+        window_duration_ms = int((window_size / sample_rate_hz) * 1000)
+
         segments: list[SpeechSegment] = []
         speaking_start: int | None = None
         for idx, prob in enumerate(probs):
-            start_ms = idx * 100
-            end_ms = start_ms + 100
+            start_ms = idx * window_duration_ms
+            end_ms = start_ms + window_duration_ms
             if prob >= 0.4:
                 if speaking_start is None:
                     speaking_start = start_ms
