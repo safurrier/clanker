@@ -10,6 +10,7 @@ import discord
 from clanker.models import Message
 from clanker.respond import respond
 from clanker.shitposts import (
+    ShitpostContext,
     build_request,
     load_meme_templates,
     load_templates,
@@ -124,6 +125,9 @@ async def handle_shitpost(
             interaction, deps.persona, Message(role="user", content="")
         )
 
+        # Build shitpost context from user-provided topic
+        shitpost_context = ShitpostContext(user_input=topic)
+
         if template.category == "meme":
             meme_templates = load_meme_templates()
             meme_template = sample_meme_template(meme_templates)
@@ -132,7 +136,9 @@ async def handle_shitpost(
             increment_metric(deps, f"meme_template_{meme_template.template_id}")
 
             try:
-                lines = await render_meme_text(context, deps.llm, meme_template, topic)
+                lines = await render_meme_text(
+                    context, deps.llm, meme_template, shitpost_context
+                )
                 increment_metric(deps, "meme_generation_success")
             except Exception:
                 increment_metric(deps, "meme_generation_failure")
@@ -152,7 +158,7 @@ async def handle_shitpost(
             else:
                 await interaction.followup.send(caption)
         else:
-            request = build_request(template, topic)
+            request = build_request(template, shitpost_context)
             reply = await render_shitpost(context, deps.llm, request)
             await interaction.followup.send(reply.content)
 

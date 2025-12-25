@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pytest
 
-from clanker.models import Context, Message, Persona
+from clanker.models import Context, Persona
 from clanker.providers.memegen import MemegenImage
+from clanker.shitposts import ShitpostContext
 from clanker.shitposts.memes import (
     build_meme_prompt,
     load_meme_templates,
@@ -18,7 +16,6 @@ from clanker.shitposts.memes import (
     sample_meme_template,
 )
 from tests.fakes import FakeLLM
-
 
 # Unit tests for parsing and normalization
 
@@ -193,8 +190,9 @@ async def test_render_meme_text_normalizes_output() -> None:
 
     # Fake LLM returns only 1 line but template expects 2
     llm = FakeLLM(reply_text='["Only one line"]')
+    shitpost_context = ShitpostContext(user_input="test")
 
-    lines = await render_meme_text(context, llm, template, topic="test")
+    lines = await render_meme_text(context, llm, template, shitpost_context)
 
     # Should be normalized to 2 lines
     assert len(lines) == template.text_slots
@@ -225,9 +223,10 @@ async def test_memegen_api_e2e() -> None:
 
     # Use fake LLM to avoid OpenAI costs
     llm = FakeLLM(reply_text='["Wait it is a test", "Always has been"]')
+    shitpost_context = ShitpostContext(user_input="testing")
 
     # Generate text
-    lines = await render_meme_text(context, llm, template, topic="testing")
+    lines = await render_meme_text(context, llm, template, shitpost_context)
     assert len(lines) == 2
 
     # Generate actual image with real Memegen API
@@ -296,6 +295,7 @@ async def test_render_meme_text_invalid_llm_response() -> None:
 
     # LLM returns invalid JSON
     llm = FakeLLM(reply_text="not json at all")
+    shitpost_context = ShitpostContext(user_input="test")
 
     with pytest.raises(ValueError, match="not valid JSON"):
-        await render_meme_text(context, llm, template, topic="test")
+        await render_meme_text(context, llm, template, shitpost_context)

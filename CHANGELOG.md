@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Context-aware shitpost/meme generation:
+  - `ShitpostContext` model for rich input sources (user input, transcripts, messages)
+  - `Utterance` protocol for duck-typed voice transcript compatibility
+  - Configurable windowing: `max_messages`, `max_transcript_minutes`, `max_transcript_utterances`
+  - Replaces simple `topic: str` parameter with flexible context model
+- Voice-to-meme integration tests:
+  - `tests/test_voice_to_meme.py`: E2E tests transcribing real audio then generating memes
+  - `tests/meme_scoring.py`: LLM-based meme quality scoring (relevance, format, coherence)
+  - Validates `TranscriptEvent` compatibility with `ShitpostContext`
 - Audio pipeline test tooling for debugging voice capture:
   - `scripts/download_test_audio.py`: Download LibriSpeech and AMI corpus samples
   - `scripts/test_audio_pipeline.py`: VAD detection and transcription accuracy reports

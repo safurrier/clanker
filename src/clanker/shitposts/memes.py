@@ -13,6 +13,7 @@ import yaml
 
 from ..models import Context, Message
 from ..providers.base import LLM
+from .models import ShitpostContext
 
 MEME_INSTANCE_ARGS_PATH = Path(__file__).with_name("meme_instance_args.json")
 MEME_PROMPT_PATH = Path(__file__).with_name("prompts") / "shitpost_meme_generation.yaml"
@@ -124,9 +125,17 @@ async def render_meme_text(
     context: Context,
     llm: LLM,
     meme: MemeTemplate,
-    topic: str,
+    shitpost_context: ShitpostContext,
 ) -> list[str]:
-    """Generate meme text lines for a template."""
+    """Generate meme text lines for a template.
+
+    Args:
+        context: LLM request context (user, channel, persona, etc.)
+        llm: LLM provider for text generation
+        meme: Meme template to generate text for
+        shitpost_context: Context containing user input and/or conversation history
+    """
+    topic = shitpost_context.get_prompt_input()
     prompt = build_meme_prompt(meme, topic)
     message = Message(role="user", content=prompt)
     response = await llm.generate(context, [message])
