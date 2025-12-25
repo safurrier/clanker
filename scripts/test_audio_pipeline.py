@@ -6,6 +6,8 @@ reporting detailed metrics on VAD detection and transcription accuracy.
 
 Usage:
     python scripts/test_audio_pipeline.py [--librispeech] [--ami] [--stt]
+
+Requires voice dependencies: uv pip install -e '.[voice]'
 """
 
 from __future__ import annotations
@@ -13,9 +15,16 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
+
+from clanker.providers.openai.stt import OpenAISTT
+from clanker.voice.chunker import AudioChunk
+from clanker.voice.vad import EnergyVAD, SileroVAD
+from clanker.voice.worker import AudioBuffer, _slice_pcm, transcript_loop_once
 
 
 def get_test_data_dir() -> Path:
@@ -43,7 +52,6 @@ def load_ami_samples() -> dict:
 
 def normalize_text(text: str) -> str:
     """Normalize text for comparison."""
-    import re
     text = text.lower()
     text = re.sub(r"[^\w\s]", "", text)
     text = re.sub(r"\s+", " ", text)
@@ -56,8 +64,11 @@ def calculate_wer(reference: str, hypothesis: str) -> dict:
     hyp_words = normalize_text(hypothesis).split()
 
     if not ref_words:
-        return {"wer": 0.0 if not hyp_words else float(len(hyp_words)),
-                "ref_words": 0, "hyp_words": len(hyp_words)}
+        return {
+            "wer": 0.0 if not hyp_words else float(len(hyp_words)),
+            "ref_words": 0,
+            "hyp_words": len(hyp_words),
+        }
 
     # Levenshtein distance
     m, n = len(ref_words), len(hyp_words)
@@ -84,20 +95,11 @@ def calculate_wer(reference: str, hypothesis: str) -> dict:
     }
 
 
-def test_librispeech_vad():
+def test_librispeech_vad() -> None:
     """Test VAD detection on LibriSpeech samples."""
     print("\n" + "=" * 70)
     print("LIBRISPEECH VAD DETECTION TEST")
     print("=" * 70)
-
-    try:
-        import torch  # noqa: F401
-        import numpy  # noqa: F401
-        from clanker.voice.vad import SileroVAD, EnergyVAD
-    except ImportError as e:
-        print(f"⚠️  Missing dependencies: {e}")
-        print("   Install with: uv pip install -e '.[voice]'")
-        return
 
     samples = load_librispeech_samples()
     if not samples:
@@ -134,42 +136,35 @@ def test_librispeech_vad():
         silero_speech_ms = sum(s.end_ms - s.start_ms for s in silero_segments)
         silero_ratio = silero_speech_ms / audio_duration_ms if audio_duration_ms > 0 else 0
 
-        print(f"\n     🤖 Silero VAD:")
+        print("\n     🤖 Silero VAD:")
         print(f"        Segments: {len(silero_segments)}")
         print(f"        Speech detected: {silero_speech_ms:.0f}ms ({silero_ratio:.1%})")
         if silero_segments:
-            print(f"        First segment: {silero_segments[0].start_ms}ms - {silero_segments[0].end_ms}ms")
-            print(f"        Last segment: {silero_segments[-1].start_ms}ms - {silero_segments[-1].end_ms}ms")
+            print(
+                f"        First segment: {silero_segments[0].start_ms}ms - {silero_segments[0].end_ms}ms"
+            )
+            print(
+                f"        Last segment: {silero_segments[-1].start_ms}ms - {silero_segments[-1].end_ms}ms"
+            )
 
         # Test Energy VAD
         energy_segments = energy_vad.detect(pcm_bytes, sample_rate)
         energy_speech_ms = sum(s.end_ms - s.start_ms for s in energy_segments)
         energy_ratio = energy_speech_ms / audio_duration_ms if audio_duration_ms > 0 else 0
 
-        print(f"\n     ⚡ Energy VAD:")
+        print("\n     ⚡ Energy VAD:")
         print(f"        Segments: {len(energy_segments)}")
         print(f"        Speech detected: {energy_speech_ms:.0f}ms ({energy_ratio:.1%})")
 
         print()
 
 
-async def test_librispeech_stt():
+async def test_librispeech_stt() -> None:
     """Test full STT pipeline on LibriSpeech samples."""
     print("\n" + "=" * 70)
     print("LIBRISPEECH FULL TRANSCRIPTION TEST (OpenAI Whisper)")
     print("=" * 70)
 
-    try:
-        import torch  # noqa: F401
-        import numpy  # noqa: F401
-        from clanker.voice.vad import SileroVAD
-        from clanker.voice.worker import AudioBuffer, transcript_loop_once
-        from clanker.providers.openai.stt import OpenAISTT
-    except ImportError as e:
-        print(f"⚠️  Missing dependencies: {e}")
-        return
-
-    import os
     if not os.environ.get("OPENAI_API_KEY"):
         print("⚠️  OPENAI_API_KEY not set. Skipping STT test.")
         return
@@ -205,31 +200,27 @@ async def test_librispeech_stt():
         # Run through pipeline
         buffers = {1: AudioBuffer(pcm_bytes=pcm_bytes, start_time=datetime.now())}
 
-        try:
-            events = await transcript_loop_once(
-                buffers, stt, sample_rate, detector=detector, max_silence_ms=500
-            )
+        events = await transcript_loop_once(
+            buffers, stt, sample_rate, detector=detector, max_silence_ms=500
+        )
 
-            hypothesis = " ".join(e.text for e in events)
-            print(f"     Transcribed:  \"{hypothesis}\"")
+        hypothesis = " ".join(e.text for e in events)
+        print(f"     Transcribed:  \"{hypothesis}\"")
 
-            # Calculate WER
-            wer_result = calculate_wer(ground_truth, hypothesis)
-            print(f"\n     📈 Metrics:")
-            print(f"        Events: {len(events)}")
-            print(f"        WER: {wer_result['wer']:.2%}")
-            print(f"        Edit distance: {wer_result['distance']} / {wer_result['ref_words']} words")
+        # Calculate WER
+        wer_result = calculate_wer(ground_truth, hypothesis)
+        print("\n     📈 Metrics:")
+        print(f"        Events: {len(events)}")
+        print(f"        WER: {wer_result['wer']:.2%}")
+        print(f"        Edit distance: {wer_result['distance']} / {wer_result['ref_words']} words")
 
-            results.append({
-                "sample_id": sample["id"],
-                "ground_truth": ground_truth,
-                "hypothesis": hypothesis,
-                "wer": wer_result["wer"],
-                "events": len(events),
-            })
-
-        except Exception as e:
-            print(f"     ❌ Error: {e}")
+        results.append({
+            "sample_id": sample["id"],
+            "ground_truth": ground_truth,
+            "hypothesis": hypothesis,
+            "wer": wer_result["wer"],
+            "events": len(events),
+        })
 
         print()
 
@@ -251,19 +242,11 @@ async def test_librispeech_stt():
             print("\n  ⚠️  WER above 10% - may need investigation")
 
 
-def test_ami_vad():
+def test_ami_vad() -> None:
     """Test VAD detection on AMI multi-speaker samples."""
     print("\n" + "=" * 70)
     print("AMI CORPUS MULTI-SPEAKER VAD TEST")
     print("=" * 70)
-
-    try:
-        import torch  # noqa: F401
-        import numpy  # noqa: F401
-        from clanker.voice.vad import SileroVAD
-    except ImportError as e:
-        print(f"⚠️  Missing dependencies: {e}")
-        return
 
     ami_data = load_ami_samples()
     if not ami_data or not ami_data.get("speakers"):
@@ -302,7 +285,7 @@ def test_ami_vad():
 
         if segments:
             # Show first few segments
-            print(f"     Sample segments:")
+            print("     Sample segments:")
             for seg in segments[:5]:
                 print(f"       - {seg.start_ms}ms to {seg.end_ms}ms ({seg.end_ms - seg.start_ms}ms)")
             if len(segments) > 5:
@@ -311,7 +294,7 @@ def test_ami_vad():
         print()
 
 
-async def test_ami_stt():
+async def test_ami_stt() -> None:
     """Test full STT pipeline on AMI multi-speaker samples.
 
     Uses a subset (first 60 seconds) to keep API costs reasonable
@@ -321,18 +304,6 @@ async def test_ami_stt():
     print("AMI CORPUS MULTI-SPEAKER TRANSCRIPTION TEST")
     print("=" * 70)
 
-    try:
-        import torch  # noqa: F401
-        import numpy  # noqa: F401
-        from clanker.voice.vad import SileroVAD, SpeechSegment
-        from clanker.voice.worker import AudioBuffer, _slice_pcm, _wrap_pcm_as_wav
-        from clanker.voice.chunker import AudioChunk
-        from clanker.providers.openai.stt import OpenAISTT
-    except ImportError as e:
-        print(f"⚠️  Missing dependencies: {e}")
-        return
-
-    import os
     if not os.environ.get("OPENAI_API_KEY"):
         print("⚠️  OPENAI_API_KEY not set. Skipping STT test.")
         return
@@ -382,21 +353,21 @@ async def test_ami_stt():
 
         # Transcribe each segment
         for seg in segments[:10]:  # Limit to 10 segments per speaker
-            try:
-                chunk = AudioChunk(start_ms=seg.start_ms, end_ms=seg.end_ms)
-                chunk_bytes = _slice_pcm(pcm_clip, sample_rate, chunk)
-                text = await stt.transcribe(chunk_bytes)
-                duration = seg.end_ms - seg.start_ms
-                transcripts.append({
-                    "speaker": speaker,
-                    "start_ms": seg.start_ms,
-                    "end_ms": seg.end_ms,
-                    "duration_ms": duration,
-                    "text": text,
-                })
-                print(f"     [{seg.start_ms/1000:.1f}s-{seg.end_ms/1000:.1f}s] ({duration}ms): \"{text[:60]}{'...' if len(text) > 60 else ''}\"")
-            except Exception as e:
-                print(f"     [{seg.start_ms/1000:.1f}s-{seg.end_ms/1000:.1f}s] ❌ {e}")
+            chunk = AudioChunk(start_ms=seg.start_ms, end_ms=seg.end_ms)
+            chunk_bytes = _slice_pcm(pcm_clip, sample_rate, chunk)
+            text = await stt.transcribe(chunk_bytes)
+            duration = seg.end_ms - seg.start_ms
+            transcripts.append({
+                "speaker": speaker,
+                "start_ms": seg.start_ms,
+                "end_ms": seg.end_ms,
+                "duration_ms": duration,
+                "text": text,
+            })
+            print(
+                f"     [{seg.start_ms/1000:.1f}s-{seg.end_ms/1000:.1f}s] ({duration}ms): "
+                f"\"{text[:60]}{'...' if len(text) > 60 else ''}\""
+            )
 
     print("\n" + "-" * 70)
     print("SUMMARY")
@@ -406,7 +377,7 @@ async def test_ami_stt():
         print(f"  Total utterances transcribed: {len(transcripts)}")
         print(f"  Average duration: {sum(t['duration_ms'] for t in transcripts) / len(transcripts):.0f}ms")
 
-        by_speaker = {}
+        by_speaker: dict[str, list[dict]] = {}
         for t in transcripts:
             if t["speaker"] not in by_speaker:
                 by_speaker[t["speaker"]] = []
@@ -421,7 +392,7 @@ async def test_ami_stt():
         print("  No transcripts generated")
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description="Test audio capture pipeline")
     parser.add_argument("--librispeech", action="store_true", help="Test LibriSpeech samples")
     parser.add_argument("--ami", action="store_true", help="Test AMI samples")
