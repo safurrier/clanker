@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import shutil
+import struct
 import subprocess
 import sys
 import tarfile
@@ -312,9 +314,6 @@ def download_ami_samples() -> bool:
 
 def create_synthetic_ami_sample(ami_dir: Path) -> bool:
     """Create a synthetic multi-speaker sample for testing when AMI isn't available."""
-    import math
-    import struct
-
     print("  Generating synthetic multi-speaker audio...")
 
     sample_rate = 16000

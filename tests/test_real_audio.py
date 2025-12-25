@@ -21,7 +21,11 @@ from datetime import datetime
 
 import pytest
 
+from clanker.providers.openai.stt import OpenAISTT
+from clanker.voice.vad import SileroVAD
+from clanker.voice.worker import AudioBuffer, transcript_loop_once
 from tests.conftest import AMIMeetingSample, LibriSpeechSample
+from tests.fakes import FakeSTT
 from tests.metrics import calculate_wer, calculate_wer_details
 
 # =============================================================================
@@ -51,14 +55,6 @@ async def test_librispeech_transcription_accuracy(
 
     if not librispeech_samples:
         pytest.skip("No LibriSpeech samples found")
-
-    # Import voice dependencies
-    pytest.importorskip("torch")
-    pytest.importorskip("numpy")
-
-    from clanker.providers.openai.stt import OpenAISTT
-    from clanker.voice.vad import SileroVAD
-    from clanker.voice.worker import AudioBuffer, transcript_loop_once
 
     # Initialize components
     detector = SileroVAD(warmup=True)
@@ -131,11 +127,6 @@ async def test_librispeech_vad_detects_real_speech(
     if not librispeech_samples:
         pytest.skip("No LibriSpeech samples found")
 
-    pytest.importorskip("torch")
-    pytest.importorskip("numpy")
-
-    from clanker.voice.vad import SileroVAD
-
     detector = SileroVAD(warmup=True)
 
     for sample in librispeech_samples:
@@ -178,11 +169,6 @@ async def test_librispeech_timestamp_accuracy(
 
     if not librispeech_samples:
         pytest.skip("No LibriSpeech samples found")
-
-    pytest.importorskip("torch")
-    pytest.importorskip("numpy")
-
-    from clanker.voice.vad import SileroVAD
 
     detector = SileroVAD(warmup=True)
     window_ms = 32  # Expected window size at 16kHz
@@ -239,13 +225,6 @@ async def test_ami_multispeaker_detection(
     """
     if not ami_available or ami_meeting_sample is None:
         pytest.skip("AMI samples not downloaded. Run: make download-test-audio")
-
-    pytest.importorskip("torch")
-    pytest.importorskip("numpy")
-
-    from clanker.voice.vad import SileroVAD
-    from clanker.voice.worker import AudioBuffer, transcript_loop_once
-    from tests.fakes import FakeSTT
 
     detector = SileroVAD(warmup=True)
     stt = FakeSTT(transcript="speaker utterance")
@@ -307,13 +286,6 @@ async def test_ami_multispeaker_with_real_stt(
     if not ami_available or ami_meeting_sample is None:
         pytest.skip("AMI samples not downloaded. Run: make download-test-audio")
 
-    pytest.importorskip("torch")
-    pytest.importorskip("numpy")
-
-    from clanker.providers.openai.stt import OpenAISTT
-    from clanker.voice.vad import SileroVAD
-    from clanker.voice.worker import AudioBuffer, transcript_loop_once
-
     detector = SileroVAD(warmup=True)
     stt = OpenAISTT()
 
@@ -367,13 +339,6 @@ async def test_ami_speaker_isolation(
     """
     if not ami_available or ami_meeting_sample is None:
         pytest.skip("AMI samples not downloaded. Run: make download-test-audio")
-
-    pytest.importorskip("torch")
-    pytest.importorskip("numpy")
-
-    from clanker.voice.vad import SileroVAD
-    from clanker.voice.worker import AudioBuffer, transcript_loop_once
-    from tests.fakes import FakeSTT
 
     detector = SileroVAD(warmup=True)
 
