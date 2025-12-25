@@ -176,6 +176,7 @@ async def test_silence_between_utterances_creates_splits() -> None:
         sample_rate,
         detector=detector,
         max_silence_ms=500,
+        min_utterance_ms=0,  # Disable min duration filter for this test
     )
 
     # Verify: 2 utterances (first two segments merged, third separate)

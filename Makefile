@@ -58,6 +58,12 @@ clean: clean-pyc clean-test clean-venv
 test: setup  # Run pytest with coverage (excluding network tests)
 	uv run -m pytest tests -m "not network" --cov=$(MODULE_NAME) --cov-report=term-missing
 
+download-test-audio: setup  # Download test audio samples (LibriSpeech, AMI)
+	uv run python scripts/download_test_audio.py --all
+
+test-network: setup download-test-audio  # Run network tests (requires API keys)
+	uv run -m pytest tests -m "network" -v
+
 ty: setup  # Run type checking
 	uv run ty check $(SRC_DIR)
 

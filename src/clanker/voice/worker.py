@@ -48,13 +48,32 @@ async def transcript_loop_once(
     sample_rate_hz: int,
     detector: SpeechDetector | None = None,
     max_silence_ms: int = 500,
+    min_utterance_ms: int = 500,
 ) -> list[TranscriptEvent]:
-    """Process per-user audio buffers once and return transcript events."""
+    """Process per-user audio buffers once and return transcript events.
+
+    Args:
+        buffers: Mapping of speaker_id to AudioBuffer.
+        stt: Speech-to-text provider.
+        sample_rate_hz: Audio sample rate in Hz.
+        detector: Optional VAD detector (defaults to EnergyVAD).
+        max_silence_ms: Maximum silence gap before splitting utterances.
+        min_utterance_ms: Minimum utterance duration to transcribe.
+            Utterances shorter than this are skipped to avoid STT
+            hallucinations on very short audio clips. Default 500ms.
+
+    Returns:
+        List of TranscriptEvents sorted by start time.
+    """
     events: list[TranscriptEvent] = []
     for speaker_id, buffer in buffers.items():
         pcm_bytes = buffer.pcm_bytes
         segments = detect_speech_segments(pcm_bytes, sample_rate_hz, detector=detector)
         utterances = _build_utterances(segments, max_silence_ms=max_silence_ms)
+        # Filter out short utterances to avoid STT hallucinations
+        utterances = [
+            u for u in utterances if (u.end_ms - u.start_ms) >= min_utterance_ms
+        ]
         for index, utterance in enumerate(utterances):
             chunk_bytes = _slice_pcm(
                 pcm_bytes,
