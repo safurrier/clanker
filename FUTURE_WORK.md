@@ -396,160 +396,102 @@ For questions or discussion, open an issue tagged `enhancement` or `meme-system`
 
 # Audio & Voice Pipeline
 
-## Real Audio E2E Testing
+## CI Integration for Real Audio Tests
 
 ### Overview
 
-Add end-to-end tests using actual speech datasets with ground-truth transcripts to validate the full audio capture and transcription pipeline.
+The real audio E2E tests (`tests/test_real_audio.py`) are currently marked `@pytest.mark.network` and skipped in CI. Consider enabling them with an API secret for continuous validation of the transcription pipeline.
 
-### Recommended Datasets
+### Cost Estimate
 
-#### LibriSpeech (Quick Testing)
-- **Download**: http://www.openslr.org/12
-- **Subset**: `test-clean.tar.gz` (346MB)
-- **Contains**: ~5 hours of clean English speech, 16kHz
-- **Use case**: Fast validation tests with known transcripts
+OpenAI Whisper API: **$0.006 per minute** of audio
 
-**Setup**:
-```bash
-# Download and extract samples
-cd tests/data
-wget http://www.openslr.org/resources/12/test-clean.tar.gz
-tar -xzf test-clean.tar.gz
+| Test Suite | Audio Duration | Cost per Run |
+|------------|----------------|--------------|
+| LibriSpeech samples | ~15 seconds | ~$0.0015 |
+| AMI Corpus samples | ~4 minutes | ~$0.024 |
+| **Total** | ~4.5 minutes | **~$0.03** |
 
-# Select 3 short samples (<10 seconds each)
-# LibriSpeech structure: LibriSpeech/test-clean/<speaker>/<chapter>/*.flac
-# Example: LibriSpeech/test-clean/1089/134686/1089-134686-0000.flac
+At 100 CI runs/month = **~$3/month**
 
-# Transcripts are in .trans.txt files (one line per audio file)
-```
+### Implementation Plan
 
-#### AMI Corpus (Multi-Speaker Meetings)
-- **Download**: https://groups.inf.ed.ac.uk/ami/download/
-- **Contains**: 100 hours of 4-person meeting recordings
-- **Use case**: Realistic multi-speaker conversation testing
+1. **Add GitHub secret**: `OPENAI_API_KEY` for test runs
 
-**Setup**:
-```bash
-# Download individual meeting samples
-# AMI provides separate audio channels per speaker
-# Extract 1-2 minute segments for testing
-```
+2. **Create dedicated test marker**:
+   ```python
+   @pytest.mark.whisper  # Tests requiring Whisper API
+   @pytest.mark.network
+   async def test_librispeech_transcription_accuracy(...):
+   ```
 
-### Planned Test Cases
+3. **Update CI workflow**:
+   ```yaml
+   - name: Run Whisper API tests
+     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+     env:
+       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+     run: uv run pytest -m whisper --timeout=120
+   ```
 
-#### 1. LibriSpeech Validation Test
+4. **Consider cost controls**:
+   - Run only on main branch merges (not every PR)
+   - Weekly scheduled runs instead of per-commit
+   - Cache LibriSpeech downloads in CI artifacts
+
+### Current State
+
+- Real audio tests: `tests/test_real_audio.py` (skipped in CI)
+- Synthetic tests: `tests/test_audio_e2e.py` (always run)
+- Download script: `scripts/download_test_audio.py`
+- Pipeline debugger: `scripts/test_audio_pipeline.py`
+- Test data docs: `tests/data/README.md`
+
+---
+
+## Voice-to-Meme Integration Tests
+
+### Overview
+
+Use the real audio test infrastructure to validate the full voice → transcript → meme pipeline. This would test that transcribed conversations produce coherent shitposts.
+
+### Proposed Test Flow
+
 ```python
 @pytest.mark.network()
 @pytest.mark.slow()
-async def test_librispeech_accuracy():
-    """Validate transcription accuracy with LibriSpeech samples."""
-    # Load audio and ground truth transcript
-    audio_path = test_data_dir / "librispeech/1089-134686-0000.flac"
-    ground_truth = load_librispeech_transcript(audio_path)
-    
-    # Run through full pipeline
-    detector = SileroVAD(warmup=True)
-    stt = OpenAISTT()  # Requires OPENAI_API_KEY
-    
-    events = await process_audio(audio_path, detector, stt)
-    predicted = " ".join(e.text for e in events)
-    
-    # Calculate Word Error Rate (WER)
-    wer = calculate_wer(ground_truth, predicted)
-    assert wer < 0.05, f"WER too high: {wer:.2%} (expected <5%)"
+async def test_voice_transcript_generates_meme():
+    """E2E: Real audio → transcript → meme generation."""
+    # 1. Load LibriSpeech sample and transcribe
+    transcript = await transcribe_sample(librispeech_samples[0])
+
+    # 2. Use transcript as meme topic
+    context = ShitpostContext(conversation_transcript=transcript)
+    template = random.choice(get_enabled_templates())
+
+    # 3. Generate meme text
+    lines = await render_meme_text(context, llm, template, transcript[:100])
+
+    # 4. Validate output
+    assert len(lines) == template.text_slots
+    assert all(isinstance(line, str) for line in lines)
+    assert all(len(line) > 0 for line in lines)
 ```
 
-#### 2. Multi-Speaker AMI Corpus Test
-```python
-@pytest.mark.network()
-@pytest.mark.slow()
-async def test_ami_multispeaker():
-    """Test multi-speaker conversation from AMI Corpus."""
-    # Load 4-speaker meeting segment
-    speakers = {
-        1: load_ami_channel("ES2002a.Mix-Headset-00.wav"),
-        2: load_ami_channel("ES2002a.Mix-Headset-01.wav"),
-        3: load_ami_channel("ES2002a.Mix-Headset-02.wav"),
-        4: load_ami_channel("ES2002a.Mix-Headset-03.wav"),
-    }
-    
-    # Process all speakers through pipeline
-    events = await process_multispeaker(speakers)
-    
-    # Verify chronological ordering
-    assert_chronological_order(events)
-    
-    # Verify all speakers detected
-    assert {e.speaker_id for e in events} == {1, 2, 3, 4}
-```
+### Cost Estimate
 
-#### 3. Timestamp Accuracy Test
-```python
-@pytest.mark.network()
-async def test_timestamp_accuracy():
-    """Verify VAD timestamps match actual speech positions."""
-    # Use LibriSpeech sample with known utterance boundaries
-    audio, timestamps = load_sample_with_annotations()
-    
-    # Run VAD detection
-    detector = SileroVAD(warmup=True)
-    segments = detector.detect(audio, 16000)
-    
-    # Compare detected timestamps with annotations
-    for detected, expected in zip(segments, timestamps):
-        # Allow 100ms tolerance
-        assert abs(detected.start_ms - expected.start_ms) < 100
-        assert abs(detected.end_ms - expected.end_ms) < 100
-```
+Additional to Whisper costs:
+- GPT-4o-mini for meme generation: ~$0.001 per meme
+- 5 test memes per run: ~$0.005/run
 
-### Implementation Steps
+### Benefits
 
-1. **Download samples** (one-time setup):
-   ```bash
-   make download-test-audio  # Create this target
-   ```
+- Validates the full user journey (speak → meme)
+- Tests `ShitpostContext` with real conversation data
+- Catches integration issues between voice and meme pipelines
+- Could generate sample memes for manual review/documentation
 
-2. **Create test data fixtures** in `tests/conftest.py`:
-   ```python
-   @pytest.fixture(scope="session")
-   def librispeech_samples():
-       """Load LibriSpeech test samples with transcripts."""
-       # Parse .trans.txt files
-       # Return list of (audio_path, transcript) tuples
-   ```
+### Prerequisites
 
-3. **Add WER calculation** in `tests/metrics.py`:
-   ```python
-   def calculate_wer(reference: str, hypothesis: str) -> float:
-       """Calculate Word Error Rate using edit distance."""
-   ```
-
-4. **Create test suite** in `tests/test_real_audio.py`
-
-### Storage Considerations
-
-- Store samples in `tests/data/librispeech/` and `tests/data/ami/`
-- Add to `.gitignore` (files are large)
-- Document download process in `tests/data/README.md`
-- Consider caching samples in CI/CD for faster test runs
-
-### Dependencies
-
-- `pytest-asyncio` - Already included
-- OpenAI API key for Whisper STT
-- `python-Levenshtein` (optional) - For fast WER calculation
-
-### Metrics to Track
-
-- **Word Error Rate (WER)**: <5% for clean speech
-- **Utterance Detection Rate**: >95% of utterances detected
-- **Timestamp Accuracy**: ±100ms tolerance
-- **Multi-speaker Ordering**: 100% chronological
-
-### Related Work
-
-- Existing synthetic tests: `tests/test_audio_scenarios.py`
-- Synthetic E2E tests: `tests/test_audio_e2e.py`
-- VAD regression test: `test_silero_vad_timestamps_match_window_size`
-- Documentation: `docs/audio-capture.md`, `docs/transcript-examples.md`
+- Implement `ShitpostContext` refactoring (see "Context-Aware Shitpost Refactoring" above)
+- Or use simpler approach: pass transcript directly as topic string

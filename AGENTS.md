@@ -129,6 +129,31 @@ The Dockerfile includes:
 - Voice support (torch/numpy) pre-installed
 - Optimized multi-stage build
 
+## Audio Pipeline Debugging
+
+Scripts for testing and debugging the voice capture pipeline with real audio:
+
+```bash
+# Download LibriSpeech and AMI test samples
+make download-test-audio
+
+# Test VAD detection only (no API key required)
+python scripts/test_audio_pipeline.py
+
+# Full STT test with transcription accuracy metrics
+export OPENAI_API_KEY=sk-...
+python scripts/test_audio_pipeline.py --stt
+```
+
+The `scripts/test_audio_pipeline.py` script reports:
+- VAD segment detection (Silero vs Energy comparison)
+- Speech-to-text accuracy (WER - Word Error Rate)
+- Multi-speaker handling (AMI corpus)
+
+Useful for diagnosing issues like missed speech segments, poor transcription, or VAD threshold tuning.
+
+See `tests/data/README.md` for detailed test data documentation.
+
 ## Adding New Providers
 
 1. Define protocol in `providers/` (if new type)

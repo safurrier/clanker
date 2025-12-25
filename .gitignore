@@ -30,3 +30,13 @@ site/
 
 # Runtime artifacts
 replay_log.jsonl
+
+# Test audio data (large files, download via make download-test-audio)
+tests/data/librispeech/*.flac
+tests/data/librispeech/*.pcm
+tests/data/librispeech/*.wav
+tests/data/ami/*.wav
+tests/data/ami/*.pcm
+# Keep metadata files
+!tests/data/librispeech/metadata.json
+!tests/data/ami/metadata.json
