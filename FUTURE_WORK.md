@@ -446,3 +446,52 @@ At 100 CI runs/month = **~$3/month**
 - Download script: `scripts/download_test_audio.py`
 - Pipeline debugger: `scripts/test_audio_pipeline.py`
 - Test data docs: `tests/data/README.md`
+
+---
+
+## Voice-to-Meme Integration Tests
+
+### Overview
+
+Use the real audio test infrastructure to validate the full voice → transcript → meme pipeline. This would test that transcribed conversations produce coherent shitposts.
+
+### Proposed Test Flow
+
+```python
+@pytest.mark.network()
+@pytest.mark.slow()
+async def test_voice_transcript_generates_meme():
+    """E2E: Real audio → transcript → meme generation."""
+    # 1. Load LibriSpeech sample and transcribe
+    transcript = await transcribe_sample(librispeech_samples[0])
+
+    # 2. Use transcript as meme topic
+    context = ShitpostContext(conversation_transcript=transcript)
+    template = random.choice(get_enabled_templates())
+
+    # 3. Generate meme text
+    lines = await render_meme_text(context, llm, template, transcript[:100])
+
+    # 4. Validate output
+    assert len(lines) == template.text_slots
+    assert all(isinstance(line, str) for line in lines)
+    assert all(len(line) > 0 for line in lines)
+```
+
+### Cost Estimate
+
+Additional to Whisper costs:
+- GPT-4o-mini for meme generation: ~$0.001 per meme
+- 5 test memes per run: ~$0.005/run
+
+### Benefits
+
+- Validates the full user journey (speak → meme)
+- Tests `ShitpostContext` with real conversation data
+- Catches integration issues between voice and meme pipelines
+- Could generate sample memes for manual review/documentation
+
+### Prerequisites
+
+- Implement `ShitpostContext` refactoring (see "Context-Aware Shitpost Refactoring" above)
+- Or use simpler approach: pass transcript directly as topic string
