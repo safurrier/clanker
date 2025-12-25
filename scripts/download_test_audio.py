@@ -11,9 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import shutil
-import struct
 import subprocess
 import sys
 import tarfile
@@ -298,11 +296,7 @@ def download_ami_samples() -> bool:
             print("    2. Download ES2002a meeting audio files")
             print(f"    3. Place in: {ami_dir}")
             print("    4. Re-run this script")
-
-            # Create synthetic multi-speaker sample for testing
-            print("\n  Creating synthetic multi-speaker sample instead...")
-            if create_synthetic_ami_sample(ami_dir):
-                return True
+            return False
 
         metadata["speakers"] = samples_found
         with (ami_dir / "metadata.json").open("w") as f:
@@ -310,88 +304,6 @@ def download_ami_samples() -> bool:
 
         print(f"\n  ✓ Downloaded {len(samples_found)} AMI speaker samples")
         return len(samples_found) > 0
-
-
-def create_synthetic_ami_sample(ami_dir: Path) -> bool:
-    """Create a synthetic multi-speaker sample for testing when AMI isn't available."""
-    print("  Generating synthetic multi-speaker audio...")
-
-    sample_rate = 16000
-
-    # Create 4 "speakers" with different frequency patterns
-    # This simulates the multi-speaker scenario
-    speakers_config = [
-        {"id": "A", "freq": 200, "segments": [(0.0, 2.0), (8.0, 10.0)]},
-        {"id": "B", "freq": 300, "segments": [(2.5, 4.5)]},
-        {"id": "C", "freq": 250, "segments": [(5.0, 7.0)]},
-        {"id": "D", "freq": 350, "segments": [(7.5, 8.0), (10.5, 12.0)]},
-    ]
-
-    total_duration = 12.0  # seconds
-    total_samples = int(sample_rate * total_duration)
-
-    metadata = {
-        "source": "synthetic",
-        "description": "Synthetic multi-speaker audio for testing",
-        "speakers": [],
-        "total_duration_sec": total_duration,
-        "sample_rate": sample_rate,
-    }
-
-    for speaker in speakers_config:
-        # Generate audio for this speaker
-        pcm_data = bytearray(total_samples * 2)  # 16-bit = 2 bytes per sample
-
-        for start, end in speaker["segments"]:
-            start_sample = int(start * sample_rate)
-            end_sample = int(end * sample_rate)
-
-            for i in range(start_sample, min(end_sample, total_samples)):
-                t = i / sample_rate
-                # Generate sine wave with some variation
-                value = int(20000 * math.sin(2 * math.pi * speaker["freq"] * t))
-                # Add to the audio (little-endian 16-bit)
-                struct.pack_into("<h", pcm_data, i * 2, value)
-
-        # Save speaker audio
-        pcm_name = f"synthetic_speaker_{speaker['id']}.pcm"
-        pcm_path = ami_dir / pcm_name
-        with pcm_path.open("wb") as f:
-            f.write(bytes(pcm_data))
-
-        metadata["speakers"].append({
-            "speaker": speaker["id"],
-            "pcm_file": pcm_name,
-            "frequency": speaker["freq"],
-            "segments": speaker["segments"],
-            "sample_rate": sample_rate,
-        })
-        print(f"    ✓ Created speaker {speaker['id']}")
-
-    # Also create a mixed version (all speakers combined)
-    mixed_data = bytearray(total_samples * 2)
-    for speaker in speakers_config:
-        pcm_path = ami_dir / f"synthetic_speaker_{speaker['id']}.pcm"
-        with pcm_path.open("rb") as f:
-            speaker_data = f.read()
-        for i in range(0, len(speaker_data), 2):
-            existing = struct.unpack_from("<h", mixed_data, i)[0]
-            new_val = struct.unpack_from("<h", speaker_data, i)[0]
-            # Mix (with clipping)
-            mixed = max(-32768, min(32767, existing + new_val // 2))
-            struct.pack_into("<h", mixed_data, i, mixed)
-
-    mixed_path = ami_dir / "synthetic_mixed.pcm"
-    with mixed_path.open("wb") as f:
-        f.write(bytes(mixed_data))
-
-    metadata["mixed_file"] = "synthetic_mixed.pcm"
-
-    with (ami_dir / "metadata.json").open("w") as f:
-        json.dump(metadata, f, indent=2)
-
-    print(f"  ✓ Created synthetic multi-speaker sample with {len(speakers_config)} speakers")
-    return True
 
 
 def main() -> int:

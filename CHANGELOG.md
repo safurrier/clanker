@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Audio pipeline test tooling for debugging voice capture:
+  - `scripts/download_test_audio.py`: Download LibriSpeech and AMI corpus samples
+  - `scripts/test_audio_pipeline.py`: VAD detection and transcription accuracy reports
+  - `tests/test_real_audio.py`: E2E tests with real speech (marked `@pytest.mark.network`)
+  - `tests/metrics.py`: WER (Word Error Rate) calculation for transcription accuracy
+  - `tests/data/README.md`: Documentation for test audio datasets
 - Integration with uv for dependency management
 - Modern Python development tools:
   - ruff for linting and formatting
