@@ -58,12 +58,12 @@ def register_commands(bot: ClankerClient, deps: BotDependencies) -> None:
     )
 
     @app_commands.describe(
-        n="Number of meme previews to generate (default 3, max 5)",
+        n="Number of meme previews to generate (default 1, max 5)",
         guidance="Optional guidance for meme generation (e.g., 'make it about cats')",
     )
     async def shitpost(
         interaction: discord.Interaction,
-        n: int = 3,
+        n: int = 1,
         guidance: str | None = None,
     ) -> None:
         await handle_shitpost_preview(interaction, n, guidance, deps)

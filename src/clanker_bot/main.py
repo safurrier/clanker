@@ -66,7 +66,9 @@ def build_dependencies() -> BotDependencies:
             providers=persona_config.providers,
         )
     else:
-        provider_config = ProviderConfig(llm="openai", stt="openai", tts="elevenlabs")
+        provider_config = ProviderConfig(
+            llm="openai", stt="openai", tts="elevenlabs", image="memegen"
+        )
         persona = Persona(
             id="default",
             display_name="Clanker",
@@ -79,6 +81,23 @@ def build_dependencies() -> BotDependencies:
     stt = factory.get_stt(provider_config.stt)
     tts = factory.get_tts(provider_config.tts)
     image = factory.get_image(provider_config.image) if provider_config.image else None
+
+    llm_name = provider_config.llm
+    stt_name = provider_config.stt
+    tts_name = provider_config.tts
+    image_name = provider_config.image or "none"
+    logger.info(
+        "Providers configured: llm={}, stt={}, tts={}, image={}",
+        llm_name,
+        stt_name,
+        tts_name,
+        image_name,
+        llm=llm_name,
+        stt=stt_name,
+        tts=tts_name,
+        image=image_name,
+    )
+
     voice_manager = VoiceSessionManager()
     metrics = Metrics()
     admin_ids = _load_admin_ids()
@@ -112,7 +131,10 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
         if bot.user:
             logger.info("Bot ready as {}", bot.user.name)
             await bot.tree.sync()
-            logger.info("Command tree synced")
+            commands = await bot.tree.fetch_commands()
+            logger.info(
+                "Synced {} commands: {}", len(commands), [c.name for c in commands]
+            )
 
     @bot.event
     async def on_message(message: discord.Message) -> None:

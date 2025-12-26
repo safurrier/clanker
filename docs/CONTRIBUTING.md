@@ -153,8 +153,40 @@ make check
 | `DISCORD_TOKEN` | Yes | Bot token from Developer Portal |
 | `OPENAI_API_KEY` | Yes | OpenAI API key for LLM/STT |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for TTS |
+| `DISCORD_GUILD_ID` | No | Test guild ID for instant command sync |
 | `CLANKER_CONFIG_PATH` | No | Path to custom config.yaml |
 | `LOG_LEVEL` | No | Logging level (DEBUG, INFO, WARNING, ERROR) |
+
+### Syncing Slash Commands
+
+Discord slash commands sync globally by default, which can take up to an hour to propagate. For faster iteration during development, use the sync script to push commands to a specific guild instantly.
+
+**Setup:**
+
+```bash
+# Add your test guild ID to your environment
+export DISCORD_GUILD_ID=your_test_guild_id_here
+```
+
+**Sync to your test guild (instant):**
+
+```bash
+uv run python scripts/sync_commands.py --guild
+```
+
+**Clear guild commands (if you see duplicates):**
+
+```bash
+uv run python scripts/sync_commands.py --clear-guild
+```
+
+**Sync globally (takes up to 1 hour):**
+
+```bash
+uv run python scripts/sync_commands.py --global
+```
+
+> **Why duplicates happen:** If you sync to both guild and global, Discord shows both sets. Use `--clear-guild` to remove guild-specific commands and rely on global commands, or vice versa.
 
 ### Troubleshooting
 
@@ -164,8 +196,8 @@ make check
 - Save changes and restart the bot
 
 **Slash commands don't appear:**
-- Commands sync on bot startup - wait a minute
-- Try kicking and re-inviting the bot
+- Use `scripts/sync_commands.py --guild` for instant sync to your test server
+- Global commands can take up to an hour to propagate
 - Check bot has "Use Slash Commands" permission
 
 **Voice features not working:**

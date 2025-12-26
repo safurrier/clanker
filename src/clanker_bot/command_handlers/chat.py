@@ -200,6 +200,13 @@ async def _generate_single_meme(
 
     image_bytes: bytes | None = None
     if deps.image:
+        logger.info(
+            "meme.generating_image: template={}, lines={}",
+            meme_template.template_id,
+            lines,
+            template_id=meme_template.template_id,
+            text_lines=lines,
+        )
         image_payload = await deps.image.generate(
             {"template": meme_template.template_id, "text": lines}
         )
@@ -207,6 +214,20 @@ async def _generate_single_meme(
             image_bytes = image_payload.encode()
         else:
             image_bytes = image_payload
+        image_size = len(image_bytes) if image_bytes else 0
+        logger.info(
+            "meme.image_generated: template={}, size={}",
+            meme_template.template_id,
+            image_size,
+            template_id=meme_template.template_id,
+            image_size=image_size,
+        )
+    else:
+        logger.warning(
+            "meme.no_image_provider: template={} (hint: set image provider to 'memegen')",
+            meme_template.template_id,
+            template_id=meme_template.template_id,
+        )
 
     payload = MemePayload(
         text=caption,

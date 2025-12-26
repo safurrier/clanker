@@ -688,3 +688,4 @@ TypeError: Can't instantiate abstract class VoiceIngestSink without an implement
 
 * VC monitoring nudge.
   * We could add a Cog to listen to VC channels in guild and when at least 2 people are present send a View to start lisenting/join. If not selected within 5 minutes, dissapear
+* Auto leave meeting. When no users present, leave/end the voice call.
