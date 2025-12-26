@@ -685,3 +685,6 @@ TypeError: Can't instantiate abstract class VoiceIngestSink without an implement
 /usr/local/lib/python3.12/site-packages/torch/hub.py:335: UserWarning: You are about to download and run code from an untrusted repository. In a future release, this won't be allowed. To add the repository to your trusted list, change the command to {calling_fn}(..., trust_repo=False) and a command prompt will appear asking for an explicit confirmation of trust, or load(..., trust_repo=True), which will assume that the prompt is to be answered with 'yes'. You can also use load(..., trust_repo='check') which will only prompt for confirmation if the repo is not already trusted. This will eventually be the default behaviour
   warnings.warn(
 
+
+* VC monitoring nudge.
+  * We could add a Cog to listen to VC channels in guild and when at least 2 people are present send a View to start lisenting/join. If not selected within 5 minutes, dissapear

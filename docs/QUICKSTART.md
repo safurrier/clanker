@@ -129,7 +129,20 @@ Once the bot is running and invited to your server:
 | Command | Description |
 |---------|-------------|
 | `/chat <message>` | Chat with the bot |
-| `/status` | Check bot health |
+| `/speak <message>` | Chat with TTS audio response |
+| `/shitpost [n] [guidance]` | Generate meme previews (1-5, default 3) |
+| `/join` | Join your voice channel for transcription |
+| `/leave` | Leave the current voice channel |
+
+**Admin Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `/admin_active_meetings` | List active voice meetings |
+| `/admin_stop_new_meetings` | Prevent new meeting joins |
+| `/admin_allow_new_meetings` | Allow new meeting joins |
+
+**Health Endpoint:** The bot exposes an HTTP health endpoint at `/status` (not a Discord command).
 
 ### Voice Features
 
@@ -219,4 +232,4 @@ uv run pytest tests -m "not network"
 
 - [Architecture Overview](./ARCHITECTURE.md) - Understand the system design
 - [Contributing Guide](./CONTRIBUTING.md) - Set up for development
-- [Configuration Schema](./docs/config_schema.md) - Full configuration reference
+- [Configuration Schema](config_schema.md) - Full configuration reference

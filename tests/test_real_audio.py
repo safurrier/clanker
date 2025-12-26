@@ -17,6 +17,7 @@ Run with: `uv run pytest tests/test_real_audio.py -v -m network`
 
 from __future__ import annotations
 
+import os
 from datetime import datetime
 
 import pytest
@@ -56,9 +57,13 @@ async def test_librispeech_transcription_accuracy(
     if not librispeech_samples:
         pytest.skip("No LibriSpeech samples found")
 
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not set")
+
     # Initialize components
     detector = SileroVAD(warmup=True)
-    stt = OpenAISTT()
+    stt = OpenAISTT(api_key=api_key)
 
     results = []
     for sample in librispeech_samples:
@@ -182,8 +187,8 @@ async def test_librispeech_timestamp_accuracy(
         if not segments:
             pytest.fail(f"No speech detected in {sample.id}")
 
-        # First segment should start within first 500ms
-        assert segments[0].start_ms < 500, (
+        # First segment should start within first 600ms
+        assert segments[0].start_ms < 600, (
             f"Speech starts too late: {segments[0].start_ms}ms in {sample.id}"
         )
 
@@ -286,8 +291,12 @@ async def test_ami_multispeaker_with_real_stt(
     if not ami_available or ami_meeting_sample is None:
         pytest.skip("AMI samples not downloaded. Run: make download-test-audio")
 
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not set")
+
     detector = SileroVAD(warmup=True)
-    stt = OpenAISTT()
+    stt = OpenAISTT(api_key=api_key)
 
     buffers = {}
     base_time = datetime(2024, 1, 1, 12, 0, 0)

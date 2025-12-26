@@ -70,9 +70,22 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
+  - Getting Started:
+    - Quick Start: QUICKSTART.md
+    - Architecture: ARCHITECTURE.md
+    - Contributing: CONTRIBUTING.md
+  - Guides:
+    - Audio Capture: audio-capture.md
+    - Meme Pipeline: meme-pipeline.md
+    - Container Setup: container-setup.md
+    - Voice Ingest Pipeline: voice_ingest_pipeline.md
+    - Transcript Examples: transcript-examples.md
   - Reference:
+    - Configuration: config_schema.md
+    - Discord.py Notes: discordpy_notes.md
     - API Documentation: reference/api.md
+  - Planning:
+    - Future Work: FUTURE_WORK.md
 
 extra:
   social:

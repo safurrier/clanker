@@ -13,20 +13,28 @@ The meme pipeline consists of three main components:
 ## Architecture
 
 ```
-User: /shitpost topic:"AI takeover" category:"meme"
+User: /shitpost n:3 guidance:"AI takeover"
   ↓
-Discord Command Handler
+Discord Command Handler (handle_shitpost_preview)
   ↓
-Load Templates → Sample Random Template (e.g., "astronaut")
+Build ShitpostContext (channel messages, voice transcripts, or guidance)
   ↓
-Build LLM Prompt (topic + template metadata + examples)
+Generate N meme previews in parallel:
+  ├─► Load Templates → Sample Random Template
+  ├─► Build LLM Prompt (context + template metadata + examples)
+  └─► LLM Generates Text → ["Wait, it's all AI?", "Always has been"]
   ↓
-LLM Generates Text → ["Wait, it's all AI?", "Always has been"]
+ShitpostPreviewView (ephemeral message, only visible to user)
   ↓
-Memegen API → Generate Image
-  ↓
-Discord: Send image with caption
+[Post] → Memegen API → Publish to channel
+[Regenerate] → Pick new template → Update preview
+[Dismiss] → Remove ephemeral message
 ```
+
+**Note:** The `/shitpost` command now uses:
+- `ShitpostContext` model for rich input (explicit guidance, channel messages, or voice transcripts)
+- Ephemeral previews so only the command invoker sees drafts
+- Interactive buttons (Post/Regenerate/Dismiss) via `ShitpostPreviewView`
 
 ## Meme Registry Schema
 
@@ -331,7 +339,7 @@ print(template)
 
 ## Future Improvements
 
-See [FUTURE_WORK.md](../FUTURE_WORK.md) for planned enhancements including:
+See `FUTURE_WORK.md` (in repo root) for planned enhancements including:
 - Context-aware template selection
 - Smarter template matching based on topic
 - Enhanced prompt engineering

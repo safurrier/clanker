@@ -53,8 +53,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Local CI testing with act for running GitHub Actions workflows locally
 - Fast debug workflow for iterative development
 - Make targets: `act-install`, `ci-list`, `ci-local`, `ci-local-docs`, `ci-debug`, `ci-clean`
+- Discord bot setup guide in `docs/CONTRIBUTING.md`:
+  - Privileged Gateway Intents configuration
+  - OAuth2 invite URL with precise bot permissions (311388392448)
+  - Template OAuth invite URL for easy setup
+  - Troubleshooting section for common setup issues
+- Local development environment with Docker:
+  - `make dev-env` for interactive development container
+  - Pre-installed dependencies and Silero VAD model
+  - Source code mounted for live editing
 
 ### Changed
+- Switched to loguru for structured logging (replaced standard logging)
+- Split command handlers into separate modules (`command_handlers/` directory):
+  - `chat.py` for `/chat` and `/speak` commands
+  - `voice.py` for `/join` and `/leave` commands
+  - `admin.py` for admin commands
+  - `messages.py` for `/shitpost` command
 - Switched from pip/venv to uv for environment management
 - Updated example code to pass ty type checking
 - Modernized project structure and development workflow
