@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Voice-to-meme integration tests:
   - `tests/test_voice_to_meme.py`: E2E tests transcribing real audio then generating memes
   - `tests/meme_scoring.py`: LLM-based meme quality scoring (relevance, format, coherence)
+  - `MemeScoreResponse` structured output model for guaranteed valid scoring
   - Validates `TranscriptEvent` compatibility with `ShitpostContext`
 - Structured LLM outputs via Instructor library:
   - `StructuredLLM` protocol for guaranteed schema-compliant responses
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Audio pipeline test tooling for debugging voice capture:
   - `scripts/download_test_audio.py`: Download LibriSpeech and AMI corpus samples
   - `scripts/test_audio_pipeline.py`: VAD detection and transcription accuracy reports
+  - `scripts/test_meme_pipeline.py`: Full voice-to-meme pipeline with quality scoring reports
   - `tests/test_real_audio.py`: E2E tests with real speech (marked `@pytest.mark.network`)
   - `tests/metrics.py`: WER (Word Error Rate) calculation for transcription accuracy
   - `tests/data/README.md`: Documentation for test audio datasets

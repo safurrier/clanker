@@ -14,9 +14,20 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-from clanker.models import Context, Message
-from clanker.providers.base import LLM
+from pydantic import BaseModel, Field
+
+from clanker.models import Message
+from clanker.providers.base import StructuredLLM
 from clanker.shitposts import MemeTemplate
+
+
+class MemeScoreResponse(BaseModel):
+    """Structured output for meme quality scoring."""
+
+    relevance: int = Field(ge=1, le=5, description="Relevance to input context (1-5)")
+    format: int = Field(ge=1, le=5, description="Format adherence to template (1-5)")
+    coherence: int = Field(ge=1, le=5, description="Clarity and understandability (1-5)")
+    reasoning: str = Field(description="Brief explanation of the scores")
 
 SCORING_PROMPT = """You are evaluating the quality of a generated meme.
 
@@ -84,8 +95,7 @@ class MemeScore:
 
 
 async def score_meme(
-    llm: LLM,
-    context: Context,
+    llm: StructuredLLM,
     template: MemeTemplate,
     input_context: str,
     meme_lines: list[str],
@@ -93,15 +103,22 @@ async def score_meme(
     """Score a generated meme using LLM-based evaluation.
 
     Args:
-        llm: LLM provider for evaluation
-        context: Request context
+        llm: LLM provider with structured output support (required)
         template: The meme template used
         input_context: The input that was used to generate the meme
         meme_lines: The generated meme text lines
 
     Returns:
         MemeScore with ratings and reasoning
+
+    Raises:
+        TypeError: If llm does not support structured outputs
     """
+    if not isinstance(llm, StructuredLLM):
+        raise TypeError(
+            f"score_meme requires a StructuredLLM, got {type(llm).__name__}"
+        )
+
     prompt = SCORING_PROMPT.format(
         template_id=template.template_id,
         template_description=template.variant_description or template.variant,
@@ -111,27 +128,15 @@ async def score_meme(
     )
 
     message = Message(role="user", content=prompt)
-    response = await llm.generate(context, [message])
+    result = await llm.generate_structured(MemeScoreResponse, [message])
 
-    try:
-        # Parse JSON response
-        scores = json.loads(response.content)
-        return MemeScore(
-            relevance=int(scores.get("relevance", 3)),
-            format_adherence=int(scores.get("format", 3)),
-            coherence=int(scores.get("coherence", 3)),
-            reasoning=str(scores.get("reasoning", "")),
-            raw_response=response.content,
-        )
-    except (json.JSONDecodeError, KeyError, ValueError):
-        # If parsing fails, return neutral scores
-        return MemeScore(
-            relevance=3,
-            format_adherence=3,
-            coherence=3,
-            reasoning=f"Failed to parse LLM response: {response.content[:200]}",
-            raw_response=response.content,
-        )
+    return MemeScore(
+        relevance=result.relevance,
+        format_adherence=result.format,
+        coherence=result.coherence,
+        reasoning=result.reasoning,
+        raw_response=result.model_dump_json(),
+    )
 
 
 def validate_meme_structure(

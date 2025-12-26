@@ -359,7 +359,7 @@ async def test_full_voice_to_meme_pipeline_with_scoring(
 
     # 4. Score quality with LLM
     input_context = shitpost_context.get_prompt_input()
-    score = await score_meme(llm, context, meme_template, input_context, lines)
+    score = await score_meme(llm, meme_template, input_context, lines)
 
     print(f"  Score: {score}")
     print(f"  Reasoning: {score.reasoning}")
@@ -437,7 +437,7 @@ async def test_meme_quality_with_user_guidance(
     assert is_valid, f"Meme structure invalid: {error}"
 
     input_context = shitpost_context.get_prompt_input()
-    score = await score_meme(llm, context, meme_template, input_context, lines)
+    score = await score_meme(llm, meme_template, input_context, lines)
 
     print(f"  Score: {score}")
 
