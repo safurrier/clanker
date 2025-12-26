@@ -75,6 +75,24 @@ class ShitpostPreviewView(discord.ui.View):
             )
         return None
 
+    async def _update_preview(
+        self,
+        interaction: discord.Interaction,
+        new_payload: MemePayload,
+        new_embed: discord.Embed,
+    ) -> None:
+        """Update the preview message with new meme content."""
+        self.payload = new_payload
+        self.embed = new_embed
+
+        file = self._build_file()
+        attachments = [file] if file else []
+        await interaction.edit_original_response(
+            embed=new_embed,
+            attachments=attachments,
+            view=self,
+        )
+
     @discord.ui.button(label="Post", style=discord.ButtonStyle.success, emoji="✅")
     async def post_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -147,28 +165,11 @@ class ShitpostPreviewView(discord.ui.View):
             )
             return
 
-        # Defer since regeneration may take time
         await interaction.response.defer()
 
         try:
             new_payload, new_embed = await self.regenerate_callback()
-            self.payload = new_payload
-            self.embed = new_embed
-
-            file = self._build_file()
-            if file:
-                await interaction.edit_original_response(
-                    embed=new_embed,
-                    attachments=[file],
-                    view=self,
-                )
-            else:
-                await interaction.edit_original_response(
-                    embed=new_embed,
-                    attachments=[],
-                    view=self,
-                )
-
+            await self._update_preview(interaction, new_payload, new_embed)
             logger.info(
                 "shitpost.regenerated",
                 extra={

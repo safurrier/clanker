@@ -23,6 +23,11 @@ class TranscriptBuffer:
     """Maintains a rolling buffer of recent transcript events per guild.
 
     Used by shitpost command to get voice context.
+
+    Note: Currently keyed by guild_id only (not channel_id) since the bot
+    supports one voice connection per guild. If we expand to multiple
+    simultaneous voice sessions per guild, this will need channel_id keying
+    to avoid mixing transcripts between sessions.
     """
 
     max_events: int = 50

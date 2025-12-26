@@ -1,22 +1,26 @@
 """Tests for Discord command handlers."""
 
 from dataclasses import dataclass
+from datetime import datetime
 
 import pytest
 
 from clanker.models import Persona
 from clanker.shitposts.memes import load_meme_templates, sample_meme_template
+from clanker.voice.chunker import AudioChunk
+from clanker.voice.worker import TranscriptEvent
 from clanker_bot.command_handlers import (
     BotDependencies,
     ResponseMessage,
     handle_chat,
     handle_join,
     handle_leave,
-    handle_shitpost,
     handle_shitpost_preview,
     handle_speak,
 )
+from clanker_bot.command_handlers import chat as chat_module
 from clanker_bot.discord_adapter import VoiceSessionManager, VoiceStatus
+from clanker_bot.voice_ingest import TranscriptBuffer
 from tests.conftest import FakeInteraction
 from tests.fakes import FakeImage, FakeLLM, FakeTTS
 
@@ -94,20 +98,6 @@ async def test_handle_speak(fake_interaction: FakeInteraction) -> None:
 
 
 @pytest.mark.asyncio()
-async def test_handle_shitpost_legacy(fake_interaction: FakeInteraction) -> None:
-    """Test the legacy shitpost handler (still available for text templates)."""
-    deps = BotDependencies(
-        llm=FakeLLM(reply_text="joke"),
-        stt=None,
-        tts=None,
-        persona=Persona(id="p", display_name="p", system_prompt="sys"),
-        voice_manager=VoiceSessionManager(),
-    )
-    await handle_shitpost(fake_interaction, "topic", "quip", deps)
-    assert fake_interaction.response.messages == ["joke"]
-
-
-@pytest.mark.asyncio()
 async def test_handle_join_requires_voice_channel(
     fake_interaction: FakeInteraction,
 ) -> None:
@@ -161,38 +151,13 @@ async def test_handle_leave_not_connected(fake_interaction: FakeInteraction) -> 
 
 
 @pytest.mark.asyncio()
-async def test_handle_shitpost_meme_legacy(
-    fake_interaction: FakeInteraction, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Test legacy shitpost handler with meme category."""
-    from clanker_bot.command_handlers import chat
-
-    meme_template = sample_meme_template(load_meme_templates(), template_id="aag")
-    monkeypatch.setattr(
-        chat, "sample_meme_template", lambda _templates, **kwargs: meme_template
-    )
-    deps = BotDependencies(
-        llm=FakeLLM(reply_text='["top", "bottom"]'),
-        stt=None,
-        tts=None,
-        persona=Persona(id="p", display_name="p", system_prompt="sys"),
-        voice_manager=VoiceSessionManager(),
-        image=FakeImage(image_bytes=b"meme"),
-    )
-    await handle_shitpost(fake_interaction, "topic", "meme", deps)
-    assert fake_interaction.response.messages == ["top | bottom"]
-
-
-@pytest.mark.asyncio()
 async def test_handle_shitpost_preview_generates_n_previews(
     fake_interaction: FakeInteraction, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test new shitpost preview handler generates N ephemeral previews."""
-    from clanker_bot.command_handlers import chat
-
     meme_template = sample_meme_template(load_meme_templates(), template_id="aag")
     monkeypatch.setattr(
-        chat, "sample_meme_template", lambda _templates, **kwargs: meme_template
+        chat_module, "sample_meme_template", lambda _templates, **kwargs: meme_template
     )
     deps = BotDependencies(
         llm=FakeLLM(reply_text='["top text", "bottom text"]'),
@@ -220,11 +185,9 @@ async def test_handle_shitpost_preview_with_guidance(
     fake_interaction: FakeInteraction, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test shitpost preview with user guidance."""
-    from clanker_bot.command_handlers import chat
-
     meme_template = sample_meme_template(load_meme_templates(), template_id="aag")
     monkeypatch.setattr(
-        chat, "sample_meme_template", lambda _templates, **kwargs: meme_template
+        chat_module, "sample_meme_template", lambda _templates, **kwargs: meme_template
     )
     deps = BotDependencies(
         llm=FakeLLM(reply_text='["cat meme", "very funny"]'),
@@ -248,11 +211,9 @@ async def test_handle_shitpost_preview_clamps_n(
     fake_interaction: FakeInteraction, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test that n is clamped to valid bounds (1-5)."""
-    from clanker_bot.command_handlers import chat
-
     meme_template = sample_meme_template(load_meme_templates(), template_id="aag")
     monkeypatch.setattr(
-        chat, "sample_meme_template", lambda _templates, **kwargs: meme_template
+        chat_module, "sample_meme_template", lambda _templates, **kwargs: meme_template
     )
     deps = BotDependencies(
         llm=FakeLLM(reply_text='["text"]'),
@@ -274,16 +235,9 @@ async def test_handle_shitpost_preview_uses_voice_transcript(
     fake_interaction: FakeInteraction, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test that shitpost preview uses voice transcript when available."""
-    from datetime import datetime
-
-    from clanker.voice.chunker import AudioChunk
-    from clanker.voice.worker import TranscriptEvent
-    from clanker_bot.command_handlers import chat
-    from clanker_bot.voice_ingest import TranscriptBuffer
-
     meme_template = sample_meme_template(load_meme_templates(), template_id="aag")
     monkeypatch.setattr(
-        chat, "sample_meme_template", lambda _templates, **kwargs: meme_template
+        chat_module, "sample_meme_template", lambda _templates, **kwargs: meme_template
     )
 
     # Create transcript buffer with some events

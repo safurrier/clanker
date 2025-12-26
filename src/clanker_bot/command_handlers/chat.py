@@ -14,13 +14,9 @@ from clanker.respond import respond
 from clanker.shitposts import (
     MemeTemplate,
     ShitpostContext,
-    build_request,
     load_meme_templates,
-    load_templates,
     render_meme_text,
-    render_shitpost,
     sample_meme_template,
-    sample_template,
 )
 
 from ..views import MemePayload, ShitpostPreviewView
@@ -110,68 +106,6 @@ async def handle_speak(
         logger=logger,
         invalid_prefix=ResponseMessage.REQUEST_BLOCKED,
         error_context="speak",
-        action=action,
-    )
-
-
-async def handle_shitpost(
-    interaction: discord.Interaction,
-    topic: str,
-    category: str | None,
-    deps: BotDependencies,
-) -> None:
-    logger = logging.getLogger(__name__)
-
-    async def action() -> None:
-        templates = load_templates()
-        template = sample_template(templates, category=category)
-        increment_metric(deps, "shitpost_requests")
-        context = build_context(
-            interaction, deps.persona, Message(role="user", content="")
-        )
-
-        # Build shitpost context from user-provided topic
-        shitpost_context = ShitpostContext(user_input=topic)
-
-        if template.category == "meme":
-            meme_templates = load_meme_templates()
-            meme_template = sample_meme_template(meme_templates)
-
-            # Track which meme template was used
-            increment_metric(deps, f"meme_template_{meme_template.template_id}")
-
-            try:
-                lines = await render_meme_text(
-                    context, deps.llm, meme_template, shitpost_context
-                )
-                increment_metric(deps, "meme_generation_success")
-            except Exception:
-                increment_metric(deps, "meme_generation_failure")
-                raise
-
-            caption = " | ".join(lines)
-            if deps.image:
-                image_payload = await deps.image.generate(
-                    {"template": meme_template.template_id, "text": lines}
-                )
-                if isinstance(image_payload, str):
-                    image_bytes = image_payload.encode()
-                else:
-                    image_bytes = image_payload
-                file = discord.File(fp=BytesIO(image_bytes), filename="meme.png")
-                await interaction.followup.send(caption, file=file)
-            else:
-                await interaction.followup.send(caption)
-        else:
-            request = build_request(template, shitpost_context)
-            reply = await render_shitpost(context, deps.llm, request)
-            await interaction.followup.send(reply.content)
-
-    await run_with_provider_handling(
-        interaction,
-        logger=logger,
-        invalid_prefix=ResponseMessage.INVALID_CATEGORY,
-        error_context="shitpost",
         action=action,
     )
 
@@ -290,12 +224,9 @@ async def _generate_single_meme(
     )
 
     embed = discord.Embed(
-        title=f"Meme Preview: {meme_template.template_id}",
-        description=caption,
+        title="Generated Shitpost",
         color=discord.Color.blue(),
     )
-    if meme_template.variant_description:
-        embed.set_footer(text=meme_template.variant_description)
 
     return payload, embed
 
