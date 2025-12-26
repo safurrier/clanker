@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 from typing import cast
 
 import discord
 import discord.ext.voice_recv as voice_recv
+from loguru import logger
 
 from ..voice_ingest import start_voice_ingest, voice_client_cls
 from .messages import ResponseMessage
@@ -38,7 +38,6 @@ def _get_voice_client_cls(
 async def _setup_transcription(
     deps: BotDependencies,
     voice_client_cls: type[discord.VoiceClient] | None,
-    logger: logging.Logger,
 ) -> str:
     """Set up transcription and return status message."""
     if not deps.voice_ingest_enabled:
@@ -69,8 +68,6 @@ async def handle_join(
     interaction: discord.Interaction,
     deps: BotDependencies,
 ) -> None:
-    logger = logging.getLogger(__name__)
-
     # Validate preconditions
     if not _can_join_meeting(interaction, deps):
         await interaction.response.send_message(ResponseMessage.NEW_MEETINGS_DISABLED)
@@ -96,7 +93,7 @@ async def handle_join(
         return
 
     # Setup transcription and send response
-    message = await _setup_transcription(deps, voice_client_cls, logger)
+    message = await _setup_transcription(deps, voice_client_cls)
     await interaction.response.send_message(message)
 
 

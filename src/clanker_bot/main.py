@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
+import sys
 import time
 from pathlib import Path
 
 import discord
 from aiohttp import web
+from loguru import logger
 
 from clanker.config import load_config
 from clanker.models import Persona
@@ -20,6 +21,30 @@ from .commands import BotDependencies, ClankerClient, register_commands
 from .discord_adapter import VoiceSessionManager
 from .health import HealthState, create_health_app
 from .metrics import Metrics
+
+
+def configure_logging() -> None:
+    """Configure loguru for the bot.
+
+    Reads LOG_LEVEL from environment (default: INFO).
+    Outputs colored logs to stderr.
+    """
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+
+    # Remove default handler and add configured one
+    logger.remove()
+    logger.add(
+        sys.stderr,
+        level=log_level,
+        format=(
+            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+            "<level>{message}</level>"
+        ),
+        colorize=True,
+    )
+    logger.info("Logging configured", level=log_level)
 
 
 def build_dependencies() -> BotDependencies:
@@ -99,6 +124,8 @@ async def run_health_server(state: HealthState) -> None:
 
 def main() -> None:
     """Run the bot."""
+    configure_logging()
+
     token = os.getenv("DISCORD_TOKEN")
     if not token:
         raise RuntimeError("Missing DISCORD_TOKEN")
@@ -123,7 +150,6 @@ if __name__ == "__main__":
 
 def _load_admin_ids() -> set[int]:
     """Load admin user IDs from environment variable."""
-    logger = logging.getLogger(__name__)
     raw = os.getenv("CLANKER_ADMIN_IDS", "")
     if not raw:
         return set()
@@ -135,5 +161,5 @@ def _load_admin_ids() -> set[int]:
         try:
             result.add(int(value))
         except ValueError:
-            logger.warning(f"Invalid admin ID in CLANKER_ADMIN_IDS: {value!r}")
+            logger.warning("Invalid admin ID in CLANKER_ADMIN_IDS: {!r}", value)
     return result

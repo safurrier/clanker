@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 import uuid
 from collections.abc import Awaitable, Callable
 
 import discord
+from loguru import logger
 
 from clanker.models import Context, Message, Persona
 from clanker.providers.errors import PermanentProviderError, TransientProviderError
@@ -56,7 +56,6 @@ async def ensure_thread(interaction: discord.Interaction) -> discord.Thread | No
 async def run_with_provider_handling(
     interaction: discord.Interaction,
     *,
-    logger: logging.Logger,
     invalid_prefix: str,
     error_context: str,
     action: Callable[[], Awaitable[None]],
@@ -73,19 +72,17 @@ async def run_with_provider_handling(
         )
     except PermanentProviderError as exc:
         await interaction.followup.send(ResponseMessage.CONFIG_ERROR, ephemeral=True)
-        logger.error(
-            "Provider error in %s",
-            error_context,
-            exc_info=True,
-            extra={"error": str(exc)},
+        logger.opt(exception=True).error(
+            "Provider error in {context}: {error}",
+            context=error_context,
+            error=str(exc),
         )
     except Exception as exc:
         await interaction.followup.send(
             ResponseMessage.UNEXPECTED_ERROR, ephemeral=True
         )
-        logger.error(
-            "Unexpected error in %s",
-            error_context,
-            exc_info=True,
-            extra={"error": str(exc)},
+        logger.opt(exception=True).error(
+            "Unexpected error in {context}: {error}",
+            context=error_context,
+            error=str(exc),
         )

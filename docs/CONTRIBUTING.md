@@ -30,6 +30,135 @@ make check
 
 All checks should pass before you start development.
 
+## Discord Bot Setup
+
+Before running the bot locally, you need to create a Discord application and bot.
+
+### 1. Create Discord Application
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications/)
+2. Click "New Application" and give it a name
+3. Go to the "Bot" section in the left sidebar
+
+### 2. Enable Privileged Gateway Intents
+
+**This step is required - the bot will crash without it.**
+
+In the "Bot" section, scroll down to "Privileged Gateway Intents" and enable:
+
+- **Server Members Intent** - Required for member tracking
+- **Message Content Intent** - Required for message processing
+
+Click "Save Changes".
+
+### 3. Get Your Bot Token
+
+In the "Bot" section:
+
+1. Click "Reset Token" (or "View Token" if available)
+2. Copy the token - you'll need this for `DISCORD_TOKEN`
+3. Keep this secret! Never commit it to git.
+
+### 4. Generate OAuth2 Invite URL
+
+Go to "OAuth2" → "URL Generator":
+
+1. **Scopes**: Select `bot` and `applications.commands`
+2. **Bot Permissions**: Select:
+   - Send Messages
+   - Use Slash Commands
+   - Connect (for voice)
+   - Speak (for voice)
+   - Read Message History
+
+3. Copy the generated URL at the bottom
+
+### 5. Invite Bot to Test Server
+
+1. Create a test Discord server (or use an existing one you control)
+2. Open the OAuth2 URL from step 4 in your browser
+3. Select your test server and authorize
+
+## Local Development with Docker
+
+The easiest way to run the bot locally is with Docker.
+
+### 1. Set Up Environment
+
+```bash
+# Copy the environment template
+cp docker/template.env docker/.env
+
+# Edit with your credentials
+# Required: DISCORD_TOKEN, OPENAI_API_KEY
+# Optional: ELEVENLABS_API_KEY
+```
+
+### 2. Start Development Environment
+
+```bash
+# Start dev container and enter shell
+make dev-env
+```
+
+This gives you an interactive shell with:
+- All dependencies pre-installed
+- Source code mounted (changes reflected immediately)
+- Silero VAD model pre-downloaded
+
+### 3. Run the Bot
+
+Inside the container:
+
+```bash
+# Run the bot
+python -m clanker_bot.main
+
+# Or with custom config
+CLANKER_CONFIG_PATH=./config.yaml python -m clanker_bot.main
+
+# Run with debug logging
+LOG_LEVEL=DEBUG python -m clanker_bot.main
+```
+
+### 4. Run Tests Inside Container
+
+```bash
+# Unit tests (no API keys needed)
+pytest tests -m "not network"
+
+# All checks
+make check
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DISCORD_TOKEN` | Yes | Bot token from Developer Portal |
+| `OPENAI_API_KEY` | Yes | OpenAI API key for LLM/STT |
+| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for TTS |
+| `CLANKER_CONFIG_PATH` | No | Path to custom config.yaml |
+| `LOG_LEVEL` | No | Logging level (DEBUG, INFO, WARNING, ERROR) |
+
+### Troubleshooting
+
+**Bot crashes with `PrivilegedIntentsRequired`:**
+- Go back to Developer Portal → Bot → Privileged Gateway Intents
+- Enable both "Server Members Intent" and "Message Content Intent"
+- Save changes and restart the bot
+
+**Slash commands don't appear:**
+- Commands sync on bot startup - wait a minute
+- Try kicking and re-inviting the bot
+- Check bot has "Use Slash Commands" permission
+
+**Voice features not working:**
+- Ensure bot has "Connect" and "Speak" permissions in the voice channel
+- Check that FFmpeg is installed: `ffmpeg -version`
+
+See `docker/README.md` for more Docker options.
+
 ## Code Standards
 
 ### Style Guide

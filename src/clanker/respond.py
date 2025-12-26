@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections.abc import Iterable
 from pathlib import Path
+
+from loguru import logger
 
 from .constants import REPLAY_LOG_FILENAME
 from .models import Context, Message, ReplayEntry
@@ -40,7 +41,6 @@ def _log_task_errors(task: asyncio.Task) -> None:
     try:
         task.result()
     except Exception:
-        logger = logging.getLogger(__name__)
         logger.exception("Error in background replay logging task")
 
 
@@ -83,12 +83,9 @@ def combine_messages(messages: Iterable[Message]) -> str:
 
 
 def _log_context(context: Context) -> None:
-    logger = logging.getLogger(__name__)
     logger.info(
         "clanker.respond",
-        extra={
-            "request_id": context.request_id,
-            "persona_id": context.persona.id,
-            "message_count": len(context.messages),
-        },
+        request_id=context.request_id,
+        persona_id=context.persona.id,
+        message_count=len(context.messages),
     )
