@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Ephemeral preview workflow for `/shitpost` command:
+  - `ShitpostPreviewView` with Post/Regenerate/Dismiss buttons
+  - Ephemeral messages visible only to command invoker
+  - Post button publishes meme to channel (single-use)
+  - Regenerate button picks a new random template
+  - Dismiss button removes the preview
+  - Parallel generation of N memes (1-5, default 3)
+  - `n` parameter for number of previews, `guidance` for optional topic
+- Channel context extraction for memes:
+  - Fetches last 10 messages from text channel for context
+  - Voice transcript integration (preferred over text when available)
+  - `TranscriptBuffer` class for storing rolling voice events per guild
 - Context-aware shitpost/meme generation:
   - `ShitpostContext` model for rich input sources (user input, transcripts, messages)
   - `Utterance` protocol for duck-typed voice transcript compatibility
