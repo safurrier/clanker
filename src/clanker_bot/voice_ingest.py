@@ -3,19 +3,17 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 import discord
 import discord.ext.voice_recv as voice_recv
+from loguru import logger
 
 from clanker.providers.base import STT
 from clanker.voice.vad import EnergyVAD, SileroVAD, SpeechDetector, resolve_detector
 from clanker.voice.worker import AudioBuffer, TranscriptEvent, transcript_loop_once
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -145,7 +143,6 @@ class VoiceIngestSink(voice_recv.AudioSink):
         super().__init__()
         self.worker = worker
         self.on_transcript = on_transcript
-        self.logger = logging.getLogger(__name__)
         self._tasks: set[asyncio.Task] = set()
 
     def write(self, user: object, data: object) -> None:
@@ -167,14 +164,12 @@ class VoiceIngestSink(voice_recv.AudioSink):
         for event in events:
             if self.on_transcript:
                 await self.on_transcript(event)
-            self.logger.info(
+            logger.info(
                 "voice_ingest.transcript",
-                extra={
-                    "text": event.text,
-                    "speaker_id": event.speaker_id,
-                    "start_time": event.start_time.isoformat(),
-                    "end_time": event.end_time.isoformat(),
-                },
+                text=event.text,
+                speaker_id=event.speaker_id,
+                start_time=event.start_time.isoformat(),
+                end_time=event.end_time.isoformat(),
             )
 
 

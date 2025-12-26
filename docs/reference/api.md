@@ -2,7 +2,7 @@
 
 This page contains the auto-generated API documentation for the project.
 
-::: src
+::: clanker
     options:
       show_root_heading: true
       members_order: source

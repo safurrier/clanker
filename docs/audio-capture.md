@@ -415,7 +415,7 @@ uv pip install -e ".[voice]"
 
 ## Future Improvements
 
-Potential enhancements (see `VOICE_IMPROVEMENTS.md` for details):
+Potential enhancements (see [FUTURE_WORK.md](FUTURE_WORK.md#audio-voice-pipeline) for details):
 
 1. **Replace audioop with numpy** - Python 3.13 compatibility
 2. **Configurable VAD parameters** - Via config.yaml
@@ -458,6 +458,6 @@ uv pip install -e ".[voice]"
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Overall system design
 - [voice_ingest_pipeline.md](./voice_ingest_pipeline.md) - Original v1 design notes
-- [DOCKER_DEPLOYMENT.md](../docker/DEPLOYMENT.md) - Docker setup with pre-downloaded Silero model
+- `docker/DEPLOYMENT.md` (in repo root) - Docker setup with pre-downloaded Silero model
 - `src/clanker/voice/` - Implementation source code
 - `tests/test_voice_*.py` - Test suite

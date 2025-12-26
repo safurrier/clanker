@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import uuid
 from io import BytesIO
 
 import discord
+from loguru import logger
 
 from clanker.models import Context, Message
 from clanker.respond import respond
@@ -59,8 +59,6 @@ async def handle_chat(
     prompt: str,
     deps: BotDependencies,
 ) -> None:
-    logger = logging.getLogger(__name__)
-
     async def action() -> None:
         message = Message(role="user", content=prompt)
         context = build_context(interaction, deps.persona, message)
@@ -75,7 +73,6 @@ async def handle_chat(
 
     await run_with_provider_handling(
         interaction,
-        logger=logger,
         invalid_prefix=ResponseMessage.REQUEST_BLOCKED,
         error_context="chat",
         action=action,
@@ -87,8 +84,6 @@ async def handle_speak(
     prompt: str,
     deps: BotDependencies,
 ) -> None:
-    logger = logging.getLogger(__name__)
-
     async def action() -> None:
         message = Message(role="user", content=prompt)
         context = build_context(interaction, deps.persona, message)
@@ -103,7 +98,6 @@ async def handle_speak(
 
     await run_with_provider_handling(
         interaction,
-        logger=logger,
         invalid_prefix=ResponseMessage.REQUEST_BLOCKED,
         error_context="speak",
         action=action,
@@ -138,7 +132,6 @@ async def _fetch_channel_messages(
 def _get_voice_context(
     guild_id: int | None,
     deps: BotDependencies,
-    logger: logging.Logger,
 ) -> tuple[tuple | None, str]:
     """Get voice transcript context if available.
 
@@ -154,7 +147,8 @@ def _get_voice_context(
 
     logger.info(
         "shitpost.using_voice_context",
-        extra={"guild_id": guild_id, "event_count": len(events)},
+        guild_id=guild_id,
+        event_count=len(events),
     )
     return tuple(events), "voice"
 
@@ -163,12 +157,9 @@ async def _build_shitpost_context(
     interaction: discord.Interaction,
     guidance: str | None,
     deps: BotDependencies,
-    logger: logging.Logger,
 ) -> ShitpostContext:
     """Build ShitpostContext from voice transcript or channel history."""
-    transcript_utterances, channel_type = _get_voice_context(
-        interaction.guild_id, deps, logger
-    )
+    transcript_utterances, channel_type = _get_voice_context(interaction.guild_id, deps)
 
     messages: list[dict[str, str]] = []
     if not transcript_utterances:
@@ -307,7 +298,6 @@ async def handle_shitpost_preview(
     deps: BotDependencies,
 ) -> None:
     """Handle shitpost command with ephemeral preview workflow."""
-    logger = logging.getLogger(__name__)
     n = max(1, min(n, 5))
 
     async def action() -> None:
@@ -318,9 +308,7 @@ async def handle_shitpost_preview(
         guild_id = interaction.guild_id
         channel_id = interaction.channel_id or 0
 
-        shitpost_context = await _build_shitpost_context(
-            interaction, guidance, deps, logger
-        )
+        shitpost_context = await _build_shitpost_context(interaction, guidance, deps)
         meme_templates = load_meme_templates()
         results = await _generate_memes_parallel(
             n,
@@ -353,17 +341,14 @@ async def handle_shitpost_preview(
             increment_metric(deps, f"meme_template_{template.template_id}")
             logger.info(
                 "shitpost.preview_sent",
-                extra={
-                    "preview_id": preview_id,
-                    "preview_index": i,
-                    "template_id": template.template_id,
-                    "user_id": interaction.user.id,
-                },
+                preview_id=preview_id,
+                preview_index=i,
+                template_id=template.template_id,
+                user_id=interaction.user.id,
             )
 
     await run_with_provider_handling(
         interaction,
-        logger=logger,
         invalid_prefix=ResponseMessage.INVALID_CATEGORY,
         error_context="shitpost_preview",
         action=action,

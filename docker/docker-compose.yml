@@ -13,11 +13,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
 
-      # Configuration
-      CLANKER_CONFIG_PATH: ${CLANKER_CONFIG_PATH:-/workspace/config.yaml}
+      # Configuration (optional - uses built-in defaults if not set)
+      CLANKER_CONFIG_PATH: ${CLANKER_CONFIG_PATH:-}
 
       # Python settings
       PYTHONUNBUFFERED: 1
+      PYTHONPATH: /workspace/src
       TORCH_HOME: /workspace/.cache/torch
     command: /bin/bash
     # Note: user mapping handled by Podman rootless automatically

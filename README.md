@@ -147,9 +147,11 @@ src/
 │   └── respond.py        # Core response orchestration
 │
 ├── clanker_bot/          # Discord bot host
+│   ├── command_handlers/ # Command implementations (chat, voice, admin)
+│   ├── views/            # Discord UI views (shitpost preview)
 │   ├── commands.py       # Slash command registration
 │   ├── voice_ingest.py   # Voice receive integration
-│   ├── health.py         # Health monitoring
+│   ├── health.py         # Health endpoint (/status HTTP)
 │   └── main.py           # Bot entry point
 │
 └── tests/                # Test suite

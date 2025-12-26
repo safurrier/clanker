@@ -27,6 +27,7 @@ Clanker9000 provides a clean separation between a reusable SDK (`clanker`) and a
 | [Transcript Examples](transcript-examples.md) | Real-world conversation output examples |
 | [Meme Pipeline](meme-pipeline.md) | Curated meme generation system |
 | [Container Setup](container-setup.md) | Docker development and deployment |
+| [Future Work](FUTURE_WORK.md) | Planned improvements and roadmap |
 
 ## Installation
 
@@ -48,14 +49,16 @@ python -m clanker_bot.main
 
 ```
 src/
-├── clanker/           # Core SDK (reusable library)
-│   ├── providers/     # LLM, STT, TTS adapters
-│   ├── voice/         # Voice pipeline
-│   └── shitposts/     # Content generation
+├── clanker/              # Core SDK (reusable library)
+│   ├── providers/        # LLM, STT, TTS adapters
+│   ├── voice/            # Voice pipeline
+│   └── shitposts/        # Content generation
 │
-└── clanker_bot/       # Discord bot host
-    ├── commands.py    # Slash commands
-    └── voice_ingest.py
+└── clanker_bot/          # Discord bot host
+    ├── command_handlers/ # Command implementations
+    ├── views/            # Discord UI views
+    ├── commands.py       # Slash command registration
+    └── voice_ingest.py   # Voice receive integration
 ```
 
 ## Development

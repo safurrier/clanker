@@ -14,30 +14,26 @@ RUN git clone https://github.com/snakers4/silero-vad.git /silero-vad && \
 # Development image with all tools
 FROM python:3.12-slim
 
-# Install Auxiliary Software for development
-RUN apt-get update && apt-get install -y \
+# Install development tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
-    apt-utils \
-    apt-transport-https \
     curl \
     gcc \
-    gnupg \
-    gnupg-agent \
-    graphviz \
-    software-properties-common \
+    git \
     vim \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 
-# Copy essential files for dependency resolution to temp location
-COPY pyproject.toml uv.lock /tmp/
-COPY README.md /tmp/
+# Install uv and pre-install dependencies
+# Note: The project itself is mounted at runtime, so we just need deps
+COPY pyproject.toml uv.lock README.md /tmp/deps/
+COPY src /tmp/deps/src
 
 RUN pip install -U pip uv \
-    && cd /tmp \
-    && uv sync --system --all-extras \
-    && rm -rf /tmp/pyproject.toml /tmp/uv.lock /tmp/README.md
+    && cd /tmp/deps \
+    && uv pip install --system ".[voice]" \
+    && rm -rf /tmp/deps
 
 # Copy pre-downloaded Silero model for voice support
 COPY --from=silero-vad /silero-vad /workspace/silero-vad

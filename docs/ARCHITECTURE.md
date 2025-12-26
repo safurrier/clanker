@@ -175,12 +175,24 @@ Schema enforces:
 | Module | Responsibility |
 |--------|---------------|
 | `main.py` | Entry point, dependency injection, health server |
-| `commands.py` | Slash command registration (`/chat`, `/status`) |
+| `commands.py` | Slash command registration |
+| `command_handlers/` | Command implementations (chat, voice, admin, shitpost) |
+| `views/` | Discord UI views (shitpost preview buttons) |
 | `voice_ingest.py` | Voice receive integration with SDK pipeline |
 | `discord_adapter.py` | Voice session management |
-| `admin.py` | Admin-only commands |
-| `health.py` | Health check endpoint |
+| `health.py` | Health check HTTP endpoint (`/status`) |
 | `metrics.py` | Observability counters/gauges |
+
+**Available Slash Commands:**
+
+| Command | Handler | Description |
+|---------|---------|-------------|
+| `/chat` | `command_handlers/chat.py` | Chat with LLM |
+| `/speak` | `command_handlers/chat.py` | Chat with TTS response |
+| `/shitpost` | `command_handlers/messages.py` | Generate meme previews |
+| `/join` | `command_handlers/voice.py` | Join voice channel |
+| `/leave` | `command_handlers/voice.py` | Leave voice channel |
+| `/admin_*` | `command_handlers/admin.py` | Admin commands |
 
 ## Data Flow
 

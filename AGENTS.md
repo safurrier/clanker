@@ -50,7 +50,9 @@ All I/O operations are async. Use `httpx.AsyncClient` for HTTP.
 | Response orchestration | `src/clanker/respond.py` |
 | Provider protocols | `src/clanker/providers/*.py` |
 | Voice pipeline | `src/clanker/voice/*.py` |
-| Discord commands | `src/clanker_bot/commands.py` |
+| Discord command registration | `src/clanker_bot/commands.py` |
+| Command handlers | `src/clanker_bot/command_handlers/` |
+| Discord UI views | `src/clanker_bot/views/` |
 | Configuration | `src/clanker/config/` |
 
 ## Commands
@@ -170,7 +172,10 @@ Additional context in `ai-docs/`:
 ## Common Tasks
 
 ### Add a new slash command
-Edit `src/clanker_bot/commands.py`, add to `register_commands()`.
+1. Create handler function in `src/clanker_bot/command_handlers/` (or add to existing file)
+2. Export from `command_handlers/__init__.py`
+3. Register in `src/clanker_bot/commands.py` `register_commands()` function
+4. Add tests in `tests/test_commands.py`
 
 ### Add a new persona
 Update `config.yaml` with new persona definition.

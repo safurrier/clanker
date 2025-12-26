@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from io import BytesIO
 
 import discord
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclass
@@ -130,17 +128,15 @@ class ShitpostPreviewView(discord.ui.View):
             )
             logger.info(
                 "shitpost.posted",
-                extra={
-                    "preview_id": self.preview_id,
-                    "user_id": self.invoker_id,
-                    "template_id": self.payload.template_id,
-                },
+                preview_id=self.preview_id,
+                user_id=self.invoker_id,
+                template_id=self.payload.template_id,
             )
         except Exception as e:
-            logger.error(
+            logger.opt(exception=True).error(
                 "shitpost.post_failed",
-                exc_info=True,
-                extra={"preview_id": self.preview_id, "error": str(e)},
+                preview_id=self.preview_id,
+                error=str(e),
             )
             await interaction.response.send_message(
                 f"Error posting meme: {e}", ephemeral=True
@@ -172,17 +168,15 @@ class ShitpostPreviewView(discord.ui.View):
             await self._update_preview(interaction, new_payload, new_embed)
             logger.info(
                 "shitpost.regenerated",
-                extra={
-                    "preview_id": self.preview_id,
-                    "user_id": self.invoker_id,
-                    "new_template_id": new_payload.template_id,
-                },
+                preview_id=self.preview_id,
+                user_id=self.invoker_id,
+                new_template_id=new_payload.template_id,
             )
         except Exception as e:
-            logger.error(
+            logger.opt(exception=True).error(
                 "shitpost.regenerate_failed",
-                exc_info=True,
-                extra={"preview_id": self.preview_id, "error": str(e)},
+                preview_id=self.preview_id,
+                error=str(e),
             )
             await interaction.followup.send(
                 f"Error regenerating meme: {e}", ephemeral=True
@@ -204,23 +198,18 @@ class ShitpostPreviewView(discord.ui.View):
             # and view effectively removes it visually
             logger.info(
                 "shitpost.dismissed",
-                extra={
-                    "preview_id": self.preview_id,
-                    "user_id": self.invoker_id,
-                },
+                preview_id=self.preview_id,
+                user_id=self.invoker_id,
             )
         except Exception as e:
-            logger.error(
+            logger.opt(exception=True).error(
                 "shitpost.dismiss_failed",
-                exc_info=True,
-                extra={"preview_id": self.preview_id, "error": str(e)},
+                preview_id=self.preview_id,
+                error=str(e),
             )
 
     async def on_timeout(self) -> None:
         """Handle view timeout by disabling buttons."""
-        logger.info(
-            "shitpost.preview_timeout",
-            extra={"preview_id": self.preview_id},
-        )
+        logger.info("shitpost.preview_timeout", preview_id=self.preview_id)
         # Views on ephemeral messages can't be edited after timeout
         # without the original interaction, so we just log it
