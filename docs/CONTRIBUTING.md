@@ -61,6 +61,17 @@ In the "Bot" section:
 
 ### 4. Generate OAuth2 Invite URL
 
+The easiest way is to use this template URL - just replace `YOUR_CLIENT_ID`:
+
+```
+https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=311388392448&integration_type=0&scope=bot+applications.commands
+```
+
+Find your Client ID in "OAuth2" → "General" in the Developer Portal.
+
+<details>
+<summary>Or use the URL Generator manually</summary>
+
 Go to "OAuth2" → "URL Generator":
 
 1. **Scopes**: Select `bot` and `applications.commands`
@@ -74,6 +85,8 @@ Go to "OAuth2" → "URL Generator":
    | Voice | Connect, Speak |
 
 3. Copy the generated URL at the bottom
+
+</details>
 
 ### 5. Invite Bot to Test Server
 
