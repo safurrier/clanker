@@ -31,5 +31,5 @@ class BotDependencies:
     metrics: Metrics | None = None
     admin_user_ids: set[int] | None = None
     admin_state: AdminState | None = None
-    voice_ingest_enabled: bool = False
+    voice_ingest_enabled: bool = True
     transcript_buffer: TranscriptBuffer | None = None

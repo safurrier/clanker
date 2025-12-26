@@ -129,6 +129,7 @@ async def test_handle_join_success(fake_interaction: FakeInteraction) -> None:
             join_ok=True,
             status=VoiceStatus.OK,
         ),
+        voice_ingest_enabled=False,
     )
     await handle_join(fake_interaction, deps)
     assert fake_interaction.response.messages == [ResponseMessage.JOINED_VOICE]

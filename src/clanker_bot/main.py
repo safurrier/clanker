@@ -83,7 +83,6 @@ def build_dependencies() -> BotDependencies:
     metrics = Metrics()
     admin_ids = _load_admin_ids()
     admin_state = AdminState()
-    voice_ingest_enabled = os.getenv("CLANKER_VOICE_INGEST_ENABLED") == "1"
     return BotDependencies(
         llm=llm,
         stt=stt,
@@ -94,7 +93,6 @@ def build_dependencies() -> BotDependencies:
         metrics=metrics,
         admin_user_ids=admin_ids,
         admin_state=admin_state,
-        voice_ingest_enabled=voice_ingest_enabled,
     )
 
 
@@ -108,7 +106,9 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
     @bot.event
     async def on_ready() -> None:
         if bot.user:
+            logger.info("Bot ready as {}", bot.user.name)
             await bot.tree.sync()
+            logger.info("Command tree synced")
 
     return bot
 
@@ -125,6 +125,7 @@ async def run_health_server(state: HealthState) -> None:
 def main() -> None:
     """Run the bot."""
     configure_logging()
+    logger.info("Clanker9000 starting up...")
 
     token = os.getenv("DISCORD_TOKEN")
     if not token:
@@ -144,10 +145,6 @@ def main() -> None:
     asyncio.run(runner())
 
 
-if __name__ == "__main__":
-    main()
-
-
 def _load_admin_ids() -> set[int]:
     """Load admin user IDs from environment variable."""
     raw = os.getenv("CLANKER_ADMIN_IDS", "")
@@ -163,3 +160,7 @@ def _load_admin_ids() -> set[int]:
         except ValueError:
             logger.warning("Invalid admin ID in CLANKER_ADMIN_IDS: {!r}", value)
     return result
+
+
+if __name__ == "__main__":
+    main()
