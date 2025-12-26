@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `tests/test_voice_to_meme.py`: E2E tests transcribing real audio then generating memes
   - `tests/meme_scoring.py`: LLM-based meme quality scoring (relevance, format, coherence)
   - Validates `TranscriptEvent` compatibility with `ShitpostContext`
+- Structured LLM outputs via Instructor library:
+  - `StructuredLLM` protocol for guaranteed schema-compliant responses
+  - `generate_structured()` method on `OpenAILLM` using Pydantic models
+  - `MemeLines` model for type-safe meme text generation
+  - Provider-agnostic design: same code pattern works with OpenAI, Anthropic, etc.
+  - Automatic retries on validation failures
 - Audio pipeline test tooling for debugging voice capture:
   - `scripts/download_test_audio.py`: Download LibriSpeech and AMI corpus samples
   - `scripts/test_audio_pipeline.py`: VAD detection and transcription accuracy reports

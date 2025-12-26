@@ -347,11 +347,8 @@ async def test_full_voice_to_meme_pipeline_with_scoring(
         metadata={},
     )
 
-    try:
-        lines = await render_meme_text(context, llm, meme_template, shitpost_context)
-    except ValueError as e:
-        # LLM may return invalid JSON due to rate limits or transient issues
-        pytest.skip(f"LLM returned invalid response (transient): {e}")
+    # With structured outputs, JSON parsing failures won't happen
+    lines = await render_meme_text(context, llm, meme_template, shitpost_context)
 
     print(f"  Meme template: {meme_template.template_id}")
     print(f"  Generated lines: {lines}")
@@ -428,11 +425,8 @@ async def test_meme_quality_with_user_guidance(
         metadata={},
     )
 
-    try:
-        lines = await render_meme_text(context, llm, meme_template, shitpost_context)
-    except ValueError as e:
-        # LLM may return invalid JSON due to rate limits or transient issues
-        pytest.skip(f"LLM returned invalid response (transient): {e}")
+    # With structured outputs, JSON parsing failures won't happen
+    lines = await render_meme_text(context, llm, meme_template, shitpost_context)
 
     print(f"\n  Template: {meme_template.template_id}")
     print("  User guidance: make it about programming")

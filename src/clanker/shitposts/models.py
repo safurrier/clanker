@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Protocol, runtime_checkable
 
+from pydantic import BaseModel, Field
+
 
 @dataclass(frozen=True)
 class ShitpostTemplate:
@@ -142,3 +144,18 @@ class ShitpostContext:
                 lines.append(f"[{role}]: {content}")
 
         return "\n".join(lines)
+
+
+# --- Structured Output Models ---
+# Response models for LLM structured outputs (used with Instructor).
+# If this section grows significantly, consider moving to a dedicated
+# `responses.py` or co-locating with prompts in `prompts/`.
+
+
+class MemeLines(BaseModel):
+    """Structured output for meme text generation.
+
+    Used with generate_structured() to guarantee valid meme line format.
+    """
+
+    lines: list[str] = Field(description="The text lines for the meme")

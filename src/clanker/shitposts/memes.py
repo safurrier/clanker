@@ -12,8 +12,8 @@ from pathlib import Path
 import yaml
 
 from ..models import Context, Message
-from ..providers.base import LLM
-from .models import ShitpostContext
+from ..providers.base import LLM, StructuredLLM
+from .models import MemeLines, ShitpostContext
 
 MEME_INSTANCE_ARGS_PATH = Path(__file__).with_name("meme_instance_args.json")
 MEME_PROMPT_PATH = Path(__file__).with_name("prompts") / "shitpost_meme_generation.yaml"
@@ -123,7 +123,7 @@ def sample_meme_template(
 
 async def render_meme_text(
     context: Context,
-    llm: LLM,
+    llm: LLM | StructuredLLM,
     meme: MemeTemplate,
     shitpost_context: ShitpostContext,
 ) -> list[str]:
@@ -131,15 +131,27 @@ async def render_meme_text(
 
     Args:
         context: LLM request context (user, channel, persona, etc.)
-        llm: LLM provider for text generation
+        llm: LLM provider for text generation (supports structured outputs if available)
         meme: Meme template to generate text for
         shitpost_context: Context containing user input and/or conversation history
+
+    If the LLM supports structured outputs (has generate_structured method),
+    it will be used for guaranteed schema compliance. Otherwise falls back to
+    unstructured generation with JSON parsing.
     """
     topic = shitpost_context.get_prompt_input()
     prompt = build_meme_prompt(meme, topic)
     message = Message(role="user", content=prompt)
-    response = await llm.generate(context, [message])
-    lines = parse_meme_lines(response.content)
+
+    # Use structured output if available (guarantees valid response)
+    if isinstance(llm, StructuredLLM):
+        result = await llm.generate_structured(MemeLines, [message])
+        lines = result.lines
+    else:
+        # Fallback to unstructured generation with JSON parsing
+        response = await llm.generate(context, [message])
+        lines = parse_meme_lines(response.content)
+
     return normalize_meme_lines(lines, meme.text_slots)
 
 
