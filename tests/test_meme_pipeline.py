@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
 from clanker.models import Context, Message, Persona
 from clanker.providers.memegen import MemegenImage
+from clanker.shitposts import ShitpostContext
 from clanker.shitposts.memes import (
     build_meme_prompt,
     load_meme_templates,
@@ -18,7 +18,6 @@ from clanker.shitposts.memes import (
     sample_meme_template,
 )
 from tests.fakes import FakeLLM
-
 
 # Unit tests for parsing and normalization
 
@@ -193,8 +192,9 @@ async def test_render_meme_text_normalizes_output() -> None:
 
     # Fake LLM returns only 1 line but template expects 2
     llm = FakeLLM(reply_text='["Only one line"]')
+    shitpost_context = ShitpostContext(user_input="test")
 
-    lines = await render_meme_text(context, llm, template, topic="test")
+    lines = await render_meme_text(context, llm, template, shitpost_context)
 
     # Should be normalized to 2 lines
     assert len(lines) == template.text_slots
@@ -225,9 +225,10 @@ async def test_memegen_api_e2e() -> None:
 
     # Use fake LLM to avoid OpenAI costs
     llm = FakeLLM(reply_text='["Wait it is a test", "Always has been"]')
+    shitpost_context = ShitpostContext(user_input="testing")
 
     # Generate text
-    lines = await render_meme_text(context, llm, template, topic="testing")
+    lines = await render_meme_text(context, llm, template, shitpost_context)
     assert len(lines) == 2
 
     # Generate actual image with real Memegen API
@@ -279,8 +280,26 @@ async def test_memegen_multiline_e2e() -> None:
 
 
 @pytest.mark.asyncio()
-async def test_render_meme_text_invalid_llm_response() -> None:
-    """Test meme generation fails gracefully on invalid LLM response."""
+async def test_render_meme_text_invalid_json_with_fallback_llm() -> None:
+    """Test meme generation fails gracefully when fallback LLM returns invalid JSON.
+
+    This tests the fallback path for LLMs without structured output support.
+    """
+    from dataclasses import dataclass
+
+    from clanker.providers.base import LLM
+
+    @dataclass
+    class UnstructuredLLM(LLM):
+        """LLM without structured output support (no generate_structured method)."""
+
+        reply_text: str = ""
+
+        async def generate(
+            self, context: Context, messages: list[Message], params: dict | None = None
+        ) -> Message:
+            return Message(role="assistant", content=self.reply_text)
+
     templates = load_meme_templates()
     template = sample_meme_template(templates, template_id="aag")
 
@@ -294,8 +313,34 @@ async def test_render_meme_text_invalid_llm_response() -> None:
         metadata={},
     )
 
-    # LLM returns invalid JSON
-    llm = FakeLLM(reply_text="not json at all")
+    # LLM without structured output returns invalid JSON
+    llm = UnstructuredLLM(reply_text="not json at all")
+    shitpost_context = ShitpostContext(user_input="test")
 
     with pytest.raises(ValueError, match="not valid JSON"):
-        await render_meme_text(context, llm, template, topic="test")
+        await render_meme_text(context, llm, template, shitpost_context)
+
+
+@pytest.mark.asyncio()
+async def test_render_meme_text_structured_output_invalid_json() -> None:
+    """Test that structured output FakeLLM raises on invalid JSON input."""
+    templates = load_meme_templates()
+    template = sample_meme_template(templates, template_id="aag")
+
+    context = Context(
+        request_id="test",
+        user_id=1,
+        guild_id=None,
+        channel_id=1,
+        persona=Persona(id="test", display_name="Test", system_prompt="test"),
+        messages=[],
+        metadata={},
+    )
+
+    # FakeLLM with invalid JSON will fail during structured parsing
+    llm = FakeLLM(reply_text="not json at all")
+    shitpost_context = ShitpostContext(user_input="test")
+
+    # With structured output, JSON errors come from json.loads in the fake
+    with pytest.raises(json.JSONDecodeError):
+        await render_meme_text(context, llm, template, shitpost_context)

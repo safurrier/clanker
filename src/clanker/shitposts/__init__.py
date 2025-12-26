@@ -8,13 +8,22 @@ from .memes import (
     render_meme_text,
     sample_meme_template,
 )
-from .models import ShitpostRequest, ShitpostTemplate
+from .models import (
+    MemeLines,
+    ShitpostContext,
+    ShitpostRequest,
+    ShitpostTemplate,
+    Utterance,
+)
 
 __all__ = [
     "MemeGeneration",
+    "MemeLines",
     "MemeTemplate",
+    "ShitpostContext",
     "ShitpostRequest",
     "ShitpostTemplate",
+    "Utterance",
     "build_request",
     "load_meme_templates",
     "load_templates",

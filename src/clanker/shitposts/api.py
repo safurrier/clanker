@@ -10,7 +10,7 @@ import yaml
 
 from ..models import Context, Message
 from ..providers.base import LLM
-from .models import ShitpostRequest, ShitpostTemplate
+from .models import ShitpostContext, ShitpostRequest, ShitpostTemplate
 
 TEMPLATES_PATH = Path(__file__).with_name("templates.yaml")
 
@@ -49,8 +49,16 @@ def sample_template(
     return secrets.choice(choices)
 
 
-def build_request(template: ShitpostTemplate, topic: str) -> ShitpostRequest:
-    """Build a shitpost request from a template and topic."""
+def build_request(
+    template: ShitpostTemplate, shitpost_context: ShitpostContext
+) -> ShitpostRequest:
+    """Build a shitpost request from a template and context.
+
+    Args:
+        template: The shitpost template to use
+        shitpost_context: Context containing user input and/or conversation history
+    """
+    topic = shitpost_context.get_prompt_input()
     variables = {"topic": topic}
     return ShitpostRequest(template=template, variables=variables)
 

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, TypeVar, runtime_checkable
+
+from pydantic import BaseModel
 
 from ..models import Context, Message
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class LLM(Protocol):
@@ -14,6 +18,36 @@ class LLM(Protocol):
         self, context: Context, messages: list[Message], params: dict | None = None
     ) -> Message:
         """Generate a response from the LLM."""
+        ...
+
+
+@runtime_checkable
+class StructuredLLM(Protocol):
+    """Protocol for LLMs supporting structured outputs via Pydantic models.
+
+    Structured outputs guarantee the response matches the provided schema.
+    Implemented using the Instructor library internally.
+
+    This is a separate protocol from LLM to allow gradual adoption -
+    not all LLM implementations need to support structured outputs.
+    """
+
+    async def generate_structured(
+        self,
+        response_model: type[T],
+        messages: list[Message],
+        max_retries: int = 2,
+    ) -> T:
+        """Generate a structured response matching the Pydantic model.
+
+        Args:
+            response_model: Pydantic model class defining the output schema
+            messages: Conversation messages to send to the LLM
+            max_retries: Number of retries if validation fails (default: 2)
+
+        Returns:
+            Instance of response_model with validated data
+        """
         ...
 
 
