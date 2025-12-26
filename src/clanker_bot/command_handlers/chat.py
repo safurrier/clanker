@@ -254,13 +254,17 @@ async def _generate_single_meme(
     deps: BotDependencies,
     shitpost_context: ShitpostContext,
     meme_template: MemeTemplate,
+    *,
+    user_id: int,
+    guild_id: int | None,
+    channel_id: int,
 ) -> tuple[MemePayload, discord.Embed]:
     """Generate a single meme and return payload + embed."""
     context = Context(
         request_id=str(uuid.uuid4()),
-        user_id=0,
-        guild_id=None,
-        channel_id=0,
+        user_id=user_id,
+        guild_id=guild_id,
+        channel_id=channel_id,
         persona=deps.persona,
         messages=[Message(role="user", content="")],
         metadata={"source": "discord"},
@@ -301,12 +305,23 @@ async def _generate_memes_parallel(
     deps: BotDependencies,
     shitpost_context: ShitpostContext,
     meme_templates: tuple[MemeTemplate, ...],
+    *,
+    user_id: int,
+    guild_id: int | None,
+    channel_id: int,
 ) -> list[tuple[MemePayload, discord.Embed, MemeTemplate]]:
     """Generate n memes in parallel with random templates."""
 
     async def generate_one() -> tuple[MemePayload, discord.Embed, MemeTemplate]:
         template = sample_meme_template(meme_templates)
-        payload, embed = await _generate_single_meme(deps, shitpost_context, template)
+        payload, embed = await _generate_single_meme(
+            deps,
+            shitpost_context,
+            template,
+            user_id=user_id,
+            guild_id=guild_id,
+            channel_id=channel_id,
+        )
         return payload, embed, template
 
     return list(await asyncio.gather(*[generate_one() for _ in range(n)]))
@@ -316,12 +331,23 @@ def _create_regenerate_callback(
     deps: BotDependencies,
     shitpost_context: ShitpostContext,
     meme_templates: tuple[MemeTemplate, ...],
+    *,
+    user_id: int,
+    guild_id: int | None,
+    channel_id: int,
 ) -> RegenerateCallback:
     """Create a regenerate callback that picks a new random template."""
 
     async def regenerate() -> tuple[MemePayload, discord.Embed]:
         new_template = sample_meme_template(meme_templates)
-        return await _generate_single_meme(deps, shitpost_context, new_template)
+        return await _generate_single_meme(
+            deps,
+            shitpost_context,
+            new_template,
+            user_id=user_id,
+            guild_id=guild_id,
+            channel_id=channel_id,
+        )
 
     return regenerate
 
@@ -356,23 +382,39 @@ async def handle_shitpost_preview(
     async def action() -> None:
         increment_metric(deps, "shitpost_preview_requests")
 
+        # Extract request metadata for Context objects
+        user_id = interaction.user.id
+        guild_id = interaction.guild_id
+        channel_id = interaction.channel_id or 0
+
         shitpost_context = await _build_shitpost_context(
             interaction, guidance, deps, logger
         )
         meme_templates = load_meme_templates()
         results = await _generate_memes_parallel(
-            n, deps, shitpost_context, meme_templates
+            n,
+            deps,
+            shitpost_context,
+            meme_templates,
+            user_id=user_id,
+            guild_id=guild_id,
+            channel_id=channel_id,
         )
 
         for i, (payload, embed, template) in enumerate(results, 1):
             preview_id = str(uuid.uuid4())
             view = ShitpostPreviewView(
-                invoker_id=interaction.user.id,
+                invoker_id=user_id,
                 preview_id=preview_id,
                 payload=payload,
                 embed=embed,
                 regenerate_callback=_create_regenerate_callback(
-                    deps, shitpost_context, meme_templates
+                    deps,
+                    shitpost_context,
+                    meme_templates,
+                    user_id=user_id,
+                    guild_id=guild_id,
+                    channel_id=channel_id,
                 ),
             )
 
