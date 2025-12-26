@@ -1,0 +1,2220 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A collaborative Python project template with modern tooling">
+      
+      
+        <meta name="author" content="safurrier">
+      
+      
+        <link rel="canonical" href="https://safurrier.github.io/python-collab-template/FUTURE_WORK/">
+      
+      
+        <link rel="prev" href="../reference/api/">
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>Future Work - Python Collab Template</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#future-work-meme-pipeline-shitpost-system" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Python Collab Template" class="md-header__button md-logo" aria-label="Python Collab Template" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Python Collab Template
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Future Work
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/safurrier/python-collab-template" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    safurrier/python-collab-template
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../QUICKSTART/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../audio-capture/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../config_schema/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Planning
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Python Collab Template" class="md-nav__button md-logo" aria-label="Python Collab Template" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Python Collab Template
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/safurrier/python-collab-template" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    safurrier/python-collab-template
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../QUICKSTART/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audio-capture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Audio Capture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../meme-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Meme Pipeline
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../container-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Container Setup
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../voice_ingest_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Voice Ingest Pipeline
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../transcript-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Transcript Examples
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Configuration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../discordpy_notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Discord.py Notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Documentation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Planning
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Planning
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Future Work
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Future Work
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#high-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      High Priority
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="High Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-context-aware-shitpost-refactoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Context-Aware Shitpost Refactoring
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Context-Aware Shitpost Refactoring">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation Plan
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-prompt-engineering-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Prompt Engineering Improvements
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Prompt Engineering Improvements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tone-style-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tone &amp; Style Guidance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#few-shot-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Few-Shot Improvements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-specific-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Template-Specific Instructions
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-registry-maintenance-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Registry Maintenance &amp; Updates
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#medium-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      Medium Priority
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Medium Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#4-smarter-template-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Smarter Template Selection
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Smarter Template Selection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-embedding-based-similarity" class="md-nav__link">
+    <span class="md-ellipsis">
+      A. Embedding-Based Similarity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-llm-based-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      B. LLM-Based Selection
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-error-handling-graceful-degradation" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Error Handling &amp; Graceful Degradation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-example-quality-scoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Example Quality Scoring
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lower-priority-nice-to-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      Lower Priority / Nice to Have
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lower Priority / Nice to Have">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#7-template-statistics-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Template Statistics Dashboard
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-ab-testing-for-prompts" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. A/B Testing for Prompts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-multi-template-combos" class="md-nav__link">
+    <span class="md-ellipsis">
+      9. Multi-Template Combos
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-user-submitted-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      10. User-Submitted Templates
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technical-debt" class="md-nav__link">
+    <span class="md-ellipsis">
+      Technical Debt
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Technical Debt">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#refactoring-opportunities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refactoring Opportunities
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      Code Quality
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-log" class="md-nav__link">
+    <span class="md-ellipsis">
+      Decision Log
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Log">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-not-use-a-database-for-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why not use a database for templates?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-cache-the-entire-registry-instead-of-individual-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why cache the entire registry instead of individual templates?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#high-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      High Priority
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="High Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-context-aware-shitpost-refactoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Context-Aware Shitpost Refactoring
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Context-Aware Shitpost Refactoring">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation Plan
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-prompt-engineering-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Prompt Engineering Improvements
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Prompt Engineering Improvements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tone-style-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tone &amp; Style Guidance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#few-shot-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Few-Shot Improvements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-specific-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Template-Specific Instructions
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-registry-maintenance-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Registry Maintenance &amp; Updates
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#medium-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      Medium Priority
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Medium Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#4-smarter-template-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Smarter Template Selection
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Smarter Template Selection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-embedding-based-similarity" class="md-nav__link">
+    <span class="md-ellipsis">
+      A. Embedding-Based Similarity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-llm-based-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      B. LLM-Based Selection
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-error-handling-graceful-degradation" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Error Handling &amp; Graceful Degradation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-example-quality-scoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Example Quality Scoring
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lower-priority-nice-to-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      Lower Priority / Nice to Have
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lower Priority / Nice to Have">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#7-template-statistics-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Template Statistics Dashboard
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-ab-testing-for-prompts" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. A/B Testing for Prompts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-multi-template-combos" class="md-nav__link">
+    <span class="md-ellipsis">
+      9. Multi-Template Combos
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-user-submitted-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      10. User-Submitted Templates
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technical-debt" class="md-nav__link">
+    <span class="md-ellipsis">
+      Technical Debt
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Technical Debt">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#refactoring-opportunities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refactoring Opportunities
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      Code Quality
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-log" class="md-nav__link">
+    <span class="md-ellipsis">
+      Decision Log
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Log">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-not-use-a-database-for-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why not use a database for templates?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-cache-the-entire-registry-instead-of-individual-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why cache the entire registry instead of individual templates?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/safurrier/python-collab-template/edit/main/docs/FUTURE_WORK.md" title="Edit this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="future-work-meme-pipeline-shitpost-system">Future Work - Meme Pipeline &amp; Shitpost System<a class="headerlink" href="#future-work-meme-pipeline-shitpost-system" title="Permanent link">&para;</a></h1>
+<p>This document outlines planned improvements and refactoring opportunities for the meme generation and shitpost systems.</p>
+<h2 id="high-priority">High Priority<a class="headerlink" href="#high-priority" title="Permanent link">&para;</a></h2>
+<h3 id="1-context-aware-shitpost-refactoring">1. Context-Aware Shitpost Refactoring<a class="headerlink" href="#1-context-aware-shitpost-refactoring" title="Permanent link">&para;</a></h3>
+<p><strong>Current State</strong>: The shitpost command only accepts <code>topic: str</code> as input, which limits it to explicit user-provided topics.</p>
+<p><strong>Problem</strong>: The bot has access to much richer contextual information that could make shitposts more relevant:
+- Voice channel transcripts
+- Thread conversation history
+- Recent channel messages
+- User reactions/engagement patterns</p>
+<p><strong>Proposed Solution</strong>: Refactor to use a generic "input context" model instead of just topic string.</p>
+<h4 id="implementation-plan">Implementation Plan<a class="headerlink" href="#implementation-plan" title="Permanent link">&para;</a></h4>
+<p><strong>Phase 1: Create Context Model</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">ShitpostContext</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Context for generating contextual shitposts.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="c1"># Primary input (one of these should be set)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">explicit_topic</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">conversation_transcript</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">thread_messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="c1"># Metadata</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">channel_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># &quot;voice&quot;, &quot;text&quot;, &quot;thread&quot;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">recent_reactions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_prompt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Build input prompt from available context.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">explicit_topic</span><span class="p">:</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">explicit_topic</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">conversation_transcript</span><span class="p">:</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Recent conversation:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">conversation_transcript</span><span class="p">[</span><span class="o">-</span><span class="mi">500</span><span class="p">:]</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thread_messages</span><span class="p">:</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>            <span class="n">summary</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">thread_messages</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:])</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Recent messages:</span><span class="se">\n</span><span class="si">{</span><span class="n">summary</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        <span class="k">return</span> <span class="s2">&quot;random internet humor&quot;</span>
+</code></pre></div></p>
+<p><strong>Phase 2: Update Signatures</strong>
+- Change <code>render_meme_text(topic: str, ...)</code> to <code>render_meme_text(context: ShitpostContext, ...)</code>
+- Change <code>render_shitpost(topic: str, ...)</code> to <code>render_shitpost(context: ShitpostContext, ...)</code>
+- Update command handlers to construct appropriate <code>ShitpostContext</code></p>
+<p><strong>Phase 3: New Commands</strong>
+- <code>/shitpost-here</code> - Generate meme based on current thread/channel context
+- <code>/shitpost-vc</code> - Generate meme based on recent voice conversation (requires transcript storage)
+- <code>/auto-meme</code> - Auto-generate memes on high engagement (e.g., 5+ reactions)</p>
+<p><strong>Benefits</strong>:
+- Separation of concerns (context gathering vs. generation)
+- More relevant and contextual shitposts
+- Extensible to new context sources
+- Backward compatible (explicit topic still works)</p>
+<p><strong>Considerations</strong>:
+- Privacy: Need user awareness/consent for using conversation history
+- Prompt engineering: Different context types need different prompt structures
+- Quality: Conversation context is noisier than explicit topics</p>
+<hr />
+<h3 id="2-prompt-engineering-improvements">2. Prompt Engineering Improvements<a class="headerlink" href="#2-prompt-engineering-improvements" title="Permanent link">&para;</a></h3>
+<p><strong>Current State</strong>: Basic prompt in <code>shitpost_meme_generation.yaml</code> with minimal guidance.</p>
+<p><strong>Opportunities</strong>:</p>
+<h4 id="tone-style-guidance">Tone &amp; Style Guidance<a class="headerlink" href="#tone-style-guidance" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="no">You are an expert memer and shitposter. Your task is to create meme text that:</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="no">1. Matches the format and tone shown in the examples EXACTLY</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="no">2. Incorporates the topic naturally into the meme structure</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="no">3. Is concise (&lt; 50 characters per line for readability)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="no">4. Would be funny to someone familiar with this meme format</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="no">5. Uses internet culture vernacular appropriately</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="no">Meme: {variant}</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="no">When to use: {applicable_context}</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="no">Topic: {topic}</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="no">Study these examples carefully - match their style:</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="no">{examples}</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">  </span><span class="no">{additional_prompt_instructions}</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span><span class="no">Generate EXACTLY {text_slots} strings. Return ONLY a JSON list of strings.</span>
+</code></pre></div>
+<h4 id="few-shot-improvements">Few-Shot Improvements<a class="headerlink" href="#few-shot-improvements" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Currently shows examples as JSON dump</li>
+<li>Could format examples more clearly with numbering</li>
+<li>Add "bad example" / "good example" pairs for contrast</li>
+</ul>
+<h4 id="template-specific-instructions">Template-Specific Instructions<a class="headerlink" href="#template-specific-instructions" title="Permanent link">&para;</a></h4>
+<p>Leverage <code>additional_prompt_instructions</code> more:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;astronaut&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">&quot;additional_prompt_instructions&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The second line MUST be &#39;Always has been&#39; - this is the core format of the meme.&quot;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
+</code></pre></div></p>
+<hr />
+<h3 id="3-registry-maintenance-updates">3. Registry Maintenance &amp; Updates<a class="headerlink" href="#3-registry-maintenance-updates" title="Permanent link">&para;</a></h3>
+<p><strong>Needed</strong>:
+- Regular runs of <code>generate_memes.py</code> to add new templates
+- Automated example quality improvement via <code>update_memes_examples.py</code>
+- CI job to run <code>validate_registry.py</code> on PRs
+- Periodic review of disabled templates (can some be re-enabled?)</p>
+<p><strong>Implementation</strong>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># .github/workflows/validate-memes.yml</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate Meme Registry</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nt">on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">push</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pull_request</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nt">jobs</span><span class="p">:</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">validate</span><span class="p">:</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v3</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate registry</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run python scripts/validate_registry.py</span>
+</code></pre></div></p>
+<p><strong>Scheduled Updates</strong>:
+- Monthly: Run <code>generate_memes.py</code> to add new templates
+- Quarterly: Run <code>update_memes_examples.py</code> for quality improvement
+- As needed: Review validation errors and fix</p>
+<hr />
+<h2 id="medium-priority">Medium Priority<a class="headerlink" href="#medium-priority" title="Permanent link">&para;</a></h2>
+<h3 id="4-smarter-template-selection">4. Smarter Template Selection<a class="headerlink" href="#4-smarter-template-selection" title="Permanent link">&para;</a></h3>
+<p><strong>Current</strong>: Random template selection from all enabled templates.</p>
+<p><strong>Opportunity</strong>: Use <code>applicable_context</code> field for relevance matching.</p>
+<p><strong>Approaches</strong>:</p>
+<h4 id="a-embedding-based-similarity">A. Embedding-Based Similarity<a class="headerlink" href="#a-embedding-based-similarity" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">select_best_template</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">templates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemeTemplate</span><span class="p">],</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">embedding_model</span><span class="p">:</span> <span class="n">EmbeddingModel</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MemeTemplate</span><span class="p">:</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Select template most semantically similar to topic.&quot;&quot;&quot;</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">topic_embedding</span> <span class="o">=</span> <span class="k">await</span> <span class="n">embedding_model</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">topic</span><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">scored</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">:</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="n">context_embedding</span> <span class="o">=</span> <span class="k">await</span> <span class="n">embedding_model</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">applicable_context</span><span class="p">)</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="n">similarity</span> <span class="o">=</span> <span class="n">cosine_similarity</span><span class="p">(</span><span class="n">topic_embedding</span><span class="p">,</span> <span class="n">context_embedding</span><span class="p">)</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="n">scored</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">template</span><span class="p">,</span> <span class="n">similarity</span><span class="p">))</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="c1"># Return top match, or random if similarity too low</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="n">top_template</span><span class="p">,</span> <span class="n">top_score</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">scored</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="k">if</span> <span class="n">top_score</span> <span class="o">&gt;</span> <span class="mf">0.6</span><span class="p">:</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="k">return</span> <span class="n">top_template</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span>  <span class="c1"># Fallback</span>
+</code></pre></div>
+<h4 id="b-llm-based-selection">B. LLM-Based Selection<a class="headerlink" href="#b-llm-based-selection" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">select_best_template_llm</span><span class="p">(</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">templates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemeTemplate</span><span class="p">],</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">llm</span><span class="p">:</span> <span class="n">LLM</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MemeTemplate</span><span class="p">:</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Use LLM to pick most appropriate template.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">options</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">template_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">applicable_context</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span>  <span class="c1"># Limit to avoid token bloat</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="p">)</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Given the topic &quot;</span><span class="si">{</span><span class="n">topic</span><span class="si">}</span><span class="s2">&quot;, which meme is most appropriate?</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="s2">    Options:</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="s2">    </span><span class="si">{</span><span class="n">options</span><span class="si">}</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="s2">    Respond with just the template_id of the best match.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate_simple</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="c1"># Find template by ID, fallback to random</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">:</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>        <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">template_id</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>            <span class="k">return</span> <span class="n">template</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Trade-offs</strong>:
+- Embedding: Fast, deterministic, requires embedding model
+- LLM: Slower, costs tokens, potentially more accurate
+- Both: Could use embedding for top-K, then LLM to pick from top-K</p>
+<hr />
+<h3 id="5-error-handling-graceful-degradation">5. Error Handling &amp; Graceful Degradation<a class="headerlink" href="#5-error-handling-graceful-degradation" title="Permanent link">&para;</a></h3>
+<p><strong>Current Gaps</strong>:
+- LLM failures bubble up as exceptions
+- Image generation failures crash the command
+- No fallbacks for invalid JSON responses</p>
+<p><strong>Improvements</strong>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># In handle_shitpost()</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="k">await</span> <span class="n">render_meme_text</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">deps</span><span class="o">.</span><span class="n">llm</span><span class="p">,</span> <span class="n">meme_template</span><span class="p">,</span> <span class="n">topic</span><span class="p">)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_success&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;LLM meme generation failed, using random example&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">meme_template</span><span class="o">.</span><span class="n">examples</span><span class="p">)</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_llm_fallback&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Meme generation failed completely&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_failure&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="k">raise</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="k">if</span> <span class="n">deps</span><span class="o">.</span><span class="n">image</span><span class="p">:</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="n">image_payload</span> <span class="o">=</span> <span class="k">await</span> <span class="n">deps</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="c1"># ... send with image</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Image generation failed, sending text only&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_image_fallback&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>        <span class="k">await</span> <span class="n">interaction</span><span class="o">.</span><span class="n">followup</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🖼️ </span><span class="si">{</span><span class="n">caption</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">_(image generation failed)_&quot;</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h3 id="6-example-quality-scoring">6. Example Quality Scoring<a class="headerlink" href="#6-example-quality-scoring" title="Permanent link">&para;</a></h3>
+<p><strong>Current</strong>: Binary <code>examples_updated</code> flag.</p>
+<p><strong>Opportunity</strong>: Score examples during generation and only keep high-quality ones.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># In update_memes_examples.py</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">score_examples</span><span class="p">(</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">llm</span><span class="p">:</span> <span class="n">LLM</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">template</span><span class="p">:</span> <span class="n">MemeTemplate</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Rate example quality 1-10.&quot;&quot;&quot;</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Rate these meme examples on a scale of 1-10 based on:</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="s2">    - Format adherence to the </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant</span><span class="si">}</span><span class="s2"> meme</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="s2">    - Humor quality and effectiveness</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="s2">    - Representativeness of typical usage</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="s2">    Template: </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant</span><span class="si">}</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="s2">    Description: </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant_description</span><span class="si">}</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="s2">    Examples to rate:</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="s2">    </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">examples</span><span class="p">,</span><span class="w"> </span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="s2">    Return JSON: </span><span class="se">{{</span><span class="s2">&quot;score&quot;: int (1-10), &quot;reasoning&quot;: str</span><span class="se">}}</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="s2">    &quot;&quot;&quot;</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate_simple</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>
+<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="c1"># Only save examples with score &gt;= 7</span>
+<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="k">for</span> <span class="n">template_id</span><span class="p">,</span> <span class="n">template_data</span> <span class="ow">in</span> <span class="n">registry</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>    <span class="n">examples</span> <span class="o">=</span> <span class="k">await</span> <span class="n">generate_examples</span><span class="p">(</span><span class="n">llm</span><span class="p">,</span> <span class="n">template_data</span><span class="p">)</span>
+<a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>    <span class="n">score_result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">score_examples</span><span class="p">(</span><span class="n">llm</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">examples</span><span class="p">)</span>
+<a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>
+<a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>    <span class="k">if</span> <span class="n">score_result</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">7</span><span class="p">:</span>
+<a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>        <span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;examples&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">examples</span>
+<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>        <span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;example_quality_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score_result</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+<a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>        <span class="n">save_registry</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span>
+<a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">template_id</span><span class="si">}</span><span class="s2">: Low quality examples (score=</span><span class="si">{</span><span class="n">score_result</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">), retrying...&quot;</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="lower-priority-nice-to-have">Lower Priority / Nice to Have<a class="headerlink" href="#lower-priority-nice-to-have" title="Permanent link">&para;</a></h2>
+<h3 id="7-template-statistics-dashboard">7. Template Statistics Dashboard<a class="headerlink" href="#7-template-statistics-dashboard" title="Permanent link">&para;</a></h3>
+<p>Visualize template usage and performance:
+- Most/least popular templates
+- Success/failure rates by template
+- Example quality scores over time
+- Templates never used (candidates for removal)</p>
+<p><strong>Implementation</strong>: Could be Grafana dashboard, simple web page, or CLI report.</p>
+<h3 id="8-ab-testing-for-prompts">8. A/B Testing for Prompts<a class="headerlink" href="#8-ab-testing-for-prompts" title="Permanent link">&para;</a></h3>
+<p>Test prompt variations to optimize quality:
+- Generate same meme with different prompts
+- Collect user reactions as implicit feedback
+- Automatically select better-performing prompts</p>
+<h3 id="9-multi-template-combos">9. Multi-Template Combos<a class="headerlink" href="#9-multi-template-combos" title="Permanent link">&para;</a></h3>
+<p>Allow combining multiple meme formats:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="o">/</span><span class="n">shitpost</span><span class="o">-</span><span class="n">combo</span> <span class="n">topic</span><span class="p">:</span><span class="s2">&quot;Python vs JavaScript&quot;</span> <span class="n">templates</span><span class="p">:</span><span class="s2">&quot;drake,change-my-mind&quot;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># Generates both memes about the same topic</span>
+</code></pre></div></p>
+<h3 id="10-user-submitted-templates">10. User-Submitted Templates<a class="headerlink" href="#10-user-submitted-templates" title="Permanent link">&para;</a></h3>
+<p>Allow users to contribute new templates via Discord command:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="o">/</span><span class="n">meme</span><span class="o">-</span><span class="n">submit</span> <span class="n">template_id</span><span class="p">:</span><span class="s2">&quot;my_new_meme&quot;</span> <span class="n">variant</span><span class="p">:</span><span class="s2">&quot;...&quot;</span> <span class="n">description</span><span class="p">:</span><span class="s2">&quot;...&quot;</span> <span class="n">examples</span><span class="p">:</span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># Saves to pending queue for admin review</span>
+</code></pre></div></p>
+<hr />
+<h2 id="technical-debt">Technical Debt<a class="headerlink" href="#technical-debt" title="Permanent link">&para;</a></h2>
+<h3 id="refactoring-opportunities">Refactoring Opportunities<a class="headerlink" href="#refactoring-opportunities" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Type Safety</strong>: Add stricter type hints to meme generation functions</li>
+<li><strong>Validation</strong>: Move registry validation logic into reusable validators</li>
+<li><strong>Testing</strong>: Add more integration tests for end-to-end meme generation</li>
+<li><strong>Logging</strong>: Add structured logging for better debugging</li>
+<li><strong>Async Optimization</strong>: Batch template loading if multiple requests concurrent</li>
+</ol>
+<h3 id="code-quality">Code Quality<a class="headerlink" href="#code-quality" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add docstrings to all public functions in <code>memes.py</code></li>
+<li>Extract magic numbers (e.g., character limits) to constants</li>
+<li>Consider splitting <code>memes.py</code> into smaller modules if it grows further</li>
+</ul>
+<hr />
+<h2 id="decision-log">Decision Log<a class="headerlink" href="#decision-log" title="Permanent link">&para;</a></h2>
+<h3 id="why-not-use-a-database-for-templates">Why not use a database for templates?<a class="headerlink" href="#why-not-use-a-database-for-templates" title="Permanent link">&para;</a></h3>
+<p><strong>Decision</strong>: Keep JSON file for now.</p>
+<p><strong>Reasoning</strong>:
+- Simple to edit manually
+- Easy to version control
+- No additional infrastructure
+- Fast enough with caching
+- Can migrate to DB later if needed</p>
+<p><strong>Reconsider if</strong>: Registry grows beyond 500 templates or we need runtime updates.</p>
+<h3 id="why-cache-the-entire-registry-instead-of-individual-templates">Why cache the entire registry instead of individual templates?<a class="headerlink" href="#why-cache-the-entire-registry-instead-of-individual-templates" title="Permanent link">&para;</a></h3>
+<p><strong>Decision</strong>: Cache the full list with <code>@lru_cache(maxsize=4)</code>.</p>
+<p><strong>Reasoning</strong>:
+- 4 cache slots cover all filter combinations (nsfw × disabled)
+- Loading is O(n) anyway (parse full JSON)
+- Simpler than granular caching
+- Memory overhead negligible (166 templates ≈ few MB)</p>
+<hr />
+<h2 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h2>
+<p>When implementing any of these improvements:</p>
+<ol>
+<li>Start with smallest testable unit</li>
+<li>Add tests before implementation</li>
+<li>Update documentation (especially <code>docs/meme-pipeline.md</code>)</li>
+<li>Run validation: <code>uv run python scripts/validate_registry.py</code></li>
+<li>Check quality: <code>make check</code></li>
+<li>Get feedback early via draft PR</li>
+</ol>
+<p>For questions or discussion, open an issue tagged <code>enhancement</code> or <code>meme-system</code>.</p>
+<hr />
+<h1 id="audio-voice-pipeline">Audio &amp; Voice Pipeline<a class="headerlink" href="#audio-voice-pipeline" title="Permanent link">&para;</a></h1>
+<h2 id="ci-integration-for-real-audio-tests">CI Integration for Real Audio Tests<a class="headerlink" href="#ci-integration-for-real-audio-tests" title="Permanent link">&para;</a></h2>
+<h3 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h3>
+<p>The real audio E2E tests (<code>tests/test_real_audio.py</code>) are currently marked <code>@pytest.mark.network</code> and skipped in CI. Consider enabling them with an API secret for continuous validation of the transcription pipeline.</p>
+<h3 id="cost-estimate">Cost Estimate<a class="headerlink" href="#cost-estimate" title="Permanent link">&para;</a></h3>
+<p>OpenAI Whisper API: <strong>$0.006 per minute</strong> of audio</p>
+<table>
+<thead>
+<tr>
+<th>Test Suite</th>
+<th>Audio Duration</th>
+<th>Cost per Run</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LibriSpeech samples</td>
+<td>~15 seconds</td>
+<td>~$0.0015</td>
+</tr>
+<tr>
+<td>AMI Corpus samples</td>
+<td>~4 minutes</td>
+<td>~$0.024</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td>~4.5 minutes</td>
+<td><strong>~$0.03</strong></td>
+</tr>
+</tbody>
+</table>
+<p>At 100 CI runs/month = <strong>~$3/month</strong></p>
+<h3 id="implementation-plan_1">Implementation Plan<a class="headerlink" href="#implementation-plan_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Add GitHub secret</strong>: <code>OPENAI_API_KEY</code> for test runs</p>
+</li>
+<li>
+<p><strong>Create dedicated test marker</strong>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">whisper</span>  <span class="c1"># Tests requiring Whisper API</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">network</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_librispeech_transcription_accuracy</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Update CI workflow</strong>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run Whisper API tests</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github.event_name == &#39;push&#39; &amp;&amp; github.ref == &#39;refs/heads/main&#39;</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">OPENAI_API_KEY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.OPENAI_API_KEY }}</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run pytest -m whisper --timeout=120</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Consider cost controls</strong>:</p>
+</li>
+<li>Run only on main branch merges (not every PR)</li>
+<li>Weekly scheduled runs instead of per-commit</li>
+<li>Cache LibriSpeech downloads in CI artifacts</li>
+</ol>
+<h3 id="current-state">Current State<a class="headerlink" href="#current-state" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Real audio tests: <code>tests/test_real_audio.py</code> (skipped in CI)</li>
+<li>Synthetic tests: <code>tests/test_audio_e2e.py</code> (always run)</li>
+<li>Download script: <code>scripts/download_test_audio.py</code></li>
+<li>Pipeline debugger: <code>scripts/test_audio_pipeline.py</code></li>
+<li>Test data docs: <code>tests/data/README.md</code></li>
+</ul>
+<hr />
+<h2 id="voice-to-meme-integration-tests">Voice-to-Meme Integration Tests<a class="headerlink" href="#voice-to-meme-integration-tests" title="Permanent link">&para;</a></h2>
+<h3 id="overview_1">Overview<a class="headerlink" href="#overview_1" title="Permanent link">&para;</a></h3>
+<p>Use the real audio test infrastructure to validate the full voice → transcript → meme pipeline. This would test that transcribed conversations produce coherent shitposts.</p>
+<h3 id="proposed-test-flow">Proposed Test Flow<a class="headerlink" href="#proposed-test-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">network</span><span class="p">()</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">slow</span><span class="p">()</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_voice_transcript_generates_meme</span><span class="p">():</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;E2E: Real audio → transcript → meme generation.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="c1"># 1. Load LibriSpeech sample and transcribe</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="n">transcript</span> <span class="o">=</span> <span class="k">await</span> <span class="n">transcribe_sample</span><span class="p">(</span><span class="n">librispeech_samples</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="c1"># 2. Use transcript as meme topic</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="n">context</span> <span class="o">=</span> <span class="n">ShitpostContext</span><span class="p">(</span><span class="n">conversation_transcript</span><span class="o">=</span><span class="n">transcript</span><span class="p">)</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="n">template</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">get_enabled_templates</span><span class="p">())</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="c1"># 3. Generate meme text</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="k">await</span> <span class="n">render_meme_text</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">llm</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">transcript</span><span class="p">[:</span><span class="mi">100</span><span class="p">])</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    <span class="c1"># 4. Validate output</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">==</span> <span class="n">template</span><span class="o">.</span><span class="n">text_slots</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="cost-estimate_1">Cost Estimate<a class="headerlink" href="#cost-estimate_1" title="Permanent link">&para;</a></h3>
+<p>Additional to Whisper costs:
+- GPT-4o-mini for meme generation: ~$0.001 per meme
+- 5 test memes per run: ~$0.005/run</p>
+<h3 id="benefits">Benefits<a class="headerlink" href="#benefits" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Validates the full user journey (speak → meme)</li>
+<li>Tests <code>ShitpostContext</code> with real conversation data</li>
+<li>Catches integration issues between voice and meme pipelines</li>
+<li>Could generate sample memes for manual review/documentation</li>
+</ul>
+<h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Implement <code>ShitpostContext</code> refactoring (see "Context-Aware Shitpost Refactoring" above)</li>
+<li>Or use simpler approach: pass transcript directly as topic string</li>
+</ul>
+<p>2025.12.26
+Bugs
+* /chat
+    * In chat threads, the bot doesn't respond in thread after the initial command. It only responds to the command
+    * It SHOULD read all the messages in the thread and use that as the chat history in the call to the LLM and post the latests response
+* /shitpost
+    * If not already, shitpost context should ignore anything from the bot itself (e.g. text messages, embeds, etc)
+    * The preview and the response are not working properly.
+    * The preview does not show the memegen image, just an embed that says "Generated Shitpost"
+        * Ideally, it just shows the image
+    * Dismiss results in "This interaction failed" with this error:
+    2025-12-26 19:42:47 | ERROR    | clanker_bot.views.shitpost_preview:dismiss_button:205 - shitpost.dismiss_failed
+Traceback (most recent call last):</p>
+<p>File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code</p>
+<p>File "/workspace/src/clanker_bot/main.py", line 165, in <module></p>
+<p>File "/workspace/src/clanker_bot/main.py", line 144, in main
+    await bot.start(token)
+          │   │     └ 'MTQ1NDE4MDU2NjYwMDY1MDgyMg.GzG6Ob.YMJwcafhx0qHtynZozCwI38WFYkKgY9E1f9tEY'
+          │   └ <function Client.start at 0xffffb59023e0>
+          └ <clanker_bot.commands.ClankerClient object at 0xffffb48f3cb0></p>
+<p>File "/usr/local/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main.\<locals>.runner at 0xffffb46c1700>
+           │      └ <function Runner.run at 0xffffb6fc9ee0>
+           └ <asyncio.runners.Runner object at 0xffffb46e0140>
+  File "/usr/local/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ &lt;Task pending name='Task-1' coro=<main.\<locals>.runner() running at /workspace/src/clanker_bot/main.py:142> wait_for=&lt;Future ...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0xffffb723fb00>
+           │    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
+           └ <asyncio.runners.Runner object at 0xffffb46e0140>
+  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 678, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0xffffb723fa60>
+    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
+  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 645, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0xffffb6fc98a0>
+    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
+  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 1999, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0xffffb719bce0>
+    └ <Handle Task.task_wakeup(\<Future finished result=None>)>
+  File "/usr/local/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup(\<Future finished result=None>)>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup(\<Future finished result=None>)>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup(\<Future finished result=None>)>
+  File "/usr/local/lib/python3.12/site-packages/discord/ui/view.py", line 555, in _scheduled_task
+    await item.callback(interaction)
+          │    │        └ &lt;Interaction id=1454197775582367890 type=<InteractionType.component: 3> guild_id=1396212559199211560 user=&lt;Member id=33630329...
+          │    └ <discord.ui.view._ViewCallback object at 0xffffb2043b00>
+          └ &lt;Button style=<ButtonStyle.danger: 4> url=None disabled=False label='Dismiss' emoji=&lt;PartialEmoji animated=False name='🗑️' id...</p>
+<blockquote>
+<p>File "/workspace/src/clanker_bot/views/shitpost_preview.py", line 191, in dismiss_button
+    await interaction.response.edit_message(
+          │           └ <discord.utils.CachedSlotProperty object at 0xffffb5a23f20>
+          └ &lt;Interaction id=1454197775582367890 type=<InteractionType.component: 3> guild_id=1396212559199211560 user=&lt;Member id=33630329...</p>
+</blockquote>
+<p>File "/usr/local/lib/python3.12/site-packages/discord/interactions.py", line 1207, in edit_message
+    response = await adapter.create_interaction_response(
+                     │       └ <function AsyncWebhookAdapter.create_interaction_response at 0xffffb5a60ea0>
+                     └ <discord.webhook.async_.AsyncWebhookAdapter object at 0xffffb5a55ca0>
+  File "/usr/local/lib/python3.12/site-packages/discord/webhook/async_.py", line 226, in request
+    raise HTTPException(response, data)
+          │             │         └ {'message': 'Cannot send an empty message', 'code': 50006}
+          │             └ &lt;ClientResponse(https://discord.com/api/v10/interactions/1454197775582367890/aW50ZXJhY3Rpb246MTQ1NDE5Nzc3NTU4MjM2Nzg5MDpsTmNs...
+          └ <class 'discord.errors.HTTPException'></p>
+<p>discord.errors.HTTPException: 400 Bad Request (error code: 50006): Cannot send an empty message
+    * There's no UX on regenerate, it just edits the image in place. Instead I think it would make sense if the flow was basically an edit immediately that says like regenerating or soemthing and then a NEW ephemeral post? If the ephemeral is not possible on a new message we can edit in place maybe)
+    * The Post only displays the text, not a generated meme. I.e. I think it's just the meme lines generated from LLM and not the memegen image
+* We should add a /transcript command or something that displays/prints the recent transcript with the same defaults used for the meme shitpost? For debugging purposes
+* This is the join message on VC join using /join from the bot. Let's have some default messages for join / leave. Since it really only does /shitpost maybe let's have that briefly mentioned?
+* The shitpost if it's a Text in Chat channel (i.e. the chat channel associated with a voice channel), it should ONLY use the transcritptions for shitposts. I.e. if shitpost is run in that channel we but don't have any recent transcripts from that channel (idk maybe within the last 5 mins or so), then respond ephemerally with a message about how user needs to run /join first or whatever?
+* The voice ingest is not working properly. We likely need to do like a pair programming where I manually attempt to have the VC capture audio and transcribe and Claude watches the logs, propsoes fixes etc. In the meantime, this is the initial error trace:
+2025-12-26 19:56:39 | ERROR    | clanker_bot.command_handlers.voice:_setup_transcription:63 - Failed to start voice ingest.
+Traceback (most recent call last):</p>
+<p>File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code</p>
+<p>File "/workspace/src/clanker_bot/main.py", line 165, in <module>
+    main()
+    └ <function main at 0xffff825036a0></p>
+<p>File "/workspace/src/clanker_bot/main.py", line 144, in main
+    asyncio.run(runner())
+    │       │   └ <function main.\<locals>.runner at 0xffff8245fce0>
+    │       └ <function run at 0xffff85cbade0>
+    └ <module 'asyncio' from '/usr/local/lib/python3.12/asyncio/__init__.py'></p>
+<p>File "/usr/local/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main.\<locals>.runner at 0xffff82465700>
+           │      └ <function Runner.run at 0xffff84d69da0>
+           └ <asyncio.runners.Runner object at 0xffff82480110>
+  File "/usr/local/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ &lt;Task pending name='Task-1' coro=<main.\<locals>.runner() running at /workspace/src/clanker_bot/main.py:142> wait_for=&lt;Future ...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0xffff84fdf9c0>
+           │    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
+           └ <asyncio.runners.Runner object at 0xffff82480110>
+  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 678, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0xffff84fdf920>
+    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
+  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 645, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0xffff84d69760>
+    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
+  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 1999, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0xffff84f3bba0>
+    └ <Handle Task.task_wakeup(\<Task finishe...> result=None>)&gt;
+  File "/usr/local/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, <em>self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup(\<Task finishe...> result=None>)&gt;
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup(\<Task finishe...> result=None>)&gt;
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup(\<Task finishe...> result=None>)&gt;
+  File "/usr/local/lib/python3.12/site-packages/discord/app_commands/tree.py", line 1138, in wrapper
+    await self._call(interaction)
+          │    │     └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
+          │    └ <function CommandTree._call at 0xffff837de5c0>
+          └ <discord.app_commands.tree.CommandTree object at 0xffff823ee720>
+  File "/usr/local/lib/python3.12/site-packages/discord/app_commands/tree.py", line 1297, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+          │       │                      │            └ <Namespace >
+          │       │                      └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
+          │       └ <function Command._invoke_with_namespace at 0xffff837c4ea0>
+          └ <discord.app_commands.commands.Command object at 0xffff8244fd10>
+  File "/usr/local/lib/python3.12/site-packages/discord/app_commands/commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+                 │    │        │            └ {}
+                 │    │        └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
+                 │    └ <function Command._do_call at 0xffff837c4e00>
+                 └ <discord.app_commands.commands.Command object at 0xffff8244fd10>
+  File "/usr/local/lib/python3.12/site-packages/discord/app_commands/commands.py", line 859, in _do_call
+    return await self._callback(interaction, </em>*params)  # type: ignore
+                 │    │         │              └ {}
+                 │    │         └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
+                 │    └ <function register_commands.\<locals>.join at 0xffff82503c40>
+                 └ <discord.app_commands.commands.Command object at 0xffff8244fd10></p>
+<p>File "/workspace/src/clanker_bot/commands.py", line 80, in join
+    await handle_join(interaction, deps)
+          │           │            └ BotDependencies(llm=OpenAILLM(api_key='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', model='gpt-4o-mini', base_url='h...
+          │           └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
+          └ <function handle_join at 0xffff825032e0></p>
+<p>File "/workspace/src/clanker_bot/command_handlers/voice.py", line 96, in handle_join
+    message = await _setup_transcription(deps, voice_client_cls)
+                    │                    │     └ <class 'discord.ext.voice_recv.voice_client.VoiceRecvClient'>
+                    │                    └ BotDependencies(llm=OpenAILLM(api_key='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', model='gpt-4o-mini', base_url='h...
+                    └ <function _setup_transcription at 0xffff82503240></p>
+<blockquote>
+<p>File "/workspace/src/clanker_bot/command_handlers/voice.py", line 58, in _setup_transcription
+    await start_voice_ingest(recv_client, deps.stt)
+          │                  │            │    └ OpenAISTT(api_key='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', model='whisper-1', base_url='https://api.openai.com/...
+          │                  │            └ BotDependencies(llm=OpenAILLM(api_key='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', model='gpt-4o-mini', base_url='h...
+          │                  └ <discord.ext.voice_recv.voice_client.VoiceRecvClient object at 0xffff82b24ef0>
+          └ <function start_voice_ingest at 0xffff82502ac0></p>
+</blockquote>
+<p>File "/workspace/src/clanker_bot/voice_ingest.py", line 200, in start_voice_ingest
+    sink = VoiceIngestSink(worker, on_transcript=on_transcript)
+           │               │                     └ None
+           │               └ VoiceIngestWorker(stt=OpenAISTT(api_key='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', model='whisper-1', base_url='h...
+           └ <class 'clanker_bot.voice_ingest.VoiceIngestSink'></p>
+<p>TypeError: Can't instantiate abstract class VoiceIngestSink without an implementation for abstract methods 'cleanup', 'wants_opus'</p>
+<ul>
+<li>the /speak command doesn't do anything, we should comment it out for now and add a FutureWork section on actually getting that to work properly</li>
+<li>
+<p>The /join command seems to do something related to checking/downloading Silero VAD and results in this message. Shouldn't we just have that like model predownloaded via docker and loaded on bot startup?
+/usr/local/lib/python3.12/site-packages/torch/hub.py:335: UserWarning: You are about to download and run code from an untrusted repository. In a future release, this won't be allowed. To add the repository to your trusted list, change the command to {calling_fn}(..., trust_repo=False) and a command prompt will appear asking for an explicit confirmation of trust, or load(..., trust_repo=True), which will assume that the prompt is to be answered with 'yes'. You can also use load(..., trust_repo='check') which will only prompt for confirmation if the repo is not already trusted. This will eventually be the default behaviour
+  warnings.warn(</p>
+</li>
+<li>
+<p>VC monitoring nudge.</p>
+</li>
+<li>We could add a Cog to listen to VC channels in guild and when at least 2 people are present send a View to start lisenting/join. If not selected within 5 minutes, dissapear</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/safurrier/python-collab-template" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "search.share", "toc.follow", "content.action.edit", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  </body>
+</html>
