@@ -6,7 +6,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import discord
 import discord.ext.voice_recv as voice_recv
@@ -16,6 +16,58 @@ from clanker.voice.vad import EnergyVAD, SileroVAD, SpeechDetector, resolve_dete
 from clanker.voice.worker import AudioBuffer, TranscriptEvent, transcript_loop_once
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TranscriptBuffer:
+    """Maintains a rolling buffer of recent transcript events per guild.
+
+    Used by shitpost command to get voice context.
+
+    Note: Currently keyed by guild_id only (not channel_id) since the bot
+    supports one voice connection per guild. If we expand to multiple
+    simultaneous voice sessions per guild, this will need channel_id keying
+    to avoid mixing transcripts between sessions.
+    """
+
+    max_events: int = 50
+    max_age_minutes: float = 5.0
+    _events: dict[int, list[TranscriptEvent]] = field(default_factory=dict)
+
+    def add(self, guild_id: int, event: TranscriptEvent) -> None:
+        """Add a transcript event for a guild."""
+        if guild_id not in self._events:
+            self._events[guild_id] = []
+        self._events[guild_id].append(event)
+        self._prune(guild_id)
+
+    def get(self, guild_id: int) -> list[TranscriptEvent]:
+        """Get recent transcript events for a guild."""
+        self._prune(guild_id)
+        return list(self._events.get(guild_id, []))
+
+    def clear(self, guild_id: int) -> None:
+        """Clear transcript buffer for a guild."""
+        self._events.pop(guild_id, None)
+
+    def has_events(self, guild_id: int) -> bool:
+        """Check if there are any recent events for a guild."""
+        return bool(self.get(guild_id))
+
+    def _prune(self, guild_id: int) -> None:
+        """Remove old events and enforce max count."""
+        events = self._events.get(guild_id, [])
+        if not events:
+            return
+
+        cutoff = datetime.now() - timedelta(minutes=self.max_age_minutes)
+        events = [e for e in events if e.start_time >= cutoff]
+
+        # Enforce max_events limit
+        if len(events) > self.max_events:
+            events = events[-self.max_events :]
+
+        self._events[guild_id] = events
 
 
 def voice_client_cls() -> type[discord.VoiceClient] | None:

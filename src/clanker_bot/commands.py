@@ -14,7 +14,7 @@ from .command_handlers import (
     handle_chat,
     handle_join,
     handle_leave,
-    handle_shitpost,
+    handle_shitpost_preview,
     handle_speak,
 )
 
@@ -56,18 +56,21 @@ def register_commands(bot: ClankerClient, deps: BotDependencies) -> None:
         )
     )
 
-    @app_commands.describe(topic="Topic for the shitpost", category="Template category")
+    @app_commands.describe(
+        n="Number of meme previews to generate (default 3, max 5)",
+        guidance="Optional guidance for meme generation (e.g., 'make it about cats')",
+    )
     async def shitpost(
         interaction: discord.Interaction,
-        topic: str,
-        category: str | None = None,
+        n: int = 3,
+        guidance: str | None = None,
     ) -> None:
-        await handle_shitpost(interaction, topic, category, deps)
+        await handle_shitpost_preview(interaction, n, guidance, deps)
 
     tree.add_command(
         app_commands.Command(
             name="shitpost",
-            description="Generate a shitpost",
+            description="Generate meme previews with Post/Regenerate/Dismiss buttons",
             callback=shitpost,
         )
     )

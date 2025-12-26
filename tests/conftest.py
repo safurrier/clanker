@@ -37,13 +37,64 @@ def context(persona: Persona) -> Context:
 
 
 @dataclass
+class FakeMessage:
+    """Fake Discord message for channel history."""
+
+    content: str
+    author: Any
+
+
+@dataclass
+class FakeAuthor:
+    """Fake message author."""
+
+    display_name: str
+    bot: bool = False
+
+
+@dataclass
+class FollowupMessage:
+    """Captured followup message with all parameters."""
+
+    content: str | None
+    embed: Any | None
+    view: Any | None
+    ephemeral: bool
+    file: Any | None
+
+
+@dataclass
 class FakeFollowup:
     """Capture followup messages for tests."""
 
     messages: list[str]
+    sent_followups: list[FollowupMessage] | None = None
 
-    async def send(self, content: str, **_kwargs: object) -> None:
-        self.messages.append(content)
+    def __post_init__(self) -> None:
+        if self.sent_followups is None:
+            self.sent_followups = []
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: Any = None,
+        view: Any = None,
+        ephemeral: bool = False,
+        file: Any = None,
+        **_kwargs: object,
+    ) -> None:
+        if content:
+            self.messages.append(content)
+        self.sent_followups.append(
+            FollowupMessage(
+                content=content,
+                embed=embed,
+                view=view,
+                ephemeral=ephemeral,
+                file=file,
+            )
+        )
 
 
 @dataclass
@@ -70,15 +121,51 @@ class FakeThread:
         self.messages.append(content)
 
 
+class FakeHistoryIterator:
+    """Async iterator for fake channel history.
+
+    Note: discord.py's channel.history() returns an async iterator directly,
+    not a coroutine that returns an iterator.
+    """
+
+    def __init__(self, messages: list[FakeMessage]) -> None:
+        self._messages = messages
+        self._index = 0
+
+    def __aiter__(self) -> FakeHistoryIterator:
+        return self
+
+    async def __anext__(self) -> FakeMessage:
+        if self._index >= len(self._messages):
+            raise StopAsyncIteration
+        msg = self._messages[self._index]
+        self._index += 1
+        return msg
+
+
 @dataclass
 class FakeChannel:
-    """Fake channel that can create threads."""
+    """Fake channel that can create threads and provide history."""
 
     thread: FakeThread
+    history_messages: list[FakeMessage] | None = None
 
     async def create_thread(self, name: str, **_kwargs: object) -> FakeThread:
         self.thread.messages.append(f"thread:{name}")
         return self.thread
+
+    def history(self, limit: int = 10) -> FakeHistoryIterator:
+        """Return an async iterator over message history.
+
+        Note: This is NOT a coroutine - it returns an async iterator directly,
+        matching discord.py's channel.history() behavior.
+        """
+        messages = self.history_messages or []
+        return FakeHistoryIterator(messages[:limit])
+
+    async def send(self, content: str, **_kwargs: Any) -> None:
+        """Send a message to the channel (used by Post button)."""
+        self.thread.messages.append(content)
 
 
 @dataclass

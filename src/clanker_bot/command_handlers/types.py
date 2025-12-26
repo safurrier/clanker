@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from clanker.models import Persona
 from clanker.providers.base import LLM, STT, TTS, ImageGen
@@ -11,6 +12,9 @@ from clanker.providers.base import LLM, STT, TTS, ImageGen
 from ..admin import AdminState
 from ..discord_adapter import VoiceSessionManager
 from ..metrics import Metrics
+
+if TYPE_CHECKING:
+    from ..voice_ingest import TranscriptBuffer
 
 
 @dataclass(frozen=True)
@@ -28,3 +32,4 @@ class BotDependencies:
     admin_user_ids: set[int] | None = None
     admin_state: AdminState | None = None
     voice_ingest_enabled: bool = False
+    transcript_buffer: TranscriptBuffer | None = None

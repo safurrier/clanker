@@ -60,8 +60,9 @@ async def run_with_provider_handling(
     invalid_prefix: str,
     error_context: str,
     action: Callable[[], Awaitable[None]],
+    ephemeral: bool = False,
 ) -> None:
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=ephemeral)
     try:
         await action()
     except ValueError as exc:
