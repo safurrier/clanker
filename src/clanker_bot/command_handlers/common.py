@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from collections.abc import Awaitable, Callable
 
@@ -13,6 +14,26 @@ from clanker.providers.errors import PermanentProviderError, TransientProviderEr
 
 from .messages import ResponseMessage
 from .types import BotDependencies
+
+# Pattern for clanker-created threads: clanker-{6 lowercase hex chars}
+CLANKER_THREAD_PATTERN = re.compile(r"^clanker-[a-f0-9]{6}$")
+
+
+def is_clanker_thread(
+    channel: discord.abc.GuildChannel
+    | discord.Thread
+    | discord.abc.PrivateChannel
+    | discord.PartialMessageable
+    | None,
+) -> bool:
+    """Check if this is a thread created by the bot.
+
+    Returns True if channel is a discord.Thread with a name matching
+    the clanker-{6 hex chars} pattern.
+    """
+    if not isinstance(channel, discord.Thread):
+        return False
+    return bool(CLANKER_THREAD_PATTERN.match(channel.name))
 
 
 def build_context(

@@ -1,12 +1,15 @@
-"""Tests for voice ingest worker."""
+"""Tests for voice ingest worker and sink."""
 
+from __future__ import annotations
+
+import asyncio
 from datetime import datetime, timedelta
 import wave
 
 import pytest
 
 from clanker.voice.vad import SpeechSegment
-from clanker_bot.voice_ingest import VoiceIngestWorker
+from clanker_bot.voice_ingest import VoiceIngestSink, VoiceIngestWorker
 from tests.fakes import FakeSTT
 
 
@@ -77,3 +80,56 @@ async def test_voice_ingest_worker_orders_events_across_speakers() -> None:
     worker.add_pcm(2, pcm_bytes, recorded_at=datetime(2024, 1, 1, 12, 0, 1))
     events = await worker.process_once()
     assert [event.speaker_id for event in events] == [1, 2]
+
+
+# --- VoiceIngestSink Tests ---
+
+
+class TestVoiceIngestSink:
+    """Test VoiceIngestSink abstract method implementations."""
+
+    @pytest.fixture
+    def worker(self) -> VoiceIngestWorker:
+        """Create a VoiceIngestWorker with fake STT."""
+        return VoiceIngestWorker(stt=FakeSTT())
+
+    @pytest.fixture
+    def sink(self, worker: VoiceIngestWorker) -> VoiceIngestSink:
+        """Create a VoiceIngestSink for testing."""
+        return VoiceIngestSink(worker)
+
+    def test_sink_can_be_instantiated(self, worker: VoiceIngestWorker) -> None:
+        """Sink should be instantiable (not abstract)."""
+        sink = VoiceIngestSink(worker)
+        assert sink is not None
+
+    def test_wants_opus_returns_false(self, sink: VoiceIngestSink) -> None:
+        """Sink should request PCM, not Opus-encoded audio."""
+        assert sink.wants_opus() is False
+
+    @pytest.mark.asyncio
+    async def test_cleanup_cancels_pending_tasks(
+        self, sink: VoiceIngestSink
+    ) -> None:
+        """Cleanup should cancel all pending processing tasks."""
+        # Arrange: add some fake tasks
+        task1 = asyncio.create_task(asyncio.sleep(100))
+        task2 = asyncio.create_task(asyncio.sleep(100))
+        sink._tasks.add(task1)
+        sink._tasks.add(task2)
+
+        # Act
+        sink.cleanup()
+
+        # Assert: tasks set is cleared
+        assert len(sink._tasks) == 0
+
+        # Assert: tasks are in cancelling state
+        # (cancel() schedules cancellation, cancelled() is True after CancelledError is raised)
+        assert task1.cancelling() > 0
+        assert task2.cancelling() > 0
+
+    def test_cleanup_handles_empty_tasks(self, sink: VoiceIngestSink) -> None:
+        """Cleanup should handle case with no pending tasks."""
+        sink.cleanup()  # Should not raise
+        assert len(sink._tasks) == 0

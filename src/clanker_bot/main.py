@@ -99,9 +99,13 @@ def build_dependencies() -> BotDependencies:
 def build_bot(deps: BotDependencies) -> ClankerClient:
     """Create the Discord client and register commands."""
     intents = discord.Intents.default()
-    intents.message_content = False
+    intents.message_content = True  # Required for reading thread messages
     bot = ClankerClient(intents=intents)
     register_commands(bot, deps)
+
+    # Import here to avoid circular imports
+    from .command_handlers.common import is_clanker_thread
+    from .command_handlers.thread_chat import handle_thread_message
 
     @bot.event
     async def on_ready() -> None:
@@ -109,6 +113,28 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
             logger.info("Bot ready as {}", bot.user.name)
             await bot.tree.sync()
             logger.info("Command tree synced")
+
+    @bot.event
+    async def on_message(message: discord.Message) -> None:
+        """Auto-reply in clanker threads."""
+        # Ignore bot's own messages
+        if message.author.bot:
+            return
+
+        # Ignore DMs
+        if not message.guild:
+            return
+
+        # Only respond in clanker threads
+        if not is_clanker_thread(message.channel):
+            return
+
+        # Ignore empty messages
+        if not message.content.strip():
+            return
+
+        # Process the message
+        await handle_thread_message(message, deps)
 
     return bot
 

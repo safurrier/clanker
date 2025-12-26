@@ -188,14 +188,14 @@ class ShitpostPreviewView(discord.ui.View):
     ) -> None:
         """Remove this preview message."""
         try:
+            # Discord API requires non-empty content when clearing embed/view
+            # (error code 50006: "Cannot send an empty message")
             await interaction.response.edit_message(
-                content=None,
+                content="*Preview dismissed*",
                 embed=None,
                 attachments=[],
                 view=None,
             )
-            # Note: We can't truly delete ephemeral messages, but clearing content
-            # and view effectively removes it visually
             logger.info(
                 "shitpost.dismissed",
                 preview_id=self.preview_id,

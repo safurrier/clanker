@@ -374,7 +374,11 @@ class TestDismissButton:
     """Tests for the Dismiss button."""
 
     @pytest.mark.asyncio
-    async def test_clears_message(self) -> None:
+    async def test_dismiss_provides_non_empty_content(self) -> None:
+        """Dismiss should provide non-empty content to avoid Discord API error.
+
+        Discord API rejects edit_message with all-None fields (error code 50006).
+        """
         view = ShitpostPreviewView(
             invoker_id=123,
             payload=make_payload(),
@@ -385,7 +389,23 @@ class TestDismissButton:
         await view.dismiss_button.callback(interaction)  # type: ignore[arg-type]
 
         assert interaction.response.edited_message is not None
-        assert interaction.response.edited_message["content"] is None
+        # Content must NOT be None to avoid Discord API error
+        assert interaction.response.edited_message["content"] is not None
+        assert len(interaction.response.edited_message["content"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_dismiss_clears_embed_and_view(self) -> None:
+        """Dismiss should clear embed, attachments, and view."""
+        view = ShitpostPreviewView(
+            invoker_id=123,
+            payload=make_payload(),
+            embed=make_embed(),
+        )
+        interaction = FakeInteraction(user_id=123)
+
+        await view.dismiss_button.callback(interaction)  # type: ignore[arg-type]
+
+        assert interaction.response.edited_message is not None
         assert interaction.response.edited_message["embed"] is None
         assert interaction.response.edited_message["view"] is None
         assert interaction.response.edited_message["attachments"] == []

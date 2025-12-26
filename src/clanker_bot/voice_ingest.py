@@ -143,7 +143,17 @@ class VoiceIngestSink(voice_recv.AudioSink):
         super().__init__()
         self.worker = worker
         self.on_transcript = on_transcript
-        self._tasks: set[asyncio.Task] = set()
+        self._tasks: set[asyncio.Task[None]] = set()
+
+    def wants_opus(self) -> bool:
+        """Return False: we want decoded PCM, not Opus-encoded audio."""
+        return False
+
+    def cleanup(self) -> None:
+        """Cancel pending processing tasks when sink is destroyed."""
+        for task in self._tasks:
+            task.cancel()
+        self._tasks.clear()
 
     def write(self, user: object, data: object) -> None:
         """Write audio data from a user (called by discord voice_recv)."""
