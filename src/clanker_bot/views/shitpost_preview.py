@@ -85,6 +85,11 @@ class ShitpostPreviewView(discord.ui.View):
 
         file = self._build_file()
         attachments = [file] if file else []
+
+        # Set image URL on embed to display the attachment
+        if file:
+            new_embed.set_image(url="attachment://meme.png")
+
         await interaction.edit_original_response(
             embed=new_embed,
             attachments=attachments,

@@ -333,6 +333,35 @@ class TestRegenerateButton:
         assert len(interaction._edited_original["attachments"]) == 1
 
     @pytest.mark.asyncio
+    async def test_regenerate_sets_embed_image_url(self) -> None:
+        """Regenerate should set embed image URL to display the attachment."""
+        new_payload = make_payload(
+            text="new caption",
+            image_bytes=b"new-image-data",
+        )
+        new_embed = make_embed(title="New Meme")
+
+        async def regenerate() -> tuple[MemePayload, discord.Embed]:
+            return new_payload, new_embed
+
+        view = ShitpostPreviewView(
+            invoker_id=123,
+            payload=make_payload(),
+            embed=make_embed(),
+            regenerate_callback=regenerate,
+        )
+        interaction = FakeInteraction(user_id=123)
+
+        await view.regenerate_button.callback(interaction)  # type: ignore[arg-type]
+
+        assert interaction._edited_original is not None
+        embed = interaction._edited_original["embed"]
+        assert embed is not None
+        # Embed should have image URL set to reference the attachment
+        assert embed.image is not None
+        assert embed.image.url == "attachment://meme.png"
+
+    @pytest.mark.asyncio
     async def test_handles_no_callback(self) -> None:
         view = ShitpostPreviewView(
             invoker_id=123,
@@ -345,6 +374,28 @@ class TestRegenerateButton:
         await view.regenerate_button.callback(interaction)  # type: ignore[arg-type]
 
         assert "not available" in interaction.response.sent_messages[0][0]
+
+    @pytest.mark.asyncio
+    async def test_regenerate_shows_loading_state(self) -> None:
+        """Regenerate should show loading state before generating."""
+        states_during_callback: list[dict] = []
+
+        async def regenerate() -> tuple[MemePayload, discord.Embed]:
+            # Capture view state during callback
+            return make_payload(text="new"), make_embed(title="New")
+
+        view = ShitpostPreviewView(
+            invoker_id=123,
+            payload=make_payload(),
+            embed=make_embed(),
+            regenerate_callback=regenerate,
+        )
+        interaction = FakeInteraction(user_id=123)
+
+        await view.regenerate_button.callback(interaction)  # type: ignore[arg-type]
+
+        # The deferred response indicates loading state
+        assert interaction.response.deferred is True
 
     @pytest.mark.asyncio
     async def test_blocks_regenerate_after_posted(self) -> None:
