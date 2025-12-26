@@ -64,12 +64,14 @@ In the "Bot" section:
 Go to "OAuth2" → "URL Generator":
 
 1. **Scopes**: Select `bot` and `applications.commands`
-2. **Bot Permissions**: Select:
-   - Send Messages
-   - Use Slash Commands
-   - Connect (for voice)
-   - Speak (for voice)
-   - Read Message History
+2. **Bot Permissions**: Enter `311388392448` in the permissions integer field, or select:
+
+   | Category | Permission |
+   |----------|------------|
+   | General | View Channels |
+   | Text | Send Messages, Send Messages in Threads, Create Public Threads |
+   | Text | Embed Links, Attach Files, Read Message History, Use Slash Commands |
+   | Voice | Connect, Speak |
 
 3. Copy the generated URL at the bottom
 
