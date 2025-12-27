@@ -130,9 +130,10 @@ Once the bot is running and invited to your server:
 |---------|-------------|
 | `/chat <message>` | Chat with the bot |
 | `/speak <message>` | Chat with TTS audio response |
-| `/shitpost [n] [guidance]` | Generate meme previews (1-5, default 3) |
+| `/shitpost [n] [guidance]` | Generate meme previews (1-5, default 1) |
 | `/join` | Join your voice channel for transcription |
 | `/leave` | Leave the current voice channel |
+| `/transcript` | Show recent voice transcripts (ephemeral) |
 
 **Admin Commands:**
 
@@ -183,6 +184,8 @@ personas:
 | `DISCORD_TOKEN` | Yes | Discord bot token |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for TTS |
 | `CLANKER_CONFIG_PATH` | No | Path to config.yaml |
+| `VOICE_DEBUG` | No | Enable voice debug capture (`1` to enable) |
+| `VOICE_DEBUG_DIR` | No | Debug output directory (default: `./voice_debug`) |
 
 ## Common Issues
 

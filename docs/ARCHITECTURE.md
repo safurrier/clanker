@@ -124,7 +124,7 @@ Audio Input → VAD → Chunking → STT → Text Output
 ```
 
 **1. Voice Activity Detection** (`vad.py`)
-- Energy-based detection using `audioop.rms`
+- Silero VAD (ML-based, default) with EnergyVAD fallback
 - Configurable thresholds and padding
 - Returns `SpeechSegment` objects with timestamps
 
@@ -189,10 +189,13 @@ Schema enforces:
 |---------|---------|-------------|
 | `/chat` | `command_handlers/chat.py` | Chat with LLM |
 | `/speak` | `command_handlers/chat.py` | Chat with TTS response |
-| `/shitpost` | `command_handlers/messages.py` | Generate meme previews |
+| `/shitpost` | `command_handlers/chat.py` | Generate meme previews |
 | `/join` | `command_handlers/voice.py` | Join voice channel |
 | `/leave` | `command_handlers/voice.py` | Leave voice channel |
+| `/transcript` | `command_handlers/transcript.py` | Show recent voice transcripts |
 | `/admin_*` | `command_handlers/admin.py` | Admin commands |
+
+**Thread Auto-Reply:** Messages in bot-created threads (`clanker-{hex}`) automatically get LLM responses via `command_handlers/thread_chat.py`.
 
 ## Data Flow
 
@@ -313,15 +316,15 @@ Chat Flow (optional response)
 - Background task handles persistence
 - Task reference tracked to prevent garbage collection
 
-### Energy-Based VAD (Not ML)
+### ML-Based VAD with Fallback
 
-**Decision:** Use simple RMS energy threshold for voice detection.
+**Decision:** Use Silero VAD (ML-based) by default with EnergyVAD fallback.
 
 **Rationale:**
-- No heavy ML dependencies (torch, etc.)
-- Fast and predictable latency
-- Good enough for Discord voice quality
-- Silero VAD documented as upgrade path if needed
+- Silero VAD provides high-accuracy speech detection
+- EnergyVAD (RMS-based) serves as lightweight fallback when torch unavailable
+- Voice optional dependency (`[voice]`) keeps base install minimal
+- Warmup function pre-loads model to avoid first-request latency
 
 ## Technical Stack
 
@@ -376,6 +379,8 @@ Chat Flow (optional response)
 ### Adding Voice Features
 
 The voice pipeline is modular:
-- Replace VAD with ML-based (Silero) by implementing `detect_speech_segments`
+- VAD implementations in `vad.py` (SileroVAD default, EnergyVAD fallback)
+- Audio format conversions via `providers/audio_utils.py`
+- Debug capture system in `voice/debug/` (enable with `VOICE_DEBUG=1`)
 - Add speaker diarization in `worker.py`
 - Implement real-time streaming STT
