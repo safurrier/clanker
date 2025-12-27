@@ -5,10 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import httpx
+from loguru import logger
 
 from ...constants import DEFAULT_STT_MODEL
+from ..audio_utils import resample_wav
 from ..base import STT
 from ..errors import PermanentProviderError, TransientProviderError
+
+# Whisper models are trained on 16kHz audio
+WHISPER_SAMPLE_RATE = 16000
 
 
 @dataclass
@@ -27,7 +32,22 @@ class OpenAISTT(STT):
         if self.http_client is None:
             self._managed_client = httpx.AsyncClient(timeout=self.timeout_s)
 
-    async def transcribe(self, audio_bytes: bytes, params: dict | None = None) -> str:
+    async def transcribe(
+        self,
+        audio_bytes: bytes,
+        sample_rate_hz: int = 16000,
+        params: dict | None = None,
+    ) -> str:
+        # Resample to Whisper's expected rate if needed
+        if sample_rate_hz != WHISPER_SAMPLE_RATE:
+            logger.debug(
+                "stt.resample: from={}Hz to={}Hz bytes={}",
+                sample_rate_hz,
+                WHISPER_SAMPLE_RATE,
+                len(audio_bytes),
+            )
+            audio_bytes = resample_wav(audio_bytes, sample_rate_hz, WHISPER_SAMPLE_RATE)
+
         headers = {"Authorization": f"Bearer {self.api_key}"}
         data = {"model": self.model}
         if params:

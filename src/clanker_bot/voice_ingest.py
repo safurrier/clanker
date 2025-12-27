@@ -11,7 +11,10 @@ import discord
 import discord.ext.voice_recv as voice_recv
 from loguru import logger
 
+from clanker.providers.audio_utils import convert_pcm
 from clanker.providers.base import STT
+from clanker.voice.debug import DebugCapture, DebugConfig
+from clanker.voice.formats import DISCORD_FORMAT, SDK_FORMAT
 from clanker.voice.vad import EnergyVAD, SileroVAD, SpeechDetector, resolve_detector
 from clanker.voice.worker import AudioBuffer, TranscriptEvent, transcript_loop_once
 
@@ -97,13 +100,16 @@ class VoiceIngestWorker:
         max_silence_ms: Silence gap to split utterances
                        (1000ms = natural pauses in speech)
         detector: Voice activity detector (SileroVAD or EnergyVAD)
+        debug_capture: Optional debug capture instance (enable via VOICE_DEBUG=1)
     """
 
     stt: STT
     sample_rate_hz: int = 48000  # Discord voice uses 48kHz sample rate
     chunk_seconds: float = 10.0  # Process every 10 seconds (was 2.0)
     max_silence_ms: int = 1000  # 1 second silence = new utterance (was 500ms)
+    min_utterance_ms: int = 500  # Minimum utterance duration
     detector: SpeechDetector = field(default_factory=resolve_detector)
+    debug_capture: DebugCapture | None = field(default=None)
     buffers: dict[int, bytearray] = field(default_factory=dict)
     buffer_start_times: dict[int, datetime] = field(default_factory=dict)
 
@@ -138,13 +144,33 @@ class VoiceIngestWorker:
         }
         self.buffers.clear()
         self.buffer_start_times.clear()
+
+        # Start debug session if enabled
+        if self.debug_capture and self.debug_capture.enabled:
+            vad_type = type(self.detector).__name__.lower().replace("vad", "")
+            config = DebugConfig(
+                sample_rate_hz=self.sample_rate_hz,
+                chunk_seconds=self.chunk_seconds,
+                max_silence_ms=self.max_silence_ms,
+                min_utterance_ms=self.min_utterance_ms,
+                vad_type=vad_type,
+            )
+            self.debug_capture.start_session(config)
+
         events = await transcript_loop_once(
             payload,
             self.stt,
             self.sample_rate_hz,
             detector=self.detector,
             max_silence_ms=self.max_silence_ms,
+            min_utterance_ms=self.min_utterance_ms,
+            debug_capture=self.debug_capture,
         )
+
+        # End debug session
+        if self.debug_capture and self.debug_capture.enabled:
+            self.debug_capture.end_session()
+
         sorted_events = sorted(events, key=lambda event: event.start_time)
         logger.debug(
             "voice_worker.process_complete: events={}",
@@ -154,7 +180,9 @@ class VoiceIngestWorker:
 
     def should_process(self) -> bool:
         """Check if any buffer exceeds the chunk size threshold."""
-        min_bytes = int(self.sample_rate_hz * self.chunk_seconds) * 2
+        # SDK_FORMAT.bytes_per_sample = 2 for mono 16-bit
+        bytes_per_sample = SDK_FORMAT.bytes_per_sample
+        min_bytes = int(self.sample_rate_hz * self.chunk_seconds) * bytes_per_sample
         should = any(len(buffer) >= min_bytes for buffer in self.buffers.values())
         if should:
             sizes = {uid: len(buf) for uid, buf in self.buffers.items()}
@@ -217,9 +245,30 @@ class VoiceIngestSink(voice_recv.AudioSink):
 
         This method just buffers data - no async operations.
         Processing happens in _process_loop().
+
+        Discord delivers stereo 48kHz PCM. We convert to mono here at the
+        boundary before passing to the SDK pipeline.
         """
         self._frame_count += 1
+
+        pcm_bytes = getattr(data, "pcm", None)
+
+        # Log format info on first frame for debugging
         if self._frame_count == 1:
+            if pcm_bytes:
+                # Discord 20ms frame @ 48kHz stereo = 3840 bytes
+                expected_stereo = int(
+                    DISCORD_FORMAT.sample_rate_hz
+                    * 0.02
+                    * DISCORD_FORMAT.bytes_per_sample
+                )
+                logger.info(
+                    "voice_sink.format_check: frame_bytes={}, expected_stereo={}, "
+                    "ratio={:.2f}",
+                    len(pcm_bytes),
+                    expected_stereo,
+                    len(pcm_bytes) / expected_stereo if expected_stereo else 0,
+                )
             logger.debug(
                 "voice_sink.first_frame: user_type={}, data_type={}",
                 type(user).__name__,
@@ -234,15 +283,23 @@ class VoiceIngestSink(voice_recv.AudioSink):
                     not hasattr(user, "id") if user else "N/A",
                 )
             return
-        pcm_bytes = getattr(data, "pcm", None)
+
         if pcm_bytes is None:
             if self._frame_count <= 5:
                 logger.debug("voice_sink.skip_frame: no_pcm_attr")
             return
 
+        # Convert Discord stereo to SDK mono format
+        try:
+            mono_pcm = convert_pcm(pcm_bytes, DISCORD_FORMAT, SDK_FORMAT)
+        except ValueError as e:
+            if self._frame_count <= 5:
+                logger.warning("voice_sink.conversion_error: {}", e)
+            return
+
         user_id = int(getattr(user, "id"))  # noqa: B009 - user is object type from voice_recv
-        self._total_bytes += len(pcm_bytes)
-        self.worker.add_pcm(user_id, pcm_bytes)
+        self._total_bytes += len(mono_pcm)
+        self.worker.add_pcm(user_id, mono_pcm)
 
         # Log progress every 500 frames (~10 seconds at 50fps)
         if self._frame_count % 500 == 0:
@@ -302,6 +359,7 @@ async def start_voice_ingest(
     detector: SpeechDetector | None = None,
     chunk_seconds: float = 10.0,
     max_silence_ms: int = 1000,
+    debug_capture: DebugCapture | None = None,
 ) -> VoiceIngestSink:
     """Start voice ingest on a voice_recv-enabled voice client.
 
@@ -312,21 +370,29 @@ async def start_voice_ingest(
         detector: Optional speech detector override.
         chunk_seconds: Process buffer every N seconds (10s = conversations, 30s = meetings).
         max_silence_ms: Silence gap to split utterances (1000ms = natural pauses).
+        debug_capture: Optional debug capture instance. If None and VOICE_DEBUG=1 is set,
+            a DebugCapture will be created automatically.
 
     Returns:
         The VoiceIngestSink instance (call stop_processing() on cleanup).
     """
+    # Create debug capture from env if not provided
+    if debug_capture is None:
+        debug_capture = DebugCapture.from_env()
+
     logger.debug(
-        "start_voice_ingest: client_type={}, stt={}, callback={}",
+        "start_voice_ingest: client_type={}, stt={}, callback={}, debug={}",
         type(voice_client).__name__,
         type(stt).__name__,
         on_transcript is not None,
+        debug_capture.enabled if debug_capture else False,
     )
     worker = VoiceIngestWorker(
         stt=stt,
         detector=detector or resolve_detector(),
         chunk_seconds=chunk_seconds,
         max_silence_ms=max_silence_ms,
+        debug_capture=debug_capture,
     )
     sink = VoiceIngestSink(worker, on_transcript=on_transcript)
     voice_client.listen(sink)
