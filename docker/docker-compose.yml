@@ -16,6 +16,11 @@ services:
       # Configuration (optional - uses built-in defaults if not set)
       CLANKER_CONFIG_PATH: ${CLANKER_CONFIG_PATH:-}
 
+      # Logging and debugging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      VOICE_DEBUG: ${VOICE_DEBUG:-}
+      VOICE_DEBUG_DIR: /workspace/voice_debug
+
       # Python settings
       PYTHONUNBUFFERED: 1
       PYTHONPATH: /workspace/src

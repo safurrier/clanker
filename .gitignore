@@ -30,6 +30,7 @@ site/
 
 # Runtime artifacts
 replay_log.jsonl
+voice_debug/
 
 # Test audio data (large files, download via make download-test-audio)
 tests/data/librispeech/*.flac

@@ -45,3 +45,14 @@ Discord voice_recv thread          Async world
 - `TranscriptBuffer` maintains rolling buffer of recent transcripts per guild
 - Max 50 events, max 5 minutes age
 - Used by `/shitpost` for voice context and `/transcript` for debugging
+
+## Sample rate handling
+- Discord sends 48kHz audio
+- Whisper is optimized for 16kHz
+- Pipeline automatically resamples before STT via `audio_utils.resample_wav()`
+
+## Debugging
+See **[voice-debugging.md](voice-debugging.md)** for:
+- Debug capture system (`VOICE_DEBUG=1`)
+- Session analysis tools
+- Common transcription issues

@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Voice pipeline `AudioFormat` abstraction for source-agnostic audio handling:
+  - `AudioFormat` dataclass with `bytes_per_sample`, `bytes_to_ms()`, `ms_to_bytes()` helpers
+  - `DISCORD_FORMAT` (stereo 48kHz), `SDK_FORMAT` (mono 48kHz), `WHISPER_FORMAT` (mono 16kHz)
+  - `stereo_to_mono()` and `convert_pcm()` utilities for format conversion
+  - SDK is now source-agnostic - expects mono PCM, bot layer handles Discord conversion
+- Idle flush mechanism for faster voice transcription:
+  - `idle_timeout_seconds` parameter (default 3.0s) flushes partial buffers after silence
+  - Transcripts now appear within ~3 seconds of user stopping speech
+  - `chunk_seconds` lowered from 10s to 7.5s for more responsive continuous speech
+- Voice pipeline debug capture system:
+  - Enable with `VOICE_DEBUG=1` environment variable
+  - Captures all pipeline stages to `voice_debug/session_*/`
+  - `scripts/analyze_voice_session.py` for offline session analysis
+  - `docs/voice-debugging.md` comprehensive debugging guide
+
+### Fixed
+- **Voice transcription not working** - Discord delivers stereo 48kHz PCM but pipeline assumed mono, causing 2x timing errors and corrupted audio. Fixed by adding stereo-to-mono conversion at Discord boundary.
+- **Slow/missing transcriptions** - Short utterances were never processed because 10s buffer threshold was never reached. Fixed with idle flush mechanism.
+
+### Added (continued)
 - Ephemeral preview workflow for `/shitpost` command:
   - `ShitpostPreviewView` with Post/Regenerate/Dismiss buttons
   - Ephemeral messages visible only to command invoker
