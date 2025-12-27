@@ -918,21 +918,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Context-Aware Shitpost Refactoring">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#implementation-plan" class="md-nav__link">
-    <span class="md-ellipsis">
-      Implementation Plan
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
           <li class="md-nav__item">
@@ -1242,21 +1227,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Context-Aware Shitpost Refactoring">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#implementation-plan" class="md-nav__link">
-    <span class="md-ellipsis">
-      Implementation Plan
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
           <li class="md-nav__item">
@@ -1535,56 +1505,16 @@
 <p>This document outlines planned improvements and refactoring opportunities for the meme generation and shitpost systems.</p>
 <h2 id="high-priority">High Priority<a class="headerlink" href="#high-priority" title="Permanent link">&para;</a></h2>
 <h3 id="1-context-aware-shitpost-refactoring">1. Context-Aware Shitpost Refactoring<a class="headerlink" href="#1-context-aware-shitpost-refactoring" title="Permanent link">&para;</a></h3>
-<p><strong>Current State</strong>: The shitpost command only accepts <code>topic: str</code> as input, which limits it to explicit user-provided topics.</p>
-<p><strong>Problem</strong>: The bot has access to much richer contextual information that could make shitposts more relevant:
-- Voice channel transcripts
-- Thread conversation history
-- Recent channel messages
-- User reactions/engagement patterns</p>
-<p><strong>Proposed Solution</strong>: Refactor to use a generic "input context" model instead of just topic string.</p>
-<h4 id="implementation-plan">Implementation Plan<a class="headerlink" href="#implementation-plan" title="Permanent link">&para;</a></h4>
-<p><strong>Phase 1: Create Context Model</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">ShitpostContext</span><span class="p">:</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Context for generating contextual shitposts.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="c1"># Primary input (one of these should be set)</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">explicit_topic</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">conversation_transcript</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">thread_messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="c1"># Metadata</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">channel_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># &quot;voice&quot;, &quot;text&quot;, &quot;thread&quot;</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">recent_reactions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_prompt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Build input prompt from available context.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">explicit_topic</span><span class="p">:</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">explicit_topic</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">conversation_transcript</span><span class="p">:</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Recent conversation:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">conversation_transcript</span><span class="p">[</span><span class="o">-</span><span class="mi">500</span><span class="p">:]</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thread_messages</span><span class="p">:</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>            <span class="n">summary</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">thread_messages</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:])</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Recent messages:</span><span class="se">\n</span><span class="si">{</span><span class="n">summary</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        <span class="k">return</span> <span class="s2">&quot;random internet humor&quot;</span>
-</code></pre></div></p>
-<p><strong>Phase 2: Update Signatures</strong>
-- Change <code>render_meme_text(topic: str, ...)</code> to <code>render_meme_text(context: ShitpostContext, ...)</code>
-- Change <code>render_shitpost(topic: str, ...)</code> to <code>render_shitpost(context: ShitpostContext, ...)</code>
-- Update command handlers to construct appropriate <code>ShitpostContext</code></p>
-<p><strong>Phase 3: New Commands</strong>
+<p><strong>Status</strong>: ✅ Phase 1 &amp; 2 Complete, Phase 3 Pending</p>
+<p><strong>Completed</strong>:
+- <code>ShitpostContext</code> model implemented in <code>src/clanker/shitposts/models.py</code>
+- <code>render_meme_text()</code> now accepts <code>ShitpostContext</code>
+- Voice transcript integration via <code>TranscriptBuffer</code>
+- Channel message context fetching</p>
+<p><strong>Remaining (Phase 3 - New Commands)</strong>:
 - <code>/shitpost-here</code> - Generate meme based on current thread/channel context
-- <code>/shitpost-vc</code> - Generate meme based on recent voice conversation (requires transcript storage)
+- <code>/shitpost-vc</code> - Generate meme based on recent voice conversation
 - <code>/auto-meme</code> - Auto-generate memes on high engagement (e.g., 5+ reactions)</p>
-<p><strong>Benefits</strong>:
-- Separation of concerns (context gathering vs. generation)
-- More relevant and contextual shitposts
-- Extensible to new context sources
-- Backward compatible (explicit topic still works)</p>
 <p><strong>Considerations</strong>:
 - Privacy: Need user awareness/consent for using conversation history
 - Prompt engineering: Different context types need different prompt structures
@@ -1594,25 +1524,25 @@
 <p><strong>Current State</strong>: Basic prompt in <code>shitpost_meme_generation.yaml</code> with minimal guidance.</p>
 <p><strong>Opportunities</strong>:</p>
 <h4 id="tone-style-guidance">Tone &amp; Style Guidance<a class="headerlink" href="#tone-style-guidance" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="no">You are an expert memer and shitposter. Your task is to create meme text that:</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="no">1. Matches the format and tone shown in the examples EXACTLY</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="no">2. Incorporates the topic naturally into the meme structure</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="no">3. Is concise (&lt; 50 characters per line for readability)</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="no">4. Would be funny to someone familiar with this meme format</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="no">5. Uses internet culture vernacular appropriately</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="no">Meme: {variant}</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="no">When to use: {applicable_context}</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="no">Topic: {topic}</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="no">Study these examples carefully - match their style:</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="no">{examples}</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">  </span><span class="no">{additional_prompt_instructions}</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span><span class="no">Generate EXACTLY {text_slots} strings. Return ONLY a JSON list of strings.</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="no">You are an expert memer and shitposter. Your task is to create meme text that:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="no">1. Matches the format and tone shown in the examples EXACTLY</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="no">2. Incorporates the topic naturally into the meme structure</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="no">3. Is concise (&lt; 50 characters per line for readability)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="no">4. Would be funny to someone familiar with this meme format</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="no">5. Uses internet culture vernacular appropriately</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="no">Meme: {variant}</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="no">When to use: {applicable_context}</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="no">Topic: {topic}</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="no">Study these examples carefully - match their style:</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="no">{examples}</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">  </span><span class="no">{additional_prompt_instructions}</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">  </span><span class="no">Generate EXACTLY {text_slots} strings. Return ONLY a JSON list of strings.</span>
 </code></pre></div>
 <h4 id="few-shot-improvements">Few-Shot Improvements<a class="headerlink" href="#few-shot-improvements" title="Permanent link">&para;</a></h4>
 <ul>
@@ -1622,11 +1552,11 @@
 </ul>
 <h4 id="template-specific-instructions">Template-Specific Instructions<a class="headerlink" href="#template-specific-instructions" title="Permanent link">&para;</a></h4>
 <p>Leverage <code>additional_prompt_instructions</code> more:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;astronaut&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">&quot;additional_prompt_instructions&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The second line MUST be &#39;Always has been&#39; - this is the core format of the meme.&quot;</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;astronaut&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">&quot;additional_prompt_instructions&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The second line MUST be &#39;Always has been&#39; - this is the core format of the meme.&quot;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">}</span>
 </code></pre></div></p>
 <hr />
 <h3 id="3-registry-maintenance-updates">3. Registry Maintenance &amp; Updates<a class="headerlink" href="#3-registry-maintenance-updates" title="Permanent link">&para;</a></h3>
@@ -1636,16 +1566,16 @@
 - CI job to run <code>validate_registry.py</code> on PRs
 - Periodic review of disabled templates (can some be re-enabled?)</p>
 <p><strong>Implementation</strong>:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># .github/workflows/validate-memes.yml</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate Meme Registry</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nt">on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">push</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pull_request</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nt">jobs</span><span class="p">:</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">validate</span><span class="p">:</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v3</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate registry</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run python scripts/validate_registry.py</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># .github/workflows/validate-memes.yml</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate Meme Registry</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">push</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pull_request</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nt">jobs</span><span class="p">:</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">validate</span><span class="p">:</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v3</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate registry</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run python scripts/validate_registry.py</span>
 </code></pre></div></p>
 <p><strong>Scheduled Updates</strong>:
 - Monthly: Run <code>generate_memes.py</code> to add new templates
@@ -1658,53 +1588,53 @@
 <p><strong>Opportunity</strong>: Use <code>applicable_context</code> field for relevance matching.</p>
 <p><strong>Approaches</strong>:</p>
 <h4 id="a-embedding-based-similarity">A. Embedding-Based Similarity<a class="headerlink" href="#a-embedding-based-similarity" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">select_best_template</span><span class="p">(</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">templates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemeTemplate</span><span class="p">],</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">embedding_model</span><span class="p">:</span> <span class="n">EmbeddingModel</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MemeTemplate</span><span class="p">:</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Select template most semantically similar to topic.&quot;&quot;&quot;</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">topic_embedding</span> <span class="o">=</span> <span class="k">await</span> <span class="n">embedding_model</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">topic</span><span class="p">)</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">scored</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">:</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="n">context_embedding</span> <span class="o">=</span> <span class="k">await</span> <span class="n">embedding_model</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">applicable_context</span><span class="p">)</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="n">similarity</span> <span class="o">=</span> <span class="n">cosine_similarity</span><span class="p">(</span><span class="n">topic_embedding</span><span class="p">,</span> <span class="n">context_embedding</span><span class="p">)</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="n">scored</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">template</span><span class="p">,</span> <span class="n">similarity</span><span class="p">))</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="c1"># Return top match, or random if similarity too low</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="n">top_template</span><span class="p">,</span> <span class="n">top_score</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">scored</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="k">if</span> <span class="n">top_score</span> <span class="o">&gt;</span> <span class="mf">0.6</span><span class="p">:</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="k">return</span> <span class="n">top_template</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span>  <span class="c1"># Fallback</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">select_best_template</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">templates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemeTemplate</span><span class="p">],</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">embedding_model</span><span class="p">:</span> <span class="n">EmbeddingModel</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MemeTemplate</span><span class="p">:</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Select template most semantically similar to topic.&quot;&quot;&quot;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">topic_embedding</span> <span class="o">=</span> <span class="k">await</span> <span class="n">embedding_model</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">topic</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">scored</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">:</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="n">context_embedding</span> <span class="o">=</span> <span class="k">await</span> <span class="n">embedding_model</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">applicable_context</span><span class="p">)</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">similarity</span> <span class="o">=</span> <span class="n">cosine_similarity</span><span class="p">(</span><span class="n">topic_embedding</span><span class="p">,</span> <span class="n">context_embedding</span><span class="p">)</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="n">scored</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">template</span><span class="p">,</span> <span class="n">similarity</span><span class="p">))</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="c1"># Return top match, or random if similarity too low</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="n">top_template</span><span class="p">,</span> <span class="n">top_score</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">scored</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    <span class="k">if</span> <span class="n">top_score</span> <span class="o">&gt;</span> <span class="mf">0.6</span><span class="p">:</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        <span class="k">return</span> <span class="n">top_template</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span>  <span class="c1"># Fallback</span>
 </code></pre></div>
 <h4 id="b-llm-based-selection">B. LLM-Based Selection<a class="headerlink" href="#b-llm-based-selection" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">select_best_template_llm</span><span class="p">(</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">templates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemeTemplate</span><span class="p">],</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">llm</span><span class="p">:</span> <span class="n">LLM</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MemeTemplate</span><span class="p">:</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Use LLM to pick most appropriate template.&quot;&quot;&quot;</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">options</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">template_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">applicable_context</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span>  <span class="c1"># Limit to avoid token bloat</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="p">)</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Given the topic &quot;</span><span class="si">{</span><span class="n">topic</span><span class="si">}</span><span class="s2">&quot;, which meme is most appropriate?</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="s2">    Options:</span>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="s2">    </span><span class="si">{</span><span class="n">options</span><span class="si">}</span>
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="s2">    Respond with just the template_id of the best match.&quot;&quot;&quot;</span>
-<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
-<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate_simple</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
-<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>
-<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="c1"># Find template by ID, fallback to random</span>
-<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">:</span>
-<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>        <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">template_id</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
-<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>            <span class="k">return</span> <span class="n">template</span>
-<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>
-<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">select_best_template_llm</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">templates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemeTemplate</span><span class="p">],</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">llm</span><span class="p">:</span> <span class="n">LLM</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MemeTemplate</span><span class="p">:</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Use LLM to pick most appropriate template.&quot;&quot;&quot;</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">options</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">template_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">applicable_context</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span>  <span class="c1"># Limit to avoid token bloat</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="p">)</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Given the topic &quot;</span><span class="si">{</span><span class="n">topic</span><span class="si">}</span><span class="s2">&quot;, which meme is most appropriate?</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="s2">    Options:</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="s2">    </span><span class="si">{</span><span class="n">options</span><span class="si">}</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="s2">    Respond with just the template_id of the best match.&quot;&quot;&quot;</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate_simple</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="c1"># Find template by ID, fallback to random</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>    <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">:</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>        <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">template_id</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>            <span class="k">return</span> <span class="n">template</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span>
 </code></pre></div>
 <p><strong>Trade-offs</strong>:
 - Embedding: Fast, deterministic, requires embedding model
@@ -1717,68 +1647,68 @@
 - Image generation failures crash the command
 - No fallbacks for invalid JSON responses</p>
 <p><strong>Improvements</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># In handle_shitpost()</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="k">await</span> <span class="n">render_meme_text</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">deps</span><span class="o">.</span><span class="n">llm</span><span class="p">,</span> <span class="n">meme_template</span><span class="p">,</span> <span class="n">topic</span><span class="p">)</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_success&quot;</span><span class="p">)</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;LLM meme generation failed, using random example&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">meme_template</span><span class="o">.</span><span class="n">examples</span><span class="p">)</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_llm_fallback&quot;</span><span class="p">)</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Meme generation failed completely&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_failure&quot;</span><span class="p">)</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="k">raise</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="k">if</span> <span class="n">deps</span><span class="o">.</span><span class="n">image</span><span class="p">:</span>
-<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="n">image_payload</span> <span class="o">=</span> <span class="k">await</span> <span class="n">deps</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="c1"># ... send with image</span>
-<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Image generation failed, sending text only&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_image_fallback&quot;</span><span class="p">)</span>
-<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>        <span class="k">await</span> <span class="n">interaction</span><span class="o">.</span><span class="n">followup</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🖼️ </span><span class="si">{</span><span class="n">caption</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">_(image generation failed)_&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># In handle_shitpost()</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="k">await</span> <span class="n">render_meme_text</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">deps</span><span class="o">.</span><span class="n">llm</span><span class="p">,</span> <span class="n">meme_template</span><span class="p">,</span> <span class="n">topic</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_success&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;LLM meme generation failed, using random example&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">meme_template</span><span class="o">.</span><span class="n">examples</span><span class="p">)</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_llm_fallback&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Meme generation failed completely&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_generation_failure&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="k">raise</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="k">if</span> <span class="n">deps</span><span class="o">.</span><span class="n">image</span><span class="p">:</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="n">image_payload</span> <span class="o">=</span> <span class="k">await</span> <span class="n">deps</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="c1"># ... send with image</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Image generation failed, sending text only&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="n">increment_metric</span><span class="p">(</span><span class="n">deps</span><span class="p">,</span> <span class="s2">&quot;meme_image_fallback&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="k">await</span> <span class="n">interaction</span><span class="o">.</span><span class="n">followup</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🖼️ </span><span class="si">{</span><span class="n">caption</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">_(image generation failed)_&quot;</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h3 id="6-example-quality-scoring">6. Example Quality Scoring<a class="headerlink" href="#6-example-quality-scoring" title="Permanent link">&para;</a></h3>
 <p><strong>Current</strong>: Binary <code>examples_updated</code> flag.</p>
 <p><strong>Opportunity</strong>: Score examples during generation and only keep high-quality ones.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># In update_memes_examples.py</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">score_examples</span><span class="p">(</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">llm</span><span class="p">:</span> <span class="n">LLM</span><span class="p">,</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">template</span><span class="p">:</span> <span class="n">MemeTemplate</span><span class="p">,</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Rate example quality 1-10.&quot;&quot;&quot;</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Rate these meme examples on a scale of 1-10 based on:</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="s2">    - Format adherence to the </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant</span><span class="si">}</span><span class="s2"> meme</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="s2">    - Humor quality and effectiveness</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="s2">    - Representativeness of typical usage</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="s2">    Template: </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant</span><span class="si">}</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="s2">    Description: </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant_description</span><span class="si">}</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="s2">    Examples to rate:</span>
-<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="s2">    </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">examples</span><span class="p">,</span><span class="w"> </span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
-<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>
-<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="s2">    Return JSON: </span><span class="se">{{</span><span class="s2">&quot;score&quot;: int (1-10), &quot;reasoning&quot;: str</span><span class="se">}}</span>
-<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="s2">    &quot;&quot;&quot;</span>
-<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>
-<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate_simple</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
-<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
-<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>
-<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="c1"># Only save examples with score &gt;= 7</span>
-<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="k">for</span> <span class="n">template_id</span><span class="p">,</span> <span class="n">template_data</span> <span class="ow">in</span> <span class="n">registry</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>    <span class="n">examples</span> <span class="o">=</span> <span class="k">await</span> <span class="n">generate_examples</span><span class="p">(</span><span class="n">llm</span><span class="p">,</span> <span class="n">template_data</span><span class="p">)</span>
-<a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>    <span class="n">score_result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">score_examples</span><span class="p">(</span><span class="n">llm</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">examples</span><span class="p">)</span>
-<a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>
-<a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>    <span class="k">if</span> <span class="n">score_result</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">7</span><span class="p">:</span>
-<a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>        <span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;examples&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">examples</span>
-<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>        <span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;example_quality_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score_result</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-<a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>        <span class="n">save_registry</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span>
-<a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">template_id</span><span class="si">}</span><span class="s2">: Low quality examples (score=</span><span class="si">{</span><span class="n">score_result</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">), retrying...&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># In update_memes_examples.py</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">score_examples</span><span class="p">(</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">llm</span><span class="p">:</span> <span class="n">LLM</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">template</span><span class="p">:</span> <span class="n">MemeTemplate</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Rate example quality 1-10.&quot;&quot;&quot;</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Rate these meme examples on a scale of 1-10 based on:</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="s2">    - Format adherence to the </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant</span><span class="si">}</span><span class="s2"> meme</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="s2">    - Humor quality and effectiveness</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="s2">    - Representativeness of typical usage</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="s2">    Template: </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant</span><span class="si">}</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="s2">    Description: </span><span class="si">{</span><span class="n">template</span><span class="o">.</span><span class="n">variant_description</span><span class="si">}</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="s2">    Examples to rate:</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="s2">    </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">examples</span><span class="p">,</span><span class="w"> </span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="s2">    Return JSON: </span><span class="se">{{</span><span class="s2">&quot;score&quot;: int (1-10), &quot;reasoning&quot;: str</span><span class="se">}}</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="s2">    &quot;&quot;&quot;</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate_simple</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="c1"># Only save examples with score &gt;= 7</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="k">for</span> <span class="n">template_id</span><span class="p">,</span> <span class="n">template_data</span> <span class="ow">in</span> <span class="n">registry</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>    <span class="n">examples</span> <span class="o">=</span> <span class="k">await</span> <span class="n">generate_examples</span><span class="p">(</span><span class="n">llm</span><span class="p">,</span> <span class="n">template_data</span><span class="p">)</span>
+<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>    <span class="n">score_result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">score_examples</span><span class="p">(</span><span class="n">llm</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">examples</span><span class="p">)</span>
+<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>
+<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>    <span class="k">if</span> <span class="n">score_result</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">7</span><span class="p">:</span>
+<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>        <span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;examples&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">examples</span>
+<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>        <span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;example_quality_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score_result</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>        <span class="n">save_registry</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span>
+<a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">template_id</span><span class="si">}</span><span class="s2">: Low quality examples (score=</span><span class="si">{</span><span class="n">score_result</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">), retrying...&quot;</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h2 id="lower-priority-nice-to-have">Lower Priority / Nice to Have<a class="headerlink" href="#lower-priority-nice-to-have" title="Permanent link">&para;</a></h2>
@@ -1796,13 +1726,13 @@
 - Automatically select better-performing prompts</p>
 <h3 id="9-multi-template-combos">9. Multi-Template Combos<a class="headerlink" href="#9-multi-template-combos" title="Permanent link">&para;</a></h3>
 <p>Allow combining multiple meme formats:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="o">/</span><span class="n">shitpost</span><span class="o">-</span><span class="n">combo</span> <span class="n">topic</span><span class="p">:</span><span class="s2">&quot;Python vs JavaScript&quot;</span> <span class="n">templates</span><span class="p">:</span><span class="s2">&quot;drake,change-my-mind&quot;</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># Generates both memes about the same topic</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="o">/</span><span class="n">shitpost</span><span class="o">-</span><span class="n">combo</span> <span class="n">topic</span><span class="p">:</span><span class="s2">&quot;Python vs JavaScript&quot;</span> <span class="n">templates</span><span class="p">:</span><span class="s2">&quot;drake,change-my-mind&quot;</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># Generates both memes about the same topic</span>
 </code></pre></div></p>
 <h3 id="10-user-submitted-templates">10. User-Submitted Templates<a class="headerlink" href="#10-user-submitted-templates" title="Permanent link">&para;</a></h3>
 <p>Allow users to contribute new templates via Discord command:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="o">/</span><span class="n">meme</span><span class="o">-</span><span class="n">submit</span> <span class="n">template_id</span><span class="p">:</span><span class="s2">&quot;my_new_meme&quot;</span> <span class="n">variant</span><span class="p">:</span><span class="s2">&quot;...&quot;</span> <span class="n">description</span><span class="p">:</span><span class="s2">&quot;...&quot;</span> <span class="n">examples</span><span class="p">:</span><span class="s2">&quot;...&quot;</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># Saves to pending queue for admin review</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="o">/</span><span class="n">meme</span><span class="o">-</span><span class="n">submit</span> <span class="n">template_id</span><span class="p">:</span><span class="s2">&quot;my_new_meme&quot;</span> <span class="n">variant</span><span class="p">:</span><span class="s2">&quot;...&quot;</span> <span class="n">description</span><span class="p">:</span><span class="s2">&quot;...&quot;</span> <span class="n">examples</span><span class="p">:</span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># Saves to pending queue for admin review</span>
 </code></pre></div></p>
 <hr />
 <h2 id="technical-debt">Technical Debt<a class="headerlink" href="#technical-debt" title="Permanent link">&para;</a></h2>
@@ -1884,25 +1814,25 @@
 </tbody>
 </table>
 <p>At 100 CI runs/month = <strong>~$3/month</strong></p>
-<h3 id="implementation-plan_1">Implementation Plan<a class="headerlink" href="#implementation-plan_1" title="Permanent link">&para;</a></h3>
+<h3 id="implementation-plan">Implementation Plan<a class="headerlink" href="#implementation-plan" title="Permanent link">&para;</a></h3>
 <ol>
 <li>
 <p><strong>Add GitHub secret</strong>: <code>OPENAI_API_KEY</code> for test runs</p>
 </li>
 <li>
 <p><strong>Create dedicated test marker</strong>:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">whisper</span>  <span class="c1"># Tests requiring Whisper API</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">network</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_librispeech_transcription_accuracy</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">whisper</span>  <span class="c1"># Tests requiring Whisper API</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">network</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_librispeech_transcription_accuracy</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
 </code></pre></div></p>
 </li>
 <li>
 <p><strong>Update CI workflow</strong>:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run Whisper API tests</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github.event_name == &#39;push&#39; &amp;&amp; github.ref == &#39;refs/heads/main&#39;</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">env</span><span class="p">:</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">OPENAI_API_KEY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.OPENAI_API_KEY }}</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run pytest -m whisper --timeout=120</span>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run Whisper API tests</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github.event_name == &#39;push&#39; &amp;&amp; github.ref == &#39;refs/heads/main&#39;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nt">OPENAI_API_KEY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.OPENAI_API_KEY }}</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run pytest -m whisper --timeout=120</span>
 </code></pre></div></p>
 </li>
 <li>
@@ -1922,224 +1852,51 @@
 </ul>
 <hr />
 <h2 id="voice-to-meme-integration-tests">Voice-to-Meme Integration Tests<a class="headerlink" href="#voice-to-meme-integration-tests" title="Permanent link">&para;</a></h2>
-<h3 id="overview_1">Overview<a class="headerlink" href="#overview_1" title="Permanent link">&para;</a></h3>
-<p>Use the real audio test infrastructure to validate the full voice → transcript → meme pipeline. This would test that transcribed conversations produce coherent shitposts.</p>
-<h3 id="proposed-test-flow">Proposed Test Flow<a class="headerlink" href="#proposed-test-flow" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">network</span><span class="p">()</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">slow</span><span class="p">()</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_voice_transcript_generates_meme</span><span class="p">():</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;E2E: Real audio → transcript → meme generation.&quot;&quot;&quot;</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="c1"># 1. Load LibriSpeech sample and transcribe</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="n">transcript</span> <span class="o">=</span> <span class="k">await</span> <span class="n">transcribe_sample</span><span class="p">(</span><span class="n">librispeech_samples</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="c1"># 2. Use transcript as meme topic</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="n">context</span> <span class="o">=</span> <span class="n">ShitpostContext</span><span class="p">(</span><span class="n">conversation_transcript</span><span class="o">=</span><span class="n">transcript</span><span class="p">)</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="n">template</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">get_enabled_templates</span><span class="p">())</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="c1"># 3. Generate meme text</span>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="k">await</span> <span class="n">render_meme_text</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">llm</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">transcript</span><span class="p">[:</span><span class="mi">100</span><span class="p">])</span>
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
-<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    <span class="c1"># 4. Validate output</span>
-<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">==</span> <span class="n">template</span><span class="o">.</span><span class="n">text_slots</span>
-<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span>
-<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span>
-</code></pre></div>
-<h3 id="cost-estimate_1">Cost Estimate<a class="headerlink" href="#cost-estimate_1" title="Permanent link">&para;</a></h3>
-<p>Additional to Whisper costs:
-- GPT-4o-mini for meme generation: ~$0.001 per meme
-- 5 test memes per run: ~$0.005/run</p>
-<h3 id="benefits">Benefits<a class="headerlink" href="#benefits" title="Permanent link">&para;</a></h3>
+<p><strong>Status</strong>: ✅ Implemented</p>
+<p>Tests implemented in <code>tests/test_voice_to_meme.py</code>:
+- E2E tests transcribing real audio then generating memes
+- LLM-based meme quality scoring (<code>tests/meme_scoring.py</code>)
+- <code>MemeScoreResponse</code> structured output model
+- Validates <code>TranscriptEvent</code> compatibility with <code>ShitpostContext</code></p>
+<hr />
+<h2 id="20251226-bugs-improvements">2025.12.26 - Bugs &amp; Improvements<a class="headerlink" href="#20251226-bugs-improvements" title="Permanent link">&para;</a></h2>
+<h3 id="chat">/chat<a class="headerlink" href="#chat" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Validates the full user journey (speak → meme)</li>
-<li>Tests <code>ShitpostContext</code> with real conversation data</li>
-<li>Catches integration issues between voice and meme pipelines</li>
-<li>Could generate sample memes for manual review/documentation</li>
+<li>In chat threads, the bot doesn't respond in thread after the initial command. It only responds to the command</li>
+<li>It SHOULD read all the messages in the thread and use that as the chat history in the call to the LLM and post the latest response</li>
+<li>Thread name should be improved - currently "clanker-uuid", should be something like "Chat: <topic>" or derive from first message</li>
 </ul>
-<h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
+<h3 id="shitpost">/shitpost<a class="headerlink" href="#shitpost" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Implement <code>ShitpostContext</code> refactoring (see "Context-Aware Shitpost Refactoring" above)</li>
-<li>Or use simpler approach: pass transcript directly as topic string</li>
+<li>If not already, shitpost context should ignore anything from the bot itself (e.g. text messages, embeds, etc)</li>
+<li>The preview does not show the memegen image, just an embed that says "Generated Shitpost"</li>
+<li>Ideally, it just shows the image</li>
+<li>Dismiss results in "This interaction failed" - HTTPException: Cannot send an empty message</li>
+<li>There's no UX on regenerate, it just edits the image in place. Instead show "Regenerating..." then a NEW ephemeral post</li>
+<li>The Post only displays the text, not a generated meme (just the LLM meme lines, not the memegen image)</li>
 </ul>
-<p>2025.12.26
-Bugs
-* /chat
-    * In chat threads, the bot doesn't respond in thread after the initial command. It only responds to the command
-    * It SHOULD read all the messages in the thread and use that as the chat history in the call to the LLM and post the latests response
-* /shitpost
-    * If not already, shitpost context should ignore anything from the bot itself (e.g. text messages, embeds, etc)
-    * The preview and the response are not working properly.
-    * The preview does not show the memegen image, just an embed that says "Generated Shitpost"
-        * Ideally, it just shows the image
-    * Dismiss results in "This interaction failed" with this error:
-    2025-12-26 19:42:47 | ERROR    | clanker_bot.views.shitpost_preview:dismiss_button:205 - shitpost.dismiss_failed
-Traceback (most recent call last):</p>
-<p>File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code</p>
-<p>File "/workspace/src/clanker_bot/main.py", line 165, in <module></p>
-<p>File "/workspace/src/clanker_bot/main.py", line 144, in main
-    await bot.start(token)
-          │   │     └ 'MTQ1NDE4MDU2NjYwMDY1MDgyMg.GzG6Ob.YMJwcafhx0qHtynZozCwI38WFYkKgY9E1f9tEY'
-          │   └ <function Client.start at 0xffffb59023e0>
-          └ <clanker_bot.commands.ClankerClient object at 0xffffb48f3cb0></p>
-<p>File "/usr/local/lib/python3.12/asyncio/runners.py", line 195, in run
-    return runner.run(main)
-           │      │   └ <coroutine object main.\<locals>.runner at 0xffffb46c1700>
-           │      └ <function Runner.run at 0xffffb6fc9ee0>
-           └ <asyncio.runners.Runner object at 0xffffb46e0140>
-  File "/usr/local/lib/python3.12/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           │    │     │                  └ &lt;Task pending name='Task-1' coro=<main.\<locals>.runner() running at /workspace/src/clanker_bot/main.py:142> wait_for=&lt;Future ...
-           │    │     └ <function BaseEventLoop.run_until_complete at 0xffffb723fb00>
-           │    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
-           └ <asyncio.runners.Runner object at 0xffffb46e0140>
-  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 678, in run_until_complete
-    self.run_forever()
-    │    └ <function BaseEventLoop.run_forever at 0xffffb723fa60>
-    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
-  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 645, in run_forever
-    self._run_once()
-    │    └ <function BaseEventLoop._run_once at 0xffffb6fc98a0>
-    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
-  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 1999, in _run_once
-    handle._run()
-    │      └ <function Handle._run at 0xffffb719bce0>
-    └ <Handle Task.task_wakeup(\<Future finished result=None>)>
-  File "/usr/local/lib/python3.12/asyncio/events.py", line 88, in _run
-    self._context.run(self._callback, *self._args)
-    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
-    │    │            │    │           └ <Handle Task.task_wakeup(\<Future finished result=None>)>
-    │    │            │    └ <member '_callback' of 'Handle' objects>
-    │    │            └ <Handle Task.task_wakeup(\<Future finished result=None>)>
-    │    └ <member '_context' of 'Handle' objects>
-    └ <Handle Task.task_wakeup(\<Future finished result=None>)>
-  File "/usr/local/lib/python3.12/site-packages/discord/ui/view.py", line 555, in _scheduled_task
-    await item.callback(interaction)
-          │    │        └ &lt;Interaction id=1454197775582367890 type=<InteractionType.component: 3> guild_id=1396212559199211560 user=&lt;Member id=33630329...
-          │    └ <discord.ui.view._ViewCallback object at 0xffffb2043b00>
-          └ &lt;Button style=<ButtonStyle.danger: 4> url=None disabled=False label='Dismiss' emoji=&lt;PartialEmoji animated=False name='🗑️' id...</p>
-<blockquote>
-<p>File "/workspace/src/clanker_bot/views/shitpost_preview.py", line 191, in dismiss_button
-    await interaction.response.edit_message(
-          │           └ <discord.utils.CachedSlotProperty object at 0xffffb5a23f20>
-          └ &lt;Interaction id=1454197775582367890 type=<InteractionType.component: 3> guild_id=1396212559199211560 user=&lt;Member id=33630329...</p>
-</blockquote>
-<p>File "/usr/local/lib/python3.12/site-packages/discord/interactions.py", line 1207, in edit_message
-    response = await adapter.create_interaction_response(
-                     │       └ <function AsyncWebhookAdapter.create_interaction_response at 0xffffb5a60ea0>
-                     └ <discord.webhook.async_.AsyncWebhookAdapter object at 0xffffb5a55ca0>
-  File "/usr/local/lib/python3.12/site-packages/discord/webhook/async_.py", line 226, in request
-    raise HTTPException(response, data)
-          │             │         └ {'message': 'Cannot send an empty message', 'code': 50006}
-          │             └ &lt;ClientResponse(https://discord.com/api/v10/interactions/1454197775582367890/aW50ZXJhY3Rpb246MTQ1NDE5Nzc3NTU4MjM2Nzg5MDpsTmNs...
-          └ <class 'discord.errors.HTTPException'></p>
-<p>discord.errors.HTTPException: 400 Bad Request (error code: 50006): Cannot send an empty message
-    * There's no UX on regenerate, it just edits the image in place. Instead I think it would make sense if the flow was basically an edit immediately that says like regenerating or soemthing and then a NEW ephemeral post? If the ephemeral is not possible on a new message we can edit in place maybe)
-    * The Post only displays the text, not a generated meme. I.e. I think it's just the meme lines generated from LLM and not the memegen image
-* We should add a /transcript command or something that displays/prints the recent transcript with the same defaults used for the meme shitpost? For debugging purposes
-* This is the join message on VC join using /join from the bot. Let's have some default messages for join / leave. Since it really only does /shitpost maybe let's have that briefly mentioned?
-* The shitpost if it's a Text in Chat channel (i.e. the chat channel associated with a voice channel), it should ONLY use the transcritptions for shitposts. I.e. if shitpost is run in that channel we but don't have any recent transcripts from that channel (idk maybe within the last 5 mins or so), then respond ephemerally with a message about how user needs to run /join first or whatever?
-* The voice ingest is not working properly. We likely need to do like a pair programming where I manually attempt to have the VC capture audio and transcribe and Claude watches the logs, propsoes fixes etc. In the meantime, this is the initial error trace:
-2025-12-26 19:56:39 | ERROR    | clanker_bot.command_handlers.voice:_setup_transcription:63 - Failed to start voice ingest.
-Traceback (most recent call last):</p>
-<p>File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code</p>
-<p>File "/workspace/src/clanker_bot/main.py", line 165, in <module>
-    main()
-    └ <function main at 0xffff825036a0></p>
-<p>File "/workspace/src/clanker_bot/main.py", line 144, in main
-    asyncio.run(runner())
-    │       │   └ <function main.\<locals>.runner at 0xffff8245fce0>
-    │       └ <function run at 0xffff85cbade0>
-    └ <module 'asyncio' from '/usr/local/lib/python3.12/asyncio/__init__.py'></p>
-<p>File "/usr/local/lib/python3.12/asyncio/runners.py", line 195, in run
-    return runner.run(main)
-           │      │   └ <coroutine object main.\<locals>.runner at 0xffff82465700>
-           │      └ <function Runner.run at 0xffff84d69da0>
-           └ <asyncio.runners.Runner object at 0xffff82480110>
-  File "/usr/local/lib/python3.12/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           │    │     │                  └ &lt;Task pending name='Task-1' coro=<main.\<locals>.runner() running at /workspace/src/clanker_bot/main.py:142> wait_for=&lt;Future ...
-           │    │     └ <function BaseEventLoop.run_until_complete at 0xffff84fdf9c0>
-           │    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
-           └ <asyncio.runners.Runner object at 0xffff82480110>
-  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 678, in run_until_complete
-    self.run_forever()
-    │    └ <function BaseEventLoop.run_forever at 0xffff84fdf920>
-    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
-  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 645, in run_forever
-    self._run_once()
-    │    └ <function BaseEventLoop._run_once at 0xffff84d69760>
-    └ &lt;_UnixSelectorEventLoop running=True closed=False debug=False&gt;
-  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 1999, in _run_once
-    handle._run()
-    │      └ <function Handle._run at 0xffff84f3bba0>
-    └ <Handle Task.task_wakeup(\<Task finishe...> result=None>)&gt;
-  File "/usr/local/lib/python3.12/asyncio/events.py", line 88, in _run
-    self._context.run(self._callback, <em>self._args)
-    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
-    │    │            │    │           └ <Handle Task.task_wakeup(\<Task finishe...> result=None>)&gt;
-    │    │            │    └ <member '_callback' of 'Handle' objects>
-    │    │            └ <Handle Task.task_wakeup(\<Task finishe...> result=None>)&gt;
-    │    └ <member '_context' of 'Handle' objects>
-    └ <Handle Task.task_wakeup(\<Task finishe...> result=None>)&gt;
-  File "/usr/local/lib/python3.12/site-packages/discord/app_commands/tree.py", line 1138, in wrapper
-    await self._call(interaction)
-          │    │     └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
-          │    └ <function CommandTree._call at 0xffff837de5c0>
-          └ <discord.app_commands.tree.CommandTree object at 0xffff823ee720>
-  File "/usr/local/lib/python3.12/site-packages/discord/app_commands/tree.py", line 1297, in _call
-    await command._invoke_with_namespace(interaction, namespace)
-          │       │                      │            └ <Namespace >
-          │       │                      └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
-          │       └ <function Command._invoke_with_namespace at 0xffff837c4ea0>
-          └ <discord.app_commands.commands.Command object at 0xffff8244fd10>
-  File "/usr/local/lib/python3.12/site-packages/discord/app_commands/commands.py", line 884, in _invoke_with_namespace
-    return await self._do_call(interaction, transformed_values)
-                 │    │        │            └ {}
-                 │    │        └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
-                 │    └ <function Command._do_call at 0xffff837c4e00>
-                 └ <discord.app_commands.commands.Command object at 0xffff8244fd10>
-  File "/usr/local/lib/python3.12/site-packages/discord/app_commands/commands.py", line 859, in _do_call
-    return await self._callback(interaction, </em>*params)  # type: ignore
-                 │    │         │              └ {}
-                 │    │         └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
-                 │    └ <function register_commands.\<locals>.join at 0xffff82503c40>
-                 └ <discord.app_commands.commands.Command object at 0xffff8244fd10></p>
-<p>File "/workspace/src/clanker_bot/commands.py", line 80, in join
-    await handle_join(interaction, deps)
-          │           │            └ BotDependencies(llm=OpenAILLM(api_key='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', model='gpt-4o-mini', base_url='h...
-          │           └ &lt;Interaction id=1454201239838392461 type=<InteractionType.application_command: 2> guild_id=1396212559199211560 user=&lt;Member i...
-          └ <function handle_join at 0xffff825032e0></p>
-<p>File "/workspace/src/clanker_bot/command_handlers/voice.py", line 96, in handle_join
-    message = await _setup_transcription(deps, voice_client_cls)
-                    │                    │     └ <class 'discord.ext.voice_recv.voice_client.VoiceRecvClient'>
-                    │                    └ BotDependencies(llm=OpenAILLM(api_key='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', model='gpt-4o-mini', base_url='h...
-                    └ <function _setup_transcription at 0xffff82503240></p>
-<blockquote>
-<p>File "/workspace/src/clanker_bot/command_handlers/voice.py", line 58, in _setup_transcription
-    await start_voice_ingest(recv_client, deps.stt)
-          │                  │            │    └ OpenAISTT(api_key='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', model='whisper-1', base_url='https://api.openai.com/...
-          │                  │            └ BotDependencies(llm=OpenAILLM(api_key='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', model='gpt-4o-mini', base_url='h...
-          │                  └ <discord.ext.voice_recv.voice_client.VoiceRecvClient object at 0xffff82b24ef0>
-          └ <function start_voice_ingest at 0xffff82502ac0></p>
-</blockquote>
-<p>File "/workspace/src/clanker_bot/voice_ingest.py", line 200, in start_voice_ingest
-    sink = VoiceIngestSink(worker, on_transcript=on_transcript)
-           │               │                     └ None
-           │               └ VoiceIngestWorker(stt=OpenAISTT(api_key='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', model='whisper-1', base_url='h...
-           └ <class 'clanker_bot.voice_ingest.VoiceIngestSink'></p>
-<p>TypeError: Can't instantiate abstract class VoiceIngestSink without an implementation for abstract methods 'cleanup', 'wants_opus'</p>
+<h3 id="transcript">/transcript<a class="headerlink" href="#transcript" title="Permanent link">&para;</a></h3>
 <ul>
-<li>the /speak command doesn't do anything, we should comment it out for now and add a FutureWork section on actually getting that to work properly</li>
-<li>
-<p>The /join command seems to do something related to checking/downloading Silero VAD and results in this message. Shouldn't we just have that like model predownloaded via docker and loaded on bot startup?
-/usr/local/lib/python3.12/site-packages/torch/hub.py:335: UserWarning: You are about to download and run code from an untrusted repository. In a future release, this won't be allowed. To add the repository to your trusted list, change the command to {calling_fn}(..., trust_repo=False) and a command prompt will appear asking for an explicit confirmation of trust, or load(..., trust_repo=True), which will assume that the prompt is to be answered with 'yes'. You can also use load(..., trust_repo='check') which will only prompt for confirmation if the repo is not already trusted. This will eventually be the default behaviour
-  warnings.warn(</p>
-</li>
-<li>
-<p>VC monitoring nudge.</p>
-</li>
-<li>We could add a Cog to listen to VC channels in guild and when at least 2 people are present send a View to start lisenting/join. If not selected within 5 minutes, dissapear</li>
+<li>Remove the display of timestamps (cleaner output)</li>
+<li>If empty, says to use /join - but should only show that message if the bot isn't already in a voice channel</li>
+</ul>
+<h3 id="speak">/speak<a class="headerlink" href="#speak" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Doesn't do anything - comment it out for now</li>
+</ul>
+<h3 id="join-voice">/join &amp; Voice<a class="headerlink" href="#join-voice" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Join message on VC should have some default messages for join/leave, briefly mention /shitpost</li>
+<li>The shitpost if it's a Text in Chat channel (i.e. the chat channel associated with a voice channel), it should ONLY use the transcriptions for shitposts. If no recent transcripts (within 5 mins), respond ephemerally with message about running /join first</li>
+</ul>
+<h3 id="silero-vad">Silero VAD<a class="headerlink" href="#silero-vad" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Model should be predownloaded via Docker and loaded on bot startup (avoid torch hub warning)</li>
+</ul>
+<h3 id="vc-features-future">VC Features (Future)<a class="headerlink" href="#vc-features-future" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>VC monitoring nudge</strong>: Add a Cog to listen to VC channels in guild. When 2+ people present, send a View to start listening/join. Auto-dismiss after 5 minutes</li>
+<li><strong>Auto leave</strong>: When no users present, leave/end the voice call</li>
 </ul>
 
 

@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#voice-ingest-pipeline-v1" class="md-skip">
+        <a href="#voice-ingest-pipeline" class="md-skip">
           Skip to content
         </a>
       
@@ -689,9 +689,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#discord-voice-acquisition" class="md-nav__link">
     <span class="md-ellipsis">
       Discord voice acquisition
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audio-format-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Audio format handling
     </span>
   </a>
   
@@ -716,6 +734,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#processing-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Processing architecture
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#chunking-rules" class="md-nav__link">
     <span class="md-ellipsis">
       Chunking rules
@@ -725,9 +752,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#transcript-merge" class="md-nav__link">
+  <a href="#transcript-buffer" class="md-nav__link">
     <span class="md-ellipsis">
-      Transcript merge
+      Transcript buffer
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sample-rate-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sample rate handling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Debugging
     </span>
   </a>
   
@@ -991,9 +1036,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#discord-voice-acquisition" class="md-nav__link">
     <span class="md-ellipsis">
       Discord voice acquisition
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audio-format-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Audio format handling
     </span>
   </a>
   
@@ -1018,6 +1081,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#processing-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Processing architecture
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#chunking-rules" class="md-nav__link">
     <span class="md-ellipsis">
       Chunking rules
@@ -1027,9 +1099,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#transcript-merge" class="md-nav__link">
+  <a href="#transcript-buffer" class="md-nav__link">
     <span class="md-ellipsis">
-      Transcript merge
+      Transcript buffer
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sample-rate-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sample rate handling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Debugging
     </span>
   </a>
   
@@ -1059,36 +1149,77 @@
   
 
 
-<h1 id="voice-ingest-pipeline-v1">Voice Ingest Pipeline (v1)<a class="headerlink" href="#voice-ingest-pipeline-v1" title="Permanent link">&para;</a></h1>
+<h1 id="voice-ingest-pipeline">Voice Ingest Pipeline<a class="headerlink" href="#voice-ingest-pipeline" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>The voice pipeline captures Discord audio, detects speech, and transcribes to text.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Discord voice_recv thread          Async world
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>        │                              │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        │  write()                     │
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        └──────► buffer PCM            │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                    │                  │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                    │     _process_loop() (every 1s)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                    │          │
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                    └──────────┴──► should_process() ──► STT
+</code></pre></div>
 <h2 id="discord-voice-acquisition">Discord voice acquisition<a class="headerlink" href="#discord-voice-acquisition" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Use <code>discord-ext-voice-recv</code> with a <code>VoiceRecvClient</code> to tap per-user PCM frames.</li>
-<li>Keep acquisition isolated in the Discord host layer and feed PCM bytes into the SDK pipeline.</li>
+<li>Uses <code>discord-ext-voice-recv</code> with <code>VoiceRecvClient</code> for per-user PCM frames</li>
+<li><strong>Requires libopus</strong> for audio decoding (<code>apt install libopus0</code>)</li>
+<li>Opus is loaded explicitly at bot startup; fails fast if unavailable</li>
+</ul>
+<h2 id="audio-format-handling">Audio format handling<a class="headerlink" href="#audio-format-handling" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Discord delivers <strong>stereo 48kHz 16-bit PCM</strong> (2 channels, 4 bytes/sample frame)</li>
+<li>SDK expects <strong>mono 48kHz PCM</strong> (source-agnostic)</li>
+<li>Whisper expects <strong>mono 16kHz PCM</strong></li>
+<li><code>AudioFormat</code> dataclass describes formats: <code>DISCORD_FORMAT</code>, <code>SDK_FORMAT</code>, <code>WHISPER_FORMAT</code></li>
+<li>Conversion at Discord boundary: <code>convert_pcm(DISCORD_FORMAT, SDK_FORMAT)</code> in <code>voice_ingest.py</code></li>
 </ul>
 <h2 id="opus-decoding">Opus decoding<a class="headerlink" href="#opus-decoding" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Expected input is 16-bit mono PCM at 48kHz (Discord native voice sample rate).</li>
-<li>Opus decoding should be performed by the host layer (libopus + ffmpeg).</li>
+<li>Opus decoding performed by discord.py using libopus</li>
+<li>Bot explicitly loads opus at startup via <code>discord.opus._load_default()</code></li>
 </ul>
 <h2 id="vad-strategy">VAD strategy<a class="headerlink" href="#vad-strategy" title="Permanent link">&para;</a></h2>
 <ul>
-<li>V1 uses simple energy-based VAD to keep dependencies light.</li>
-<li>Frame size: 30ms, padding: 300ms, threshold tuned for typical Discord audio.</li>
-<li>Silero VAD remains the preferred upgrade path once torch deps are acceptable.</li>
+<li><strong>SileroVAD</strong> (default): ML-based, high accuracy, requires torch (~500MB)</li>
+<li><strong>EnergyVAD</strong> (fallback): RMS-based, moderate accuracy, no dependencies</li>
+<li>Silero model pre-downloaded in Docker to avoid runtime fetching</li>
+</ul>
+<h2 id="processing-architecture">Processing architecture<a class="headerlink" href="#processing-architecture" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>VoiceIngestSink.write()</code>: Called from voice_recv thread, just buffers data (no async)</li>
+<li><code>VoiceIngestSink._process_loop()</code>: Async background task, checks every 1s</li>
+<li>Processing triggers when:</li>
+<li>Buffer exceeds threshold (~7.5s of audio), OR</li>
+<li>Idle timeout reached (~3s since last audio with buffered data)</li>
+<li>Clean separation: threads buffer, async processes</li>
 </ul>
 <h2 id="chunking-rules">Chunking rules<a class="headerlink" href="#chunking-rules" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Target chunk sizes: 2–6s.</li>
-<li>300ms overlap between chunks to preserve context.</li>
-<li>Chunks emitted per speaker (Discord user_id).</li>
+<li>Buffer threshold: 7.5 seconds (configurable via <code>chunk_seconds</code>)</li>
+<li>Idle flush timeout: 3 seconds (configurable via <code>idle_timeout_seconds</code>)</li>
+<li>Silence gap: 1000ms triggers utterance split (configurable via <code>max_silence_ms</code>)</li>
+<li>Chunks emitted per speaker (Discord user_id)</li>
 </ul>
-<h2 id="transcript-merge">Transcript merge<a class="headerlink" href="#transcript-merge" title="Permanent link">&para;</a></h2>
+<p>The idle flush mechanism ensures short utterances get transcribed quickly (~3s after user stops speaking) rather than waiting for the full buffer threshold.</p>
+<h2 id="transcript-buffer">Transcript buffer<a class="headerlink" href="#transcript-buffer" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Each chunk emits a transcript event with metadata:</li>
-<li><code>speaker_id</code> (Discord user_id)</li>
-<li><code>audio_chunk_id</code></li>
-<li>Merge into a single timeline by <code>(timestamp, speaker_id)</code> ordering.</li>
+<li><code>TranscriptBuffer</code> maintains rolling buffer of recent transcripts per guild</li>
+<li>Max 50 events, max 5 minutes age</li>
+<li>Used by <code>/shitpost</code> for voice context and <code>/transcript</code> for debugging</li>
 </ul>
+<h2 id="sample-rate-handling">Sample rate handling<a class="headerlink" href="#sample-rate-handling" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Discord sends 48kHz audio</li>
+<li>Whisper is optimized for 16kHz</li>
+<li>Pipeline automatically resamples before STT via <code>audio_utils.resample_wav()</code></li>
+</ul>
+<h2 id="debugging">Debugging<a class="headerlink" href="#debugging" title="Permanent link">&para;</a></h2>
+<p>See <strong><a href="../voice-debugging/">voice-debugging.md</a></strong> for:
+- Debug capture system (<code>VOICE_DEBUG=1</code>)
+- Session analysis tools
+- Common transcription issues</p>
 
 
 
