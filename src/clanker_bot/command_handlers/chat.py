@@ -24,6 +24,7 @@ from ..views import MemePayload, ShitpostPreviewView
 from ..views.shitpost_preview import RegenerateCallback
 from .common import (
     build_context,
+    chunk_message,
     ensure_thread,
     increment_metric,
     run_with_provider_handling,
@@ -37,22 +38,32 @@ async def _send_reply(
     reply: Message,
     audio: bytes | None = None,
 ) -> None:
-    """Send reply to thread or channel with optional audio."""
+    """Send reply to thread or channel with optional audio.
+
+    Long messages are automatically split into multiple sends to respect
+    Discord's 2000 character limit.
+    """
     thread = await ensure_thread(interaction)
+    chunks = chunk_message(reply.content)
 
     if thread:
-        if audio:
-            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
-            await thread.send(reply.content, file=file)
-        else:
-            await thread.send(reply.content)
+        # Send all chunks to thread
+        for i, chunk in enumerate(chunks):
+            if i == 0 and audio:
+                # Attach audio to first message only
+                file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
+                await thread.send(chunk, file=file)
+            else:
+                await thread.send(chunk)
         await interaction.followup.send(ResponseMessage.REPLY_IN_THREAD)
     else:
-        if audio:
-            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
-            await interaction.followup.send(reply.content, file=file)
-        else:
-            await interaction.followup.send(reply.content)
+        # Send all chunks as followups
+        for i, chunk in enumerate(chunks):
+            if i == 0 and audio:
+                file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
+                await interaction.followup.send(chunk, file=file)
+            else:
+                await interaction.followup.send(chunk)
 
 
 async def handle_chat(

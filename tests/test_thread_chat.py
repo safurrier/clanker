@@ -383,3 +383,43 @@ class TestHandleThreadMessage:
         await handle_thread_message(message, deps)  # type: ignore[arg-type]
 
         assert len(thread.sent_messages) == 1
+
+    @pytest.mark.asyncio
+    async def test_splits_long_response_into_multiple_messages(
+        self, persona: Persona
+    ) -> None:
+        """Long responses should be split into multiple messages."""
+        # Create LLM that returns a response over 2000 chars
+        long_response = "word " * 600  # 3000 chars
+        deps = BotDependencies(
+            llm=FakeLLM(reply_text=long_response),
+            stt=None,
+            tts=None,
+            image=None,
+            persona=persona,
+            voice_manager=None,  # type: ignore[arg-type]
+            metrics=None,
+            admin_user_ids=set(),
+            admin_state=None,  # type: ignore[arg-type]
+        )
+
+        thread = FakeThread(
+            id=100,
+            name="clanker-abc123",
+            history_messages=[],
+        )
+        user = FakeAuthor(id=1, display_name="Alice", bot=False)
+        message = FakeDiscordMessage(
+            content="Tell me something long",
+            author=user,
+            channel=thread,
+        )
+
+        await handle_thread_message(message, deps)  # type: ignore[arg-type]
+
+        # Should have multiple messages
+        assert len(thread.sent_messages) >= 2
+        # All messages should be under the limit
+        assert all(len(msg) <= 2000 for msg in thread.sent_messages)
+        # All content should be preserved
+        assert "".join(thread.sent_messages) == long_response

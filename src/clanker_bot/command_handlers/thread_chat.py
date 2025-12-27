@@ -11,7 +11,7 @@ from loguru import logger
 from clanker.models import Context, Message
 from clanker.respond import respond
 
-from .common import increment_metric
+from .common import chunk_message, increment_metric
 from .types import BotDependencies
 
 
@@ -91,8 +91,9 @@ async def handle_thread_message(
                 replay_log_path=replay_log_path,
             )
 
-            # Send reply
-            await thread.send(reply.content)
+            # Send reply (split into chunks if over Discord limit)
+            for chunk in chunk_message(reply.content):
+                await thread.send(chunk)
 
             logger.info(
                 "thread_chat.replied",
