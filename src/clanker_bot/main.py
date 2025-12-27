@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import sys
 import time
@@ -30,8 +31,6 @@ def configure_logging() -> None:
     Reads LOG_LEVEL from environment (default: INFO).
     Outputs colored logs to stderr.
     """
-    import logging
-
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
     # Remove default handler and add configured one

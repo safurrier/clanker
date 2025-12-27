@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import cast
 
 import discord
 from loguru import logger
@@ -60,7 +61,7 @@ async def handle_thread_message(
         return
 
     # Type narrowing: we know channel is a Thread at this point
-    thread: discord.Thread = channel  # type: ignore[assignment]
+    thread = cast(discord.Thread, channel)
 
     try:
         # Show typing indicator while processing

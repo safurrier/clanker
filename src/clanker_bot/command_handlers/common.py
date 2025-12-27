@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import uuid
 from collections.abc import Awaitable, Callable
+from typing import cast
 
 import discord
 from loguru import logger
@@ -67,7 +68,9 @@ async def ensure_thread(interaction: discord.Interaction) -> discord.Thread | No
         hasattr(channel, "create_thread")
         and not isinstance(channel, discord.VoiceChannel | discord.StageChannel)
     ):
-        return await channel.create_thread(  # type: ignore[union-attr, call-arg]
+        # Cast is safe: we've verified channel has create_thread and isn't Voice/Stage
+        text_channel = cast(discord.TextChannel, channel)
+        return await text_channel.create_thread(
             name=f"clanker-{uuid.uuid4().hex[:6]}",
             type=discord.ChannelType.public_thread,
         )

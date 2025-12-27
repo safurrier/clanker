@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from io import BytesIO
+from typing import cast
 
 import discord
 from loguru import logger
@@ -132,11 +133,13 @@ class ShitpostPreviewView(discord.ui.View):
 
         try:
             file = self._build_file()
+            # Cast is safe: we've verified channel has send method above
+            messageable = cast(discord.abc.Messageable, channel)
             if file:
-                await channel.send(file=file)  # type: ignore[union-attr]
+                await messageable.send(file=file)
             else:
                 # No image, just post the text as fallback
-                await channel.send(content=self.payload.text)  # type: ignore[union-attr]
+                await messageable.send(content=self.payload.text)
 
             # Acknowledge without changing the preview
             await interaction.response.send_message("Posted!", ephemeral=True)

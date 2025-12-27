@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from io import BytesIO
+from typing import cast
 
 import discord
 from loguru import logger
@@ -165,7 +166,9 @@ async def _build_shitpost_context(
     if not transcript_utterances:
         channel = interaction.channel
         if channel is not None and hasattr(channel, "history"):
-            messages = await _fetch_channel_messages(channel)  # type: ignore[arg-type]
+            # Cast is safe: we've verified channel has history method
+            messageable = cast(discord.abc.Messageable, channel)
+            messages = await _fetch_channel_messages(messageable)
 
     return ShitpostContext(
         user_input=guidance,

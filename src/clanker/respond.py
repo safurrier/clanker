@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -64,8 +65,6 @@ def _append_line(path: Path, payload: str) -> None:
 
 
 def _serialize_json(entry: ReplayEntry) -> str:
-    import json
-
     return json.dumps(
         {
             "timestamp": entry.timestamp,

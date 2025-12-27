@@ -14,6 +14,7 @@ from ..base import LLM, StructuredLLM
 from ..errors import PermanentProviderError, TransientProviderError
 
 if TYPE_CHECKING:
+    from instructor import AsyncInstructor
     from pydantic import BaseModel
 
     from ...models import Context
@@ -36,7 +37,7 @@ class OpenAILLM(LLM, StructuredLLM):
     timeout_s: float = 30.0
     http_client: httpx.AsyncClient | None = None
     _managed_client: httpx.AsyncClient | None = field(default=None, repr=False)
-    _instructor_client: Any = field(default=None, repr=False)
+    _instructor_client: AsyncInstructor | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         """Initialize managed HTTP client if not provided."""
@@ -96,14 +97,15 @@ class OpenAILLM(LLM, StructuredLLM):
             Instance of response_model with validated data
         """
         client = self._get_instructor_client()
+        # Messages dict matches ChatCompletionMessageParam at runtime
         return await client.chat.completions.create(
             model=self.model,
             response_model=response_model,
-            messages=[{"role": m.role, "content": m.content} for m in messages],
+            messages=[{"role": m.role, "content": m.content} for m in messages],  # type: ignore[arg-type]
             max_retries=max_retries,
         )
 
-    def _get_instructor_client(self) -> Any:
+    def _get_instructor_client(self) -> AsyncInstructor:
         """Get or create the Instructor-patched async OpenAI client."""
         if self._instructor_client is None:
             import instructor
