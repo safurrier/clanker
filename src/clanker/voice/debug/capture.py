@@ -43,6 +43,7 @@ class DebugCapture:
     enabled: bool = False
     _session: DebugSession | None = field(default=None, repr=False)
     _session_dir: Path | None = field(default=None, repr=False)
+    _pending_utterances: dict = field(default_factory=dict, repr=False)
 
     @classmethod
     def from_env(cls) -> DebugCapture:
@@ -207,7 +208,6 @@ class DebugCapture:
 
         # Store paths for later completion
         # The CapturedUtterance will be finalized in capture_stt_result
-        self._pending_utterances = getattr(self, "_pending_utterances", {})
         self._pending_utterances[(user_id, index)] = {
             "wav_original_path": f"users/{user_id}/utterances/{index}/audio_{sample_rate_hz}hz.wav",
             "wav_16khz_path": f"users/{user_id}/utterances/{index}/audio_16khz.wav",

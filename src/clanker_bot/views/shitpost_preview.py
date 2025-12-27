@@ -96,28 +96,6 @@ class ShitpostPreviewView(discord.ui.View):
             view=self,
         )
 
-    async def _update_preview_after_regenerate(
-        self,
-        interaction: discord.Interaction,
-        new_payload: MemePayload,
-        new_embed: discord.Embed,
-    ) -> None:
-        """Update preview after regenerate (response already used for loading state)."""
-        self.payload = new_payload
-        self.embed = new_embed
-
-        file = self._build_file()
-        attachments = [file] if file else []
-
-        if file:
-            new_embed.set_image(url="attachment://meme.png")
-
-        await interaction.edit_original_response(
-            embed=new_embed,
-            attachments=attachments,
-            view=self,
-        )
-
     @discord.ui.button(label="Post", style=discord.ButtonStyle.success, emoji="✅")
     async def post_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -186,9 +164,7 @@ class ShitpostPreviewView(discord.ui.View):
 
         try:
             new_payload, new_embed = await self.regenerate_callback()
-            await self._update_preview_after_regenerate(
-                interaction, new_payload, new_embed
-            )
+            await self._update_preview(interaction, new_payload, new_embed)
             logger.info(
                 "shitpost.regenerated",
                 preview_id=self.preview_id,

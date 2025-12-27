@@ -20,8 +20,14 @@ Discord voice_recv thread          Async world
 - **Requires libopus** for audio decoding (`apt install libopus0`)
 - Opus is loaded explicitly at bot startup; fails fast if unavailable
 
+## Audio format handling
+- Discord delivers **stereo 48kHz 16-bit PCM** (2 channels, 4 bytes/sample frame)
+- SDK expects **mono 48kHz PCM** (source-agnostic)
+- Whisper expects **mono 16kHz PCM**
+- `AudioFormat` dataclass describes formats: `DISCORD_FORMAT`, `SDK_FORMAT`, `WHISPER_FORMAT`
+- Conversion at Discord boundary: `convert_pcm(DISCORD_FORMAT, SDK_FORMAT)` in `voice_ingest.py`
+
 ## Opus decoding
-- Expected input: 16-bit mono PCM at 48kHz (Discord native sample rate)
 - Opus decoding performed by discord.py using libopus
 - Bot explicitly loads opus at startup via `discord.opus._load_default()`
 
@@ -33,13 +39,18 @@ Discord voice_recv thread          Async world
 ## Processing architecture
 - `VoiceIngestSink.write()`: Called from voice_recv thread, just buffers data (no async)
 - `VoiceIngestSink._process_loop()`: Async background task, checks every 1s
-- When buffer exceeds threshold (~10s of audio), triggers STT processing
+- Processing triggers when:
+  - Buffer exceeds threshold (~7.5s of audio), OR
+  - Idle timeout reached (~3s since last audio with buffered data)
 - Clean separation: threads buffer, async processes
 
 ## Chunking rules
-- Buffer threshold: 10 seconds (configurable via `chunk_seconds`)
+- Buffer threshold: 7.5 seconds (configurable via `chunk_seconds`)
+- Idle flush timeout: 3 seconds (configurable via `idle_timeout_seconds`)
 - Silence gap: 1000ms triggers utterance split (configurable via `max_silence_ms`)
 - Chunks emitted per speaker (Discord user_id)
+
+The idle flush mechanism ensures short utterances get transcribed quickly (~3s after user stops speaking) rather than waiting for the full buffer threshold.
 
 ## Transcript buffer
 - `TranscriptBuffer` maintains rolling buffer of recent transcripts per guild

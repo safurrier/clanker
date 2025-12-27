@@ -92,6 +92,8 @@ uv run pytest tests -m "not network"
 | `DISCORD_TOKEN` | For bot | Discord bot token |
 | `ELEVENLABS_API_KEY` | For TTS | Text-to-speech |
 | `CLANKER_CONFIG_PATH` | No | Custom config path |
+| `VOICE_DEBUG` | No | Enable voice debug capture (`1` to enable) |
+| `VOICE_DEBUG_DIR` | No | Debug output directory (default: `./voice_debug`) |
 
 ## Voice Processing with VAD
 
@@ -186,12 +188,19 @@ Update `config.yaml` with new persona definition.
 
 ### Modify voice pipeline
 SDK layer (`src/clanker/voice/`):
+- `formats.py` - AudioFormat abstraction (`DISCORD_FORMAT`, `SDK_FORMAT`, `WHISPER_FORMAT`)
 - `vad.py` - Voice activity detection (Silero/Energy)
 - `chunker.py` - Audio chunking
 - `worker.py` - Transcription orchestration
+- `debug/` - Debug capture system (enable with `VOICE_DEBUG=1`)
 
 Discord layer (`src/clanker_bot/`):
-- `voice_ingest.py` - Discord audio capture, buffering, async processing
+- `voice_ingest.py` - Discord audio capture, stereo-to-mono conversion, buffering, async processing
+
+Audio utilities (`src/clanker/providers/audio_utils.py`):
+- `stereo_to_mono()` - Convert stereo PCM to mono
+- `convert_pcm()` - Convert between AudioFormat types
+- `resample_pcm()` - Resample PCM to different sample rates
 
 ### Update dependencies
 Edit `pyproject.toml`, then `uv sync`.

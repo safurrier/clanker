@@ -6,64 +6,18 @@ This document outlines planned improvements and refactoring opportunities for th
 
 ### 1. Context-Aware Shitpost Refactoring
 
-**Current State**: The shitpost command only accepts `topic: str` as input, which limits it to explicit user-provided topics.
+**Status**: ✅ Phase 1 & 2 Complete, Phase 3 Pending
 
-**Problem**: The bot has access to much richer contextual information that could make shitposts more relevant:
-- Voice channel transcripts
-- Thread conversation history
-- Recent channel messages
-- User reactions/engagement patterns
+**Completed**:
+- `ShitpostContext` model implemented in `src/clanker/shitposts/models.py`
+- `render_meme_text()` now accepts `ShitpostContext`
+- Voice transcript integration via `TranscriptBuffer`
+- Channel message context fetching
 
-**Proposed Solution**: Refactor to use a generic "input context" model instead of just topic string.
-
-#### Implementation Plan
-
-**Phase 1: Create Context Model**
-```python
-@dataclass(frozen=True)
-class ShitpostContext:
-    """Context for generating contextual shitposts."""
-
-    # Primary input (one of these should be set)
-    explicit_topic: str | None = None
-    conversation_transcript: str | None = None
-    thread_messages: list[Message] | None = None
-
-    # Metadata
-    channel_type: str | None = None  # "voice", "text", "thread"
-    user_id: int | None = None
-    recent_reactions: list[str] | None = None
-
-    def get_input_prompt(self) -> str:
-        """Build input prompt from available context."""
-        if self.explicit_topic:
-            return self.explicit_topic
-
-        if self.conversation_transcript:
-            return f"Recent conversation:\n{self.conversation_transcript[-500:]}"
-
-        if self.thread_messages:
-            summary = "\n".join(msg.content for msg in self.thread_messages[-5:])
-            return f"Recent messages:\n{summary}"
-
-        return "random internet humor"
-```
-
-**Phase 2: Update Signatures**
-- Change `render_meme_text(topic: str, ...)` to `render_meme_text(context: ShitpostContext, ...)`
-- Change `render_shitpost(topic: str, ...)` to `render_shitpost(context: ShitpostContext, ...)`
-- Update command handlers to construct appropriate `ShitpostContext`
-
-**Phase 3: New Commands**
+**Remaining (Phase 3 - New Commands)**:
 - `/shitpost-here` - Generate meme based on current thread/channel context
-- `/shitpost-vc` - Generate meme based on recent voice conversation (requires transcript storage)
+- `/shitpost-vc` - Generate meme based on recent voice conversation
 - `/auto-meme` - Auto-generate memes on high engagement (e.g., 5+ reactions)
-
-**Benefits**:
-- Separation of concerns (context gathering vs. generation)
-- More relevant and contextual shitposts
-- Extensible to new context sources
-- Backward compatible (explicit topic still works)
 
 **Considerations**:
 - Privacy: Need user awareness/consent for using conversation history
@@ -451,50 +405,13 @@ At 100 CI runs/month = **~$3/month**
 
 ## Voice-to-Meme Integration Tests
 
-### Overview
+**Status**: ✅ Implemented
 
-Use the real audio test infrastructure to validate the full voice → transcript → meme pipeline. This would test that transcribed conversations produce coherent shitposts.
-
-### Proposed Test Flow
-
-```python
-@pytest.mark.network()
-@pytest.mark.slow()
-async def test_voice_transcript_generates_meme():
-    """E2E: Real audio → transcript → meme generation."""
-    # 1. Load LibriSpeech sample and transcribe
-    transcript = await transcribe_sample(librispeech_samples[0])
-
-    # 2. Use transcript as meme topic
-    context = ShitpostContext(conversation_transcript=transcript)
-    template = random.choice(get_enabled_templates())
-
-    # 3. Generate meme text
-    lines = await render_meme_text(context, llm, template, transcript[:100])
-
-    # 4. Validate output
-    assert len(lines) == template.text_slots
-    assert all(isinstance(line, str) for line in lines)
-    assert all(len(line) > 0 for line in lines)
-```
-
-### Cost Estimate
-
-Additional to Whisper costs:
-- GPT-4o-mini for meme generation: ~$0.001 per meme
-- 5 test memes per run: ~$0.005/run
-
-### Benefits
-
-- Validates the full user journey (speak → meme)
-- Tests `ShitpostContext` with real conversation data
-- Catches integration issues between voice and meme pipelines
-- Could generate sample memes for manual review/documentation
-
-### Prerequisites
-
-- Implement `ShitpostContext` refactoring (see "Context-Aware Shitpost Refactoring" above)
-- Or use simpler approach: pass transcript directly as topic string
+Tests implemented in `tests/test_voice_to_meme.py`:
+- E2E tests transcribing real audio then generating memes
+- LLM-based meme quality scoring (`tests/meme_scoring.py`)
+- `MemeScoreResponse` structured output model
+- Validates `TranscriptEvent` compatibility with `ShitpostContext`
 
 
 ---
