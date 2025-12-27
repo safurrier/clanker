@@ -18,6 +18,11 @@ RUN git clone https://github.com/snakers4/silero-vad.git /silero-vad && \
 # Main application stage
 FROM python:3.11-slim
 
+# Install libopus for Discord voice audio decoding
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libopus0 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy application code

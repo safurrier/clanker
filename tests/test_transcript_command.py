@@ -40,12 +40,20 @@ class FakeInteractionResponse:
 
 
 @dataclass
+class FakeUser:
+    """Fake Discord user for testing."""
+
+    id: int = 12345
+
+
+@dataclass
 class FakeInteraction:
     """Fake Discord interaction for testing."""
 
     guild_id: int | None
     response: FakeInteractionResponse
     followup: FakeFollowup
+    user: FakeUser | None = None
 
 
 def make_transcript_event(

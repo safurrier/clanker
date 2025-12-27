@@ -108,28 +108,24 @@ class TestVoiceIngestSink:
         assert sink.wants_opus() is False
 
     @pytest.mark.asyncio
-    async def test_cleanup_cancels_pending_tasks(
+    async def test_cleanup_cancels_processing_task(
         self, sink: VoiceIngestSink
     ) -> None:
-        """Cleanup should cancel all pending processing tasks."""
-        # Arrange: add some fake tasks
-        task1 = asyncio.create_task(asyncio.sleep(100))
-        task2 = asyncio.create_task(asyncio.sleep(100))
-        sink._tasks.add(task1)
-        sink._tasks.add(task2)
+        """Cleanup should cancel the background processing task."""
+        # Arrange: start the processing task
+        sink.start_processing()
+        assert sink._process_task is not None
+        task = sink._process_task
 
         # Act
         sink.cleanup()
 
-        # Assert: tasks set is cleared
-        assert len(sink._tasks) == 0
+        # Assert: task is cleared and cancelled
+        assert sink._process_task is None
+        assert task.cancelled() or task.cancelling() > 0
 
-        # Assert: tasks are in cancelling state
-        # (cancel() schedules cancellation, cancelled() is True after CancelledError is raised)
-        assert task1.cancelling() > 0
-        assert task2.cancelling() > 0
-
-    def test_cleanup_handles_empty_tasks(self, sink: VoiceIngestSink) -> None:
-        """Cleanup should handle case with no pending tasks."""
+    def test_cleanup_handles_no_processing_task(self, sink: VoiceIngestSink) -> None:
+        """Cleanup should handle case when processing not started."""
+        assert sink._process_task is None
         sink.cleanup()  # Should not raise
-        assert len(sink._tasks) == 0
+        assert sink._process_task is None

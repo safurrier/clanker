@@ -33,7 +33,15 @@ async def handle_transcript(
     await interaction.response.defer(ephemeral=True)
 
     guild_id = interaction.guild_id
+    user_id = interaction.user.id if interaction.user else None
+    logger.debug(
+        "transcript.requested: user={}, guild={}",
+        user_id,
+        guild_id,
+    )
+
     if not guild_id:
+        logger.debug("transcript.rejected: no guild_id")
         await interaction.followup.send(
             "This command only works in a server.",
             ephemeral=True,
@@ -42,6 +50,11 @@ async def handle_transcript(
 
     # Get transcript buffer
     if not deps.transcript_buffer:
+        logger.debug(
+            "transcript.no_buffer: guild={}, buffer_available={}",
+            guild_id,
+            deps.transcript_buffer is not None,
+        )
         await interaction.followup.send(
             "No recent transcripts available. Use `/join` to start capturing voice.",
             ephemeral=True,
@@ -49,6 +62,11 @@ async def handle_transcript(
         return
 
     events = deps.transcript_buffer.get(guild_id)
+    logger.debug(
+        "transcript.events_retrieved: guild={}, count={}",
+        guild_id,
+        len(events),
+    )
     if not events:
         await interaction.followup.send(
             "No recent transcripts available. Use `/join` to start capturing voice.",

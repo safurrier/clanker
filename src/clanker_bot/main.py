@@ -21,6 +21,7 @@ from .commands import BotDependencies, ClankerClient, register_commands
 from .discord_adapter import VoiceSessionManager
 from .health import HealthState, create_health_app
 from .metrics import Metrics
+from .voice_ingest import TranscriptBuffer
 
 
 def configure_logging() -> None:
@@ -29,6 +30,8 @@ def configure_logging() -> None:
     Reads LOG_LEVEL from environment (default: INFO).
     Outputs colored logs to stderr.
     """
+    import logging
+
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
     # Remove default handler and add configured one
@@ -45,6 +48,17 @@ def configure_logging() -> None:
         colorize=True,
     )
     logger.info("Logging configured", level=log_level)
+
+    # Also configure stdlib logging for voice_recv to see packet-level debug info
+    if log_level == "DEBUG":
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s | %(levelname)-8s | %(name)s - %(message)s",
+        )
+        # Enable voice_recv debug logs
+        logging.getLogger("discord.ext.voice_recv").setLevel(logging.DEBUG)
+        logging.getLogger("discord.gateway").setLevel(logging.DEBUG)
+        logging.getLogger("discord.voice_state").setLevel(logging.DEBUG)
 
 
 def build_dependencies() -> BotDependencies:
@@ -102,6 +116,8 @@ def build_dependencies() -> BotDependencies:
     metrics = Metrics()
     admin_ids = _load_admin_ids()
     admin_state = AdminState()
+    transcript_buffer = TranscriptBuffer()
+    logger.debug("TranscriptBuffer initialized")
     return BotDependencies(
         llm=llm,
         stt=stt,
@@ -112,6 +128,7 @@ def build_dependencies() -> BotDependencies:
         metrics=metrics,
         admin_user_ids=admin_ids,
         admin_state=admin_state,
+        transcript_buffer=transcript_buffer,
     )
 
 
@@ -170,10 +187,33 @@ async def run_health_server(state: HealthState) -> None:
     await site.start()
 
 
+def _load_opus() -> None:
+    """Load the Opus codec for Discord voice.
+
+    Discord voice uses Opus for audio encoding/decoding. This must be loaded
+    before any voice operations. Raises RuntimeError if opus is not available.
+    """
+    if discord.opus.is_loaded():
+        logger.debug("Opus already loaded")
+        return
+
+    # Let discord.py find and load opus
+    discord.opus._load_default()
+
+    if not discord.opus.is_loaded():
+        raise RuntimeError(
+            "Opus codec not found. Install libopus: apt install libopus0"
+        )
+
+    logger.info("Opus codec loaded")
+
+
 def main() -> None:
     """Run the bot."""
     configure_logging()
     logger.info("Clanker9000 starting up...")
+
+    _load_opus()
 
     token = os.getenv("DISCORD_TOKEN")
     if not token:

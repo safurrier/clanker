@@ -14,13 +14,14 @@ RUN git clone https://github.com/snakers4/silero-vad.git /silero-vad && \
 # Development image with all tools
 FROM python:3.12-slim
 
-# Install development tools
+# Install development tools and libopus for Discord voice
 RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     curl \
     gcc \
     git \
     vim \
+    libopus0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

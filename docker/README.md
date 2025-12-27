@@ -108,9 +108,12 @@ See **`DEPLOYMENT.md`** for comprehensive production deployment guide.
 ## Voice Support
 
 Both environments include:
+- **libopus** for Discord audio decoding (required for voice receive)
 - Pre-downloaded Silero VAD model at `/workspace/silero-vad` or `/app/silero-vad`
 - torch and numpy dependencies
 - Voice extras: `uv sync --all-extras` (dev) or `pip install -e ".[voice]"` (prod)
+
+The bot explicitly loads opus at startup and fails fast if unavailable.
 
 The Silero VAD model is cloned during image build, avoiding:
 - Runtime downloads (faster startup)

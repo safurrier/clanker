@@ -40,3 +40,5 @@ tests/data/ami/*.pcm
 # Keep metadata files
 !tests/data/librispeech/metadata.json
 !tests/data/ami/metadata.json
+.mcp.json
+PROGRESS.md
