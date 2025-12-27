@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from io import BytesIO
+from typing import cast
 
 import discord
 from loguru import logger
@@ -23,6 +24,7 @@ from ..views import MemePayload, ShitpostPreviewView
 from ..views.shitpost_preview import RegenerateCallback
 from .common import (
     build_context,
+    chunk_message,
     ensure_thread,
     increment_metric,
     run_with_provider_handling,
@@ -36,22 +38,32 @@ async def _send_reply(
     reply: Message,
     audio: bytes | None = None,
 ) -> None:
-    """Send reply to thread or channel with optional audio."""
+    """Send reply to thread or channel with optional audio.
+
+    Long messages are automatically split into multiple sends to respect
+    Discord's 2000 character limit.
+    """
     thread = await ensure_thread(interaction)
+    chunks = chunk_message(reply.content)
 
     if thread:
-        if audio:
-            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
-            await thread.send(reply.content, file=file)
-        else:
-            await thread.send(reply.content)
+        # Send all chunks to thread
+        for i, chunk in enumerate(chunks):
+            if i == 0 and audio:
+                # Attach audio to first message only
+                file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
+                await thread.send(chunk, file=file)
+            else:
+                await thread.send(chunk)
         await interaction.followup.send(ResponseMessage.REPLY_IN_THREAD)
     else:
-        if audio:
-            file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
-            await interaction.followup.send(reply.content, file=file)
-        else:
-            await interaction.followup.send(reply.content)
+        # Send all chunks as followups
+        for i, chunk in enumerate(chunks):
+            if i == 0 and audio:
+                file = discord.File(fp=BytesIO(audio), filename="speech.mp3")
+                await interaction.followup.send(chunk, file=file)
+            else:
+                await interaction.followup.send(chunk)
 
 
 async def handle_chat(
@@ -165,7 +177,9 @@ async def _build_shitpost_context(
     if not transcript_utterances:
         channel = interaction.channel
         if channel is not None and hasattr(channel, "history"):
-            messages = await _fetch_channel_messages(channel)  # type: ignore[arg-type]
+            # Cast is safe: we've verified channel has history method
+            messageable = cast(discord.abc.Messageable, channel)
+            messages = await _fetch_channel_messages(messageable)
 
     return ShitpostContext(
         user_input=guidance,
@@ -200,6 +214,13 @@ async def _generate_single_meme(
 
     image_bytes: bytes | None = None
     if deps.image:
+        logger.info(
+            "meme.generating_image: template={}, lines={}",
+            meme_template.template_id,
+            lines,
+            template_id=meme_template.template_id,
+            text_lines=lines,
+        )
         image_payload = await deps.image.generate(
             {"template": meme_template.template_id, "text": lines}
         )
@@ -207,6 +228,20 @@ async def _generate_single_meme(
             image_bytes = image_payload.encode()
         else:
             image_bytes = image_payload
+        image_size = len(image_bytes) if image_bytes else 0
+        logger.info(
+            "meme.image_generated: template={}, size={}",
+            meme_template.template_id,
+            image_size,
+            template_id=meme_template.template_id,
+            image_size=image_size,
+        )
+    else:
+        logger.warning(
+            "meme.no_image_provider: template={} (hint: set image provider to 'memegen')",
+            meme_template.template_id,
+            template_id=meme_template.template_id,
+        )
 
     payload = MemePayload(
         text=caption,

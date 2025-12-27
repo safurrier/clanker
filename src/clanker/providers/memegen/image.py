@@ -28,7 +28,9 @@ class MemegenImage(ImageGen):
             segments.append("")
         encoded_segments = "/".join(quote(segment) for segment in segments)
         url = f"{self.base_url}/{template}/{encoded_segments}.png"
-        client = self.http_client or httpx.AsyncClient(timeout=self.timeout_s)
+        client = self.http_client or httpx.AsyncClient(
+            timeout=self.timeout_s, follow_redirects=True
+        )
         close_client = self.http_client is None
         try:
             response = await client.get(url)

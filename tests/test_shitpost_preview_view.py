@@ -24,10 +24,14 @@ class FakeUser:
 class FakeChannel:
     """Fake Discord channel for testing."""
 
-    sent_messages: list[tuple[str, bytes | None]]
+    sent_messages: list[tuple[str | None, bytes | None]]
 
     async def send(
-        self, content: str, *, file: discord.File | None = None, **kwargs: object
+        self,
+        content: str | None = None,
+        *,
+        file: discord.File | None = None,
+        **kwargs: object,
     ) -> None:
         image_bytes = None
         if file:
@@ -211,7 +215,8 @@ class TestPostButton:
         assert channel.sent_messages[0][1] is None  # no image
 
     @pytest.mark.asyncio
-    async def test_posts_text_and_image_to_channel(self) -> None:
+    async def test_posts_image_only_to_channel(self) -> None:
+        """When image is present, only post the image (no text caption)."""
         channel = FakeChannel(sent_messages=[])
         payload = make_payload(text="caption", image_bytes=b"fake-png-data")
         view = ShitpostPreviewView(
@@ -224,11 +229,12 @@ class TestPostButton:
         await view.post_button.callback(interaction)  # type: ignore[arg-type]
 
         assert len(channel.sent_messages) == 1
-        assert channel.sent_messages[0][0] == "caption"
+        assert channel.sent_messages[0][0] is None  # no text when image present
         assert channel.sent_messages[0][1] == b"fake-png-data"
 
     @pytest.mark.asyncio
-    async def test_removes_preview_after_posting(self) -> None:
+    async def test_keeps_preview_after_posting(self) -> None:
+        """Post should keep preview visible for regenerate/dismiss."""
         channel = FakeChannel(sent_messages=[])
         view = ShitpostPreviewView(
             invoker_id=123,
@@ -239,32 +245,30 @@ class TestPostButton:
 
         await view.post_button.callback(interaction)  # type: ignore[arg-type]
 
-        assert interaction.response.edited_message is not None
-        assert interaction.response.edited_message["content"] == "Posted!"
-        assert interaction.response.edited_message["embed"] is None
-        assert interaction.response.edited_message["view"] is None
+        # Should send ephemeral "Posted!" without editing the preview
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0][0] == "Posted!"
+        assert interaction.response.edited_message is None  # preview unchanged
 
     @pytest.mark.asyncio
-    async def test_prevents_double_posting(self) -> None:
+    async def test_allows_multiple_posts(self) -> None:
+        """Users can post the same meme multiple times."""
         channel = FakeChannel(sent_messages=[])
         view = ShitpostPreviewView(
             invoker_id=123,
-            payload=make_payload(),
+            payload=make_payload(image_bytes=b"img"),
             embed=make_embed(),
         )
-        interaction = FakeInteraction(user_id=123, channel=channel)
 
         # First post
-        await view.post_button.callback(interaction)  # type: ignore[arg-type]
+        interaction1 = FakeInteraction(user_id=123, channel=channel)
+        await view.post_button.callback(interaction1)  # type: ignore[arg-type]
         assert len(channel.sent_messages) == 1
 
-        # Second attempt
+        # Second post works too
         interaction2 = FakeInteraction(user_id=123, channel=channel)
         await view.post_button.callback(interaction2)  # type: ignore[arg-type]
-
-        # Should not post again
-        assert len(channel.sent_messages) == 1
-        assert "already been posted" in interaction2.response.sent_messages[0][0]
+        assert len(channel.sent_messages) == 2
 
     @pytest.mark.asyncio
     async def test_handles_missing_channel(self) -> None:
@@ -303,7 +307,8 @@ class TestRegenerateButton:
 
         assert view.payload == new_payload
         assert view.embed == new_embed
-        assert interaction.response.deferred is True
+        # Loading state shown via edit_message, then final result via edit_original_response
+        assert interaction.response.edited_message is not None  # loading state
         assert interaction._edited_original is not None
         assert interaction._edited_original["embed"] == new_embed
 
@@ -333,6 +338,35 @@ class TestRegenerateButton:
         assert len(interaction._edited_original["attachments"]) == 1
 
     @pytest.mark.asyncio
+    async def test_regenerate_sets_embed_image_url(self) -> None:
+        """Regenerate should set embed image URL to display the attachment."""
+        new_payload = make_payload(
+            text="new caption",
+            image_bytes=b"new-image-data",
+        )
+        new_embed = make_embed(title="New Meme")
+
+        async def regenerate() -> tuple[MemePayload, discord.Embed]:
+            return new_payload, new_embed
+
+        view = ShitpostPreviewView(
+            invoker_id=123,
+            payload=make_payload(),
+            embed=make_embed(),
+            regenerate_callback=regenerate,
+        )
+        interaction = FakeInteraction(user_id=123)
+
+        await view.regenerate_button.callback(interaction)  # type: ignore[arg-type]
+
+        assert interaction._edited_original is not None
+        embed = interaction._edited_original["embed"]
+        assert embed is not None
+        # Embed should have image URL set to reference the attachment
+        assert embed.image is not None
+        assert embed.image.url == "attachment://meme.png"
+
+    @pytest.mark.asyncio
     async def test_handles_no_callback(self) -> None:
         view = ShitpostPreviewView(
             invoker_id=123,
@@ -347,9 +381,36 @@ class TestRegenerateButton:
         assert "not available" in interaction.response.sent_messages[0][0]
 
     @pytest.mark.asyncio
-    async def test_blocks_regenerate_after_posted(self) -> None:
+    async def test_regenerate_shows_loading_state(self) -> None:
+        """Regenerate should show loading embed before generating."""
+
         async def regenerate() -> tuple[MemePayload, discord.Embed]:
-            return make_payload(), make_embed()
+            return make_payload(text="new"), make_embed(title="New")
+
+        view = ShitpostPreviewView(
+            invoker_id=123,
+            payload=make_payload(),
+            embed=make_embed(),
+            regenerate_callback=regenerate,
+        )
+        interaction = FakeInteraction(user_id=123)
+
+        await view.regenerate_button.callback(interaction)  # type: ignore[arg-type]
+
+        # Loading state shown via edit_message with "Regenerating..." embed
+        assert interaction.response.edited_message is not None
+        loading_embed = interaction.response.edited_message["embed"]
+        assert loading_embed is not None
+        assert loading_embed.title == "Regenerating..."
+
+    @pytest.mark.asyncio
+    async def test_allows_regenerate_after_posted(self) -> None:
+        """Users can regenerate even after posting."""
+        new_payload = make_payload(text="new", template_id="new")
+        new_embed = make_embed(title="New")
+
+        async def regenerate() -> tuple[MemePayload, discord.Embed]:
+            return new_payload, new_embed
 
         channel = FakeChannel(sent_messages=[])
         view = ShitpostPreviewView(
@@ -362,19 +423,24 @@ class TestRegenerateButton:
         # Post first
         post_interaction = FakeInteraction(user_id=123, channel=channel)
         await view.post_button.callback(post_interaction)  # type: ignore[arg-type]
+        assert len(channel.sent_messages) == 1
 
-        # Try to regenerate
+        # Regenerate still works
         regen_interaction = FakeInteraction(user_id=123)
         await view.regenerate_button.callback(regen_interaction)  # type: ignore[arg-type]
 
-        assert "already been posted" in regen_interaction.response.sent_messages[0][0]
+        assert view.payload == new_payload
 
 
 class TestDismissButton:
     """Tests for the Dismiss button."""
 
     @pytest.mark.asyncio
-    async def test_clears_message(self) -> None:
+    async def test_dismiss_provides_non_empty_content(self) -> None:
+        """Dismiss should provide non-empty content to avoid Discord API error.
+
+        Discord API rejects edit_message with all-None fields (error code 50006).
+        """
         view = ShitpostPreviewView(
             invoker_id=123,
             payload=make_payload(),
@@ -385,7 +451,23 @@ class TestDismissButton:
         await view.dismiss_button.callback(interaction)  # type: ignore[arg-type]
 
         assert interaction.response.edited_message is not None
-        assert interaction.response.edited_message["content"] is None
+        # Content must NOT be None to avoid Discord API error
+        assert interaction.response.edited_message["content"] is not None
+        assert len(interaction.response.edited_message["content"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_dismiss_clears_embed_and_view(self) -> None:
+        """Dismiss should clear embed, attachments, and view."""
+        view = ShitpostPreviewView(
+            invoker_id=123,
+            payload=make_payload(),
+            embed=make_embed(),
+        )
+        interaction = FakeInteraction(user_id=123)
+
+        await view.dismiss_button.callback(interaction)  # type: ignore[arg-type]
+
+        assert interaction.response.edited_message is not None
         assert interaction.response.edited_message["embed"] is None
         assert interaction.response.edited_message["view"] is None
         assert interaction.response.edited_message["attachments"] == []

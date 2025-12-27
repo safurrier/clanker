@@ -54,8 +54,23 @@ class StructuredLLM(Protocol):
 class STT(Protocol):
     """Protocol for speech-to-text providers."""
 
-    async def transcribe(self, audio_bytes: bytes, params: dict | None = None) -> str:
-        """Transcribe audio bytes to text."""
+    async def transcribe(
+        self,
+        audio_bytes: bytes,
+        sample_rate_hz: int = 16000,
+        params: dict | None = None,
+    ) -> str:
+        """Transcribe audio bytes to text.
+
+        Args:
+            audio_bytes: WAV audio bytes to transcribe
+            sample_rate_hz: Sample rate of the audio in Hz. Providers may
+                resample internally if they require a specific rate.
+            params: Optional provider-specific parameters
+
+        Returns:
+            Transcribed text
+        """
         ...
 
 

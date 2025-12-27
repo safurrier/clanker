@@ -16,6 +16,7 @@ from .command_handlers import (
     handle_leave,
     handle_shitpost_preview,
     handle_speak,
+    handle_transcript,
 )
 
 __all__ = ["BotDependencies", "ClankerClient", "ResponseMessage", "register_commands"]
@@ -57,12 +58,12 @@ def register_commands(bot: ClankerClient, deps: BotDependencies) -> None:
     )
 
     @app_commands.describe(
-        n="Number of meme previews to generate (default 3, max 5)",
+        n="Number of meme previews to generate (default 1, max 5)",
         guidance="Optional guidance for meme generation (e.g., 'make it about cats')",
     )
     async def shitpost(
         interaction: discord.Interaction,
-        n: int = 3,
+        n: int = 1,
         guidance: str | None = None,
     ) -> None:
         await handle_shitpost_preview(interaction, n, guidance, deps)
@@ -95,6 +96,17 @@ def register_commands(bot: ClankerClient, deps: BotDependencies) -> None:
             name="leave",
             description="Leave the current voice channel",
             callback=leave,
+        )
+    )
+
+    async def transcript(interaction: discord.Interaction) -> None:
+        await handle_transcript(interaction, deps)
+
+    tree.add_command(
+        app_commands.Command(
+            name="transcript",
+            description="Show recent voice transcripts (ephemeral)",
+            callback=transcript,
         )
     )
 

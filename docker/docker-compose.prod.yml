@@ -22,6 +22,11 @@ services:
       # Optional: Custom config path
       - CLANKER_CONFIG_PATH=/app/config.yaml
 
+      # Logging and debugging (set LOG_LEVEL=DEBUG and VOICE_DEBUG=1 for troubleshooting)
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - VOICE_DEBUG=${VOICE_DEBUG:-}
+      - VOICE_DEBUG_DIR=/app/voice_debug
+
       # Python settings
       - PYTHONUNBUFFERED=1
       - TORCH_HOME=/app/.cache/torch
@@ -35,6 +40,9 @@ services:
 
       # Optional: Mount logs directory
       - ./logs:/app/logs
+
+      # Voice debug capture (populated when VOICE_DEBUG=1)
+      - ./voice_debug:/app/voice_debug
 
     # Resource limits (adjust as needed)
     deploy:

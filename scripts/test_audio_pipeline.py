@@ -355,7 +355,7 @@ async def test_ami_stt() -> None:
         for seg in segments[:10]:  # Limit to 10 segments per speaker
             chunk = AudioChunk(start_ms=seg.start_ms, end_ms=seg.end_ms)
             chunk_bytes = _slice_pcm(pcm_clip, sample_rate, chunk)
-            text = await stt.transcribe(chunk_bytes)
+            text = await stt.transcribe(chunk_bytes, sample_rate_hz=sample_rate)
             duration = seg.end_ms - seg.start_ms
             transcripts.append({
                 "speaker": speaker,

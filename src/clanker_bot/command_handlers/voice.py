@@ -8,7 +8,7 @@ import discord
 import discord.ext.voice_recv as voice_recv
 from loguru import logger
 
-from ..voice_ingest import start_voice_ingest, voice_client_cls
+from ..voice_ingest import TranscriptBuffer, start_voice_ingest, voice_client_cls
 from .messages import ResponseMessage
 from .types import BotDependencies
 
@@ -35,11 +35,45 @@ def _get_voice_client_cls(
     return voice_client_cls() if deps.voice_ingest_enabled else None
 
 
+def _create_transcript_callback(
+    guild_id: int,
+    transcript_buffer: TranscriptBuffer | None,
+):
+    """Create a callback that adds transcript events to the buffer."""
+    from clanker.voice.worker import TranscriptEvent
+
+    async def on_transcript(event: TranscriptEvent) -> None:
+        if transcript_buffer is None:
+            logger.debug(
+                "voice.transcript_callback: no buffer, event discarded: {}",
+                event.text[:50] if event.text else "",
+            )
+            return
+        transcript_buffer.add(guild_id, event)
+        logger.debug(
+            "voice.transcript_added: guild={}, speaker={}, text={}",
+            guild_id,
+            event.speaker_id,
+            event.text[:50] if event.text else "",
+        )
+
+    return on_transcript
+
+
 async def _setup_transcription(
     deps: BotDependencies,
     voice_client_cls: type[discord.VoiceClient] | None,
+    guild_id: int | None,
 ) -> str:
     """Set up transcription and return status message."""
+    logger.debug(
+        "voice.transcription_setup: enabled={}, stt={}, buffer={}, guild={}",
+        deps.voice_ingest_enabled,
+        deps.stt is not None,
+        deps.transcript_buffer is not None,
+        guild_id,
+    )
+
     if not deps.voice_ingest_enabled:
         return ResponseMessage.JOINED_VOICE
 
@@ -55,7 +89,16 @@ async def _setup_transcription(
             raise RuntimeError("Voice client not available.")
         # Safe cast: we just joined with voice_recv.VoiceRecvClient class
         recv_client = cast(voice_recv.VoiceRecvClient, voice_client)
-        await start_voice_ingest(recv_client, deps.stt)
+
+        # Create callback to populate transcript buffer
+        on_transcript = None
+        if guild_id is not None:
+            on_transcript = _create_transcript_callback(
+                guild_id, deps.transcript_buffer
+            )
+
+        await start_voice_ingest(recv_client, deps.stt, on_transcript=on_transcript)
+        logger.debug("voice.ingest_started: guild={}", guild_id)
         return (
             f"{ResponseMessage.JOINED_VOICE} ({ResponseMessage.TRANSCRIPTION_ENABLED})"
         )
@@ -68,6 +111,14 @@ async def handle_join(
     interaction: discord.Interaction,
     deps: BotDependencies,
 ) -> None:
+    user_id = interaction.user.id if interaction.user else None
+    guild_id = interaction.guild_id
+    logger.debug(
+        "voice.join_requested: user={}, guild={}",
+        user_id,
+        guild_id,
+    )
+
     # Validate preconditions
     if not _can_join_meeting(interaction, deps):
         await interaction.response.send_message(ResponseMessage.NEW_MEETINGS_DISABLED)
@@ -82,6 +133,15 @@ async def handle_join(
         await interaction.response.send_message(ResponseMessage.JOIN_VOICE_FIRST)
         return
 
+    logger.debug(
+        "voice.joining_channel: channel={}, channel_name={}",
+        voice_channel.id,
+        voice_channel.name,
+    )
+
+    # Defer response - transcription setup can take >3s (Silero VAD loading)
+    await interaction.response.defer()
+
     # Join the voice channel
     voice_client_cls = _get_voice_client_cls(deps)
     ok, status = await deps.voice_manager.join(
@@ -89,12 +149,15 @@ async def handle_join(
     )
 
     if not ok:
-        await interaction.response.send_message(status)
+        logger.debug("voice.join_failed: status={}", status)
+        await interaction.followup.send(str(status))
         return
 
+    logger.debug("voice.joined_channel: channel={}", voice_channel.id)
+
     # Setup transcription and send response
-    message = await _setup_transcription(deps, voice_client_cls)
-    await interaction.response.send_message(message)
+    message = await _setup_transcription(deps, voice_client_cls, guild_id)
+    await interaction.followup.send(message)
 
 
 async def handle_leave(

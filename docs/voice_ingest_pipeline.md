@@ -1,25 +1,69 @@
-# Voice Ingest Pipeline (v1)
+# Voice Ingest Pipeline
+
+## Overview
+
+The voice pipeline captures Discord audio, detects speech, and transcribes to text.
+
+```
+Discord voice_recv thread          Async world
+        │                              │
+        │  write()                     │
+        └──────► buffer PCM            │
+                    │                  │
+                    │     _process_loop() (every 1s)
+                    │          │
+                    └──────────┴──► should_process() ──► STT
+```
 
 ## Discord voice acquisition
-- Use `discord-ext-voice-recv` with a `VoiceRecvClient` to tap per-user PCM frames.
-- Keep acquisition isolated in the Discord host layer and feed PCM bytes into the SDK pipeline.
+- Uses `discord-ext-voice-recv` with `VoiceRecvClient` for per-user PCM frames
+- **Requires libopus** for audio decoding (`apt install libopus0`)
+- Opus is loaded explicitly at bot startup; fails fast if unavailable
+
+## Audio format handling
+- Discord delivers **stereo 48kHz 16-bit PCM** (2 channels, 4 bytes/sample frame)
+- SDK expects **mono 48kHz PCM** (source-agnostic)
+- Whisper expects **mono 16kHz PCM**
+- `AudioFormat` dataclass describes formats: `DISCORD_FORMAT`, `SDK_FORMAT`, `WHISPER_FORMAT`
+- Conversion at Discord boundary: `convert_pcm(DISCORD_FORMAT, SDK_FORMAT)` in `voice_ingest.py`
 
 ## Opus decoding
-- Expected input is 16-bit mono PCM at 48kHz (Discord native voice sample rate).
-- Opus decoding should be performed by the host layer (libopus + ffmpeg).
+- Opus decoding performed by discord.py using libopus
+- Bot explicitly loads opus at startup via `discord.opus._load_default()`
 
 ## VAD strategy
-- V1 uses simple energy-based VAD to keep dependencies light.
-- Frame size: 30ms, padding: 300ms, threshold tuned for typical Discord audio.
-- Silero VAD remains the preferred upgrade path once torch deps are acceptable.
+- **SileroVAD** (default): ML-based, high accuracy, requires torch (~500MB)
+- **EnergyVAD** (fallback): RMS-based, moderate accuracy, no dependencies
+- Silero model pre-downloaded in Docker to avoid runtime fetching
+
+## Processing architecture
+- `VoiceIngestSink.write()`: Called from voice_recv thread, just buffers data (no async)
+- `VoiceIngestSink._process_loop()`: Async background task, checks every 1s
+- Processing triggers when:
+  - Buffer exceeds threshold (~7.5s of audio), OR
+  - Idle timeout reached (~3s since last audio with buffered data)
+- Clean separation: threads buffer, async processes
 
 ## Chunking rules
-- Target chunk sizes: 2–6s.
-- 300ms overlap between chunks to preserve context.
-- Chunks emitted per speaker (Discord user_id).
+- Buffer threshold: 7.5 seconds (configurable via `chunk_seconds`)
+- Idle flush timeout: 3 seconds (configurable via `idle_timeout_seconds`)
+- Silence gap: 1000ms triggers utterance split (configurable via `max_silence_ms`)
+- Chunks emitted per speaker (Discord user_id)
 
-## Transcript merge
-- Each chunk emits a transcript event with metadata:
-  - `speaker_id` (Discord user_id)
-  - `audio_chunk_id`
-- Merge into a single timeline by `(timestamp, speaker_id)` ordering.
+The idle flush mechanism ensures short utterances get transcribed quickly (~3s after user stops speaking) rather than waiting for the full buffer threshold.
+
+## Transcript buffer
+- `TranscriptBuffer` maintains rolling buffer of recent transcripts per guild
+- Max 50 events, max 5 minutes age
+- Used by `/shitpost` for voice context and `/transcript` for debugging
+
+## Sample rate handling
+- Discord sends 48kHz audio
+- Whisper is optimized for 16kHz
+- Pipeline automatically resamples before STT via `audio_utils.resample_wav()`
+
+## Debugging
+See **[voice-debugging.md](voice-debugging.md)** for:
+- Debug capture system (`VOICE_DEBUG=1`)
+- Session analysis tools
+- Common transcription issues

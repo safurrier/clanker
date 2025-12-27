@@ -49,7 +49,8 @@ All I/O operations are async. Use `httpx.AsyncClient` for HTTP.
 | Domain models | `src/clanker/models.py` |
 | Response orchestration | `src/clanker/respond.py` |
 | Provider protocols | `src/clanker/providers/*.py` |
-| Voice pipeline | `src/clanker/voice/*.py` |
+| Voice pipeline (SDK) | `src/clanker/voice/*.py` |
+| Voice ingest (Discord) | `src/clanker_bot/voice_ingest.py` |
 | Discord command registration | `src/clanker_bot/commands.py` |
 | Command handlers | `src/clanker_bot/command_handlers/` |
 | Discord UI views | `src/clanker_bot/views/` |
@@ -91,6 +92,8 @@ uv run pytest tests -m "not network"
 | `DISCORD_TOKEN` | For bot | Discord bot token |
 | `ELEVENLABS_API_KEY` | For TTS | Text-to-speech |
 | `CLANKER_CONFIG_PATH` | No | Custom config path |
+| `VOICE_DEBUG` | No | Enable voice debug capture (`1` to enable) |
+| `VOICE_DEBUG_DIR` | No | Debug output directory (default: `./voice_debug`) |
 
 ## Voice Processing with VAD
 
@@ -118,7 +121,7 @@ The warmup function validates dependencies, loads the model, and falls back grac
 
 ## Docker Deployment
 
-See `DOCKER_DEPLOYMENT.md` for full documentation.
+See `docker/README.md` for full documentation.
 
 **Quick start:**
 ```bash
@@ -127,9 +130,12 @@ docker-compose up -d
 ```
 
 The Dockerfile includes:
+- **libopus** for Discord audio decoding (required for voice)
 - Pre-downloaded Silero VAD model (no runtime downloads)
 - Voice support (torch/numpy) pre-installed
 - Optimized multi-stage build
+
+The bot explicitly loads opus at startup and fails fast if unavailable.
 
 ## Audio Pipeline Debugging
 
@@ -181,10 +187,20 @@ Additional context in `ai-docs/`:
 Update `config.yaml` with new persona definition.
 
 ### Modify voice pipeline
-Files in `src/clanker/voice/`:
-- `vad.py` - Voice activity detection
+SDK layer (`src/clanker/voice/`):
+- `formats.py` - AudioFormat abstraction (`DISCORD_FORMAT`, `SDK_FORMAT`, `WHISPER_FORMAT`)
+- `vad.py` - Voice activity detection (Silero/Energy)
 - `chunker.py` - Audio chunking
 - `worker.py` - Transcription orchestration
+- `debug/` - Debug capture system (enable with `VOICE_DEBUG=1`)
+
+Discord layer (`src/clanker_bot/`):
+- `voice_ingest.py` - Discord audio capture, stereo-to-mono conversion, buffering, async processing
+
+Audio utilities (`src/clanker/providers/audio_utils.py`):
+- `stereo_to_mono()` - Convert stereo PCM to mono
+- `convert_pcm()` - Convert between AudioFormat types
+- `resample_pcm()` - Resample PCM to different sample rates
 
 ### Update dependencies
 Edit `pyproject.toml`, then `uv sync`.

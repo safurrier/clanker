@@ -58,7 +58,12 @@ class FakeSTT(STT):
 
     transcript: str = "transcript"
 
-    async def transcribe(self, audio_bytes: bytes, params: dict | None = None) -> str:
+    async def transcribe(
+        self,
+        audio_bytes: bytes,
+        sample_rate_hz: int = 16000,
+        params: dict | None = None,
+    ) -> str:
         return self.transcript
 
 

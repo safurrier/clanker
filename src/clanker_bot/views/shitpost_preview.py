@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from io import BytesIO
+from typing import cast
 
 import discord
 from loguru import logger
@@ -52,7 +53,6 @@ class ShitpostPreviewView(discord.ui.View):
         self.payload = payload
         self.embed = embed
         self.regenerate_callback = regenerate_callback
-        self._posted = False
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Only allow the original invoker to interact with this view."""
@@ -85,6 +85,11 @@ class ShitpostPreviewView(discord.ui.View):
 
         file = self._build_file()
         attachments = [file] if file else []
+
+        # Set image URL on embed to display the attachment
+        if file:
+            new_embed.set_image(url="attachment://meme.png")
+
         await interaction.edit_original_response(
             embed=new_embed,
             attachments=attachments,
@@ -95,15 +100,7 @@ class ShitpostPreviewView(discord.ui.View):
     async def post_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ) -> None:
-        """Publish the meme to the channel and remove the preview."""
-        if self._posted:
-            await interaction.response.send_message(
-                "This meme has already been posted.", ephemeral=True
-            )
-            return
-
-        self._posted = True
-
+        """Publish the meme to the channel, keeping preview for more actions."""
         # Post to the channel where the command was invoked
         channel = interaction.channel
         if channel is None or not hasattr(channel, "send"):
@@ -114,18 +111,16 @@ class ShitpostPreviewView(discord.ui.View):
 
         try:
             file = self._build_file()
+            # Cast is safe: we've verified channel has send method above
+            messageable = cast(discord.abc.Messageable, channel)
             if file:
-                await channel.send(content=self.payload.text, file=file)  # type: ignore[union-attr]
+                await messageable.send(file=file)
             else:
-                await channel.send(content=self.payload.text)  # type: ignore[union-attr]
+                # No image, just post the text as fallback
+                await messageable.send(content=self.payload.text)
 
-            # Remove the preview message
-            await interaction.response.edit_message(
-                content="Posted!",
-                embed=None,
-                attachments=[],
-                view=None,
-            )
+            # Acknowledge without changing the preview
+            await interaction.response.send_message("Posted!", ephemeral=True)
             logger.info(
                 "shitpost.posted",
                 preview_id=self.preview_id,
@@ -149,19 +144,23 @@ class ShitpostPreviewView(discord.ui.View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ) -> None:
         """Generate a new meme with a different template."""
-        if self._posted:
-            await interaction.response.send_message(
-                "This meme has already been posted.", ephemeral=True
-            )
-            return
-
         if self.regenerate_callback is None:
             await interaction.response.send_message(
                 "Regeneration not available.", ephemeral=True
             )
             return
 
-        await interaction.response.defer()
+        # Show loading state
+        loading_embed = discord.Embed(
+            title="Regenerating...",
+            description="🔄 Generating a new shitpost...",
+            color=discord.Color.greyple(),
+        )
+        await interaction.response.edit_message(
+            embed=loading_embed,
+            attachments=[],
+            view=self,
+        )
 
         try:
             new_payload, new_embed = await self.regenerate_callback()
@@ -188,14 +187,14 @@ class ShitpostPreviewView(discord.ui.View):
     ) -> None:
         """Remove this preview message."""
         try:
+            # Discord API requires non-empty content when clearing embed/view
+            # (error code 50006: "Cannot send an empty message")
             await interaction.response.edit_message(
-                content=None,
+                content="*Preview dismissed*",
                 embed=None,
                 attachments=[],
                 view=None,
             )
-            # Note: We can't truly delete ephemeral messages, but clearing content
-            # and view effectively removes it visually
             logger.info(
                 "shitpost.dismissed",
                 preview_id=self.preview_id,

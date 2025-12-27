@@ -116,9 +116,17 @@ async def test_handle_join_requires_voice_channel(
     assert fake_interaction.response.messages == [ResponseMessage.JOIN_VOICE_FIRST]
 
 
+@dataclass
+class FakeVoiceChannel:
+    """Minimal fake voice channel for testing."""
+
+    id: int = 12345
+    name: str = "test-voice"
+
+
 @pytest.mark.asyncio()
 async def test_handle_join_success(fake_interaction: FakeInteraction) -> None:
-    channel = object()
+    channel = FakeVoiceChannel()
     fake_interaction.user = FakeVoiceMember(id=1, voice=FakeVoiceState(channel=channel))
     deps = BotDependencies(
         llm=FakeLLM(),
@@ -132,7 +140,10 @@ async def test_handle_join_success(fake_interaction: FakeInteraction) -> None:
         voice_ingest_enabled=False,
     )
     await handle_join(fake_interaction, deps)
-    assert fake_interaction.response.messages == [ResponseMessage.JOINED_VOICE]
+    # Uses defer() + followup.send() due to potentially slow transcription setup
+    assert fake_interaction.response.deferred is True
+    assert len(fake_interaction.followup.sent_followups) == 1
+    assert fake_interaction.followup.sent_followups[0].content == ResponseMessage.JOINED_VOICE
 
 
 @pytest.mark.asyncio()

@@ -91,6 +91,7 @@ known-first-party = ["clanker", "clanker_bot"]
 testpaths = ["tests"]
 markers = [
     "network: tests that require network access",
+    "memegen: tests that hit the memegen.link API",
     "slow: slow tests",
 ]
 asyncio_mode = "auto"

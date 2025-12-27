@@ -3,14 +3,20 @@
 from __future__ import annotations
 
 import struct
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from ..models import Context, Message
 from ..providers.base import STT
 from .chunker import AudioChunk
+from .formats import SDK_FORMAT
 from .vad import SpeechDetector, SpeechSegment, detect_speech_segments
+
+if TYPE_CHECKING:
+    from .debug import DebugCapture
 
 
 @dataclass(frozen=True)
@@ -49,6 +55,7 @@ async def transcript_loop_once(
     detector: SpeechDetector | None = None,
     max_silence_ms: int = 500,
     min_utterance_ms: int = 500,
+    debug_capture: DebugCapture | None = None,
 ) -> list[TranscriptEvent]:
     """Process per-user audio buffers once and return transcript events.
 
@@ -61,6 +68,7 @@ async def transcript_loop_once(
         min_utterance_ms: Minimum utterance duration to transcribe.
             Utterances shorter than this are skipped to avoid STT
             hallucinations on very short audio clips. Default 500ms.
+        debug_capture: Optional debug capture instance for pipeline diagnostics.
 
     Returns:
         List of TranscriptEvents sorted by start time.
@@ -68,25 +76,75 @@ async def transcript_loop_once(
     events: list[TranscriptEvent] = []
     for speaker_id, buffer in buffers.items():
         pcm_bytes = buffer.pcm_bytes
+
+        # Debug: capture raw buffer
+        if debug_capture:
+            debug_capture.capture_raw_buffer(speaker_id, pcm_bytes, sample_rate_hz)
+
         segments = detect_speech_segments(pcm_bytes, sample_rate_hz, detector=detector)
+
+        # Debug: capture VAD result
+        if debug_capture:
+            debug_capture.capture_vad_result(speaker_id, segments)
+
         utterances = _build_utterances(segments, max_silence_ms=max_silence_ms)
-        # Filter out short utterances to avoid STT hallucinations
-        utterances = [
-            u for u in utterances if (u.end_ms - u.start_ms) >= min_utterance_ms
-        ]
-        for index, utterance in enumerate(utterances):
+
+        # Track utterance index including filtered ones
+        utterance_index = 0
+        for utterance in utterances:
+            duration_ms = utterance.end_ms - utterance.start_ms
+
+            # Filter short utterances
+            if duration_ms < min_utterance_ms:
+                if debug_capture:
+                    debug_capture.capture_filtered_utterance(
+                        speaker_id,
+                        utterance_index,
+                        utterance.start_ms,
+                        utterance.end_ms,
+                        "too_short",
+                    )
+                utterance_index += 1
+                continue
+
             chunk_bytes = _slice_pcm(
                 pcm_bytes,
                 sample_rate_hz,
                 AudioChunk(start_ms=utterance.start_ms, end_ms=utterance.end_ms),
             )
-            text = await stt.transcribe(chunk_bytes)
+
+            # Debug: capture utterance audio before STT
+            if debug_capture:
+                debug_capture.capture_utterance(
+                    speaker_id,
+                    utterance_index,
+                    chunk_bytes,
+                    sample_rate_hz,
+                    utterance.start_ms,
+                    utterance.end_ms,
+                    list(utterance.segments),
+                )
+
+            # Transcribe with timing
+            stt_start = time.perf_counter()
+            text = await stt.transcribe(chunk_bytes, sample_rate_hz=sample_rate_hz)
+            stt_latency_ms = (time.perf_counter() - stt_start) * 1000
+
+            # Debug: capture STT result
+            if debug_capture:
+                debug_capture.capture_stt_result(
+                    speaker_id,
+                    utterance_index,
+                    text,
+                    stt_latency_ms,
+                )
+
             start_time = buffer.start_time + timedelta(milliseconds=utterance.start_ms)
             end_time = buffer.start_time + timedelta(milliseconds=utterance.end_ms)
             events.append(
                 TranscriptEvent(
                     speaker_id=speaker_id,
-                    chunk_id=f"{speaker_id}-{index}",
+                    chunk_id=f"{speaker_id}-{utterance_index}",
                     text=text,
                     chunk=AudioChunk(
                         start_ms=utterance.start_ms, end_ms=utterance.end_ms
@@ -95,6 +153,8 @@ async def transcript_loop_once(
                     end_time=end_time,
                 )
             )
+            utterance_index += 1
+
     return sorted(events, key=lambda event: event.start_time)
 
 
@@ -119,9 +179,14 @@ def build_context_from_event(
 
 
 def _slice_pcm(pcm_bytes: bytes, sample_rate_hz: int, chunk: AudioChunk) -> bytes:
-    """Slice PCM bytes for a chunk and wrap in WAV container."""
-    start_index = int(chunk.start_ms / 1000 * sample_rate_hz) * 2
-    end_index = int(chunk.end_ms / 1000 * sample_rate_hz) * 2
+    """Slice PCM bytes for a chunk and wrap in WAV container.
+
+    Assumes mono PCM matching SDK_FORMAT (16-bit, 1 channel).
+    """
+    # SDK_FORMAT.bytes_per_sample = 2 for mono 16-bit
+    bytes_per_sample = SDK_FORMAT.bytes_per_sample
+    start_index = int(chunk.start_ms / 1000 * sample_rate_hz) * bytes_per_sample
+    end_index = int(chunk.end_ms / 1000 * sample_rate_hz) * bytes_per_sample
     pcm_chunk = pcm_bytes[start_index:end_index]
     return _wrap_pcm_as_wav(pcm_chunk, sample_rate_hz)
 

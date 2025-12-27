@@ -8,6 +8,10 @@ from enum import Enum
 class ResponseMessage(str, Enum):
     """Standard response messages for Discord commands."""
 
+    def __str__(self) -> str:
+        """Return the value, not the name (Python 3.11+ compat)."""
+        return self.value
+
     # Authorization
     NOT_AUTHORIZED = "Not authorized."
 
