@@ -85,6 +85,123 @@ async def test_voice_ingest_worker_orders_events_across_speakers() -> None:
 # --- VoiceIngestSink Tests ---
 
 
+class TestIdleFlush:
+    """Tests for idle flush mechanism."""
+
+    def test_should_process_true_when_idle_timeout_reached(self) -> None:
+        """should_process returns True when buffer has data and idle timeout reached."""
+        sample_rate = 16000
+        worker = VoiceIngestWorker(
+            stt=FakeSTT(),
+            sample_rate_hz=sample_rate,
+            chunk_seconds=10.0,  # High threshold - won't hit this
+            idle_timeout_seconds=3.0,
+        )
+        # Add small amount of data (won't hit chunk threshold)
+        small_pcm = b"\x00\x00" * (sample_rate * 1)  # 1 second
+        worker.add_pcm(42, small_pcm)
+
+        # Shouldn't process yet - not enough data and not idle
+        assert not worker.should_process()
+
+        # Simulate time passing by backdating _last_audio_time
+        worker._last_audio_time = datetime.now() - timedelta(seconds=4.0)
+
+        # Now should process due to idle timeout
+        assert worker.should_process()
+
+    def test_should_process_false_when_idle_but_no_data(self) -> None:
+        """should_process returns False when idle but no buffered data."""
+        worker = VoiceIngestWorker(
+            stt=FakeSTT(),
+            sample_rate_hz=16000,
+            chunk_seconds=10.0,
+            idle_timeout_seconds=3.0,
+        )
+        # No data added, just set last audio time in the past
+        worker._last_audio_time = datetime.now() - timedelta(seconds=10.0)
+
+        # Shouldn't process - no data even though "idle"
+        assert not worker.should_process()
+
+    def test_should_process_false_when_data_but_not_idle_enough(self) -> None:
+        """should_process returns False when has data but not idle long enough."""
+        sample_rate = 16000
+        worker = VoiceIngestWorker(
+            stt=FakeSTT(),
+            sample_rate_hz=sample_rate,
+            chunk_seconds=10.0,  # High threshold
+            idle_timeout_seconds=3.0,
+        )
+        # Add small amount of data
+        small_pcm = b"\x00\x00" * (sample_rate * 1)  # 1 second
+        worker.add_pcm(42, small_pcm)
+
+        # Only 1 second idle (less than 3s timeout)
+        worker._last_audio_time = datetime.now() - timedelta(seconds=1.0)
+
+        # Shouldn't process - not enough data AND not idle enough
+        assert not worker.should_process()
+
+    def test_chunk_threshold_still_works_with_idle_flush(self) -> None:
+        """Chunk threshold should still trigger processing even if not idle."""
+        sample_rate = 16000
+        worker = VoiceIngestWorker(
+            stt=FakeSTT(),
+            sample_rate_hz=sample_rate,
+            chunk_seconds=2.0,  # Low threshold
+            idle_timeout_seconds=10.0,  # High idle timeout - won't hit this
+        )
+        # Add enough data to hit chunk threshold (2+ seconds)
+        large_pcm = b"\x00\x00" * (sample_rate * 3)  # 3 seconds
+        worker.add_pcm(42, large_pcm)
+
+        # Should process due to chunk threshold (even though not idle)
+        assert worker.should_process()
+
+    def test_add_pcm_updates_last_audio_time(self) -> None:
+        """add_pcm should update _last_audio_time."""
+        worker = VoiceIngestWorker(
+            stt=FakeSTT(),
+            sample_rate_hz=16000,
+            chunk_seconds=10.0,
+            idle_timeout_seconds=3.0,
+        )
+        assert worker._last_audio_time is None
+
+        worker.add_pcm(42, b"\x00\x00" * 100)
+
+        assert worker._last_audio_time is not None
+        assert (datetime.now() - worker._last_audio_time).total_seconds() < 1.0
+
+    @pytest.mark.asyncio
+    async def test_idle_flush_processes_partial_buffer(self) -> None:
+        """Idle flush should process partial buffers that don't hit threshold."""
+        sample_rate = 16000
+        detector = FakeDetector([SpeechSegment(start_ms=0, end_ms=500)])
+        worker = VoiceIngestWorker(
+            stt=FakeSTT(transcript="partial"),
+            sample_rate_hz=sample_rate,
+            chunk_seconds=10.0,  # High threshold - won't hit
+            idle_timeout_seconds=3.0,
+            detector=detector,
+        )
+        # Add 1 second of audio (less than 10s threshold)
+        pcm_bytes = b"\x00\x00" * sample_rate
+        worker.add_pcm(123, pcm_bytes, recorded_at=datetime(2024, 1, 1, 12, 0, 0))
+
+        # Simulate idle timeout
+        worker._last_audio_time = datetime.now() - timedelta(seconds=4.0)
+
+        # Should be able to process now
+        assert worker.should_process()
+        events = await worker.process_once()
+
+        # Should have processed the partial buffer
+        assert len(events) == 1
+        assert events[0].text == "partial"
+
+
 class TestVoiceIngestSink:
     """Test VoiceIngestSink abstract method implementations."""
 

@@ -96,7 +96,9 @@ class VoiceIngestWorker:
         stt: Speech-to-text provider
         sample_rate_hz: Audio sample rate (Discord uses 48kHz)
         chunk_seconds: Buffer threshold - process every N seconds
-                      (10s = good for conversations, 30s = meetings/monologues)
+                      (7.5s default for conversations)
+        idle_timeout_seconds: Flush partial buffers after N seconds of no audio
+                             (3.0s default - handles "someone speaks then stops")
         max_silence_ms: Silence gap to split utterances
                        (1000ms = natural pauses in speech)
         detector: Voice activity detector (SileroVAD or EnergyVAD)
@@ -105,13 +107,15 @@ class VoiceIngestWorker:
 
     stt: STT
     sample_rate_hz: int = 48000  # Discord voice uses 48kHz sample rate
-    chunk_seconds: float = 10.0  # Process every 10 seconds (was 2.0)
-    max_silence_ms: int = 1000  # 1 second silence = new utterance (was 500ms)
+    chunk_seconds: float = 7.5  # Process every 7.5 seconds
+    idle_timeout_seconds: float = 3.0  # Flush after 3s of no audio
+    max_silence_ms: int = 1000  # 1 second silence = new utterance
     min_utterance_ms: int = 500  # Minimum utterance duration
     detector: SpeechDetector = field(default_factory=resolve_detector)
     debug_capture: DebugCapture | None = field(default=None)
     buffers: dict[int, bytearray] = field(default_factory=dict)
     buffer_start_times: dict[int, datetime] = field(default_factory=dict)
+    _last_audio_time: datetime | None = field(default=None)
 
     def add_pcm(
         self, user_id: int, pcm_bytes: bytes, recorded_at: datetime | None = None
@@ -122,6 +126,7 @@ class VoiceIngestWorker:
             self.buffer_start_times[user_id] = recorded_at or datetime.now()
             logger.debug("voice_worker.new_buffer: user={}", user_id)
         buffer.extend(pcm_bytes)
+        self._last_audio_time = datetime.now()
 
     async def process_once(self) -> list[TranscriptEvent]:
         """Process current buffers once and return transcript events."""
@@ -179,19 +184,42 @@ class VoiceIngestWorker:
         return sorted_events
 
     def should_process(self) -> bool:
-        """Check if any buffer exceeds the chunk size threshold."""
+        """Check if buffers should be processed.
+
+        Returns True if:
+        - Any buffer exceeds the chunk size threshold, OR
+        - Buffers have data AND no new audio for idle_timeout_seconds
+        """
+        if not self.buffers:
+            return False
+
         # SDK_FORMAT.bytes_per_sample = 2 for mono 16-bit
         bytes_per_sample = SDK_FORMAT.bytes_per_sample
         min_bytes = int(self.sample_rate_hz * self.chunk_seconds) * bytes_per_sample
-        should = any(len(buffer) >= min_bytes for buffer in self.buffers.values())
-        if should:
+
+        # Check chunk threshold
+        if any(len(buffer) >= min_bytes for buffer in self.buffers.values()):
             sizes = {uid: len(buf) for uid, buf in self.buffers.items()}
             logger.debug(
                 "voice_worker.threshold_reached: min_bytes={}, sizes={}",
                 min_bytes,
                 sizes,
             )
-        return should
+            return True
+
+        # Check idle timeout - flush partial buffers if no audio for a while
+        if self._last_audio_time is not None:
+            idle_seconds = (datetime.now() - self._last_audio_time).total_seconds()
+            if idle_seconds >= self.idle_timeout_seconds:
+                sizes = {uid: len(buf) for uid, buf in self.buffers.items()}
+                logger.debug(
+                    "voice_worker.idle_flush: idle_seconds={:.1f}, sizes={}",
+                    idle_seconds,
+                    sizes,
+                )
+                return True
+
+        return False
 
 
 class VoiceIngestSink(voice_recv.AudioSink):
@@ -357,7 +385,8 @@ async def start_voice_ingest(
     stt: STT,
     on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
     detector: SpeechDetector | None = None,
-    chunk_seconds: float = 10.0,
+    chunk_seconds: float = 7.5,
+    idle_timeout_seconds: float = 3.0,
     max_silence_ms: int = 1000,
     debug_capture: DebugCapture | None = None,
 ) -> VoiceIngestSink:
@@ -368,7 +397,8 @@ async def start_voice_ingest(
         stt: Speech-to-text provider.
         on_transcript: Optional callback for transcript events.
         detector: Optional speech detector override.
-        chunk_seconds: Process buffer every N seconds (10s = conversations, 30s = meetings).
+        chunk_seconds: Process buffer every N seconds (7.5s default).
+        idle_timeout_seconds: Flush partial buffers after N seconds of no audio (3.0s default).
         max_silence_ms: Silence gap to split utterances (1000ms = natural pauses).
         debug_capture: Optional debug capture instance. If None and VOICE_DEBUG=1 is set,
             a DebugCapture will be created automatically.
@@ -391,6 +421,7 @@ async def start_voice_ingest(
         stt=stt,
         detector=detector or resolve_detector(),
         chunk_seconds=chunk_seconds,
+        idle_timeout_seconds=idle_timeout_seconds,
         max_silence_ms=max_silence_ms,
         debug_capture=debug_capture,
     )
