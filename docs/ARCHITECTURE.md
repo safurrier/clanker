@@ -180,6 +180,8 @@ Schema enforces:
 | `views/` | Discord UI views (shitpost preview buttons) |
 | `voice_ingest.py` | Voice receive integration with SDK pipeline |
 | `discord_adapter.py` | Voice session management |
+| `cogs/` | Discord cogs (VC monitoring, auto-leave) |
+| `logging_config.py` | Structured logging with file rotation |
 | `health.py` | Health check HTTP endpoint (`/status`) |
 | `metrics.py` | Observability counters/gauges |
 

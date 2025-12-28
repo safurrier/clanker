@@ -67,6 +67,13 @@ export CLANKER_CONFIG_PATH="./config.yaml"
 # Optional: Voice debug capture (for pipeline analysis)
 export VOICE_DEBUG=1
 export VOICE_DEBUG_DIR="./voice_debug"
+
+# Optional: File-based logging (JSON format, with rotation)
+export LOG_DIR="./logs"
+export LOG_LEVEL="INFO"
+
+# Optional: Voice-specific log level (reduces noise from voice pipeline)
+export VOICE_LOG_LEVEL="INFO"
 ```
 
 ## Quick Start

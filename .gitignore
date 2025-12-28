@@ -43,3 +43,4 @@ tests/data/ami/*.pcm
 !tests/data/ami/metadata.json
 .mcp.json
 PROGRESS.md
+docker/dev.env

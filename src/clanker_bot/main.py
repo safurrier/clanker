@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import sys
 import time
 from pathlib import Path
 
@@ -28,25 +27,26 @@ from .voice_ingest import TranscriptBuffer
 def configure_logging() -> None:
     """Configure loguru for the bot.
 
-    Reads LOG_LEVEL from environment (default: INFO).
-    Outputs colored logs to stderr.
-    """
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    Reads from environment:
+    - LOG_LEVEL: Base log level (default: INFO)
+    - LOG_DIR: Directory for file logs (optional, enables file logging)
+    - VOICE_LOG_LEVEL: Voice-specific log level (default: INFO)
 
-    # Remove default handler and add configured one
-    logger.remove()
-    logger.add(
-        sys.stderr,
-        level=log_level,
-        format=(
-            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-            "<level>{level: <8}</level> | "
-            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-            "<level>{message}</level>"
-        ),
-        colorize=True,
+    Outputs colored logs to stderr. If LOG_DIR is set, also writes
+    JSON-formatted logs to rotating files for debugging.
+    """
+    from .logging_config import configure_all_logging
+
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_dir = os.getenv("LOG_DIR")
+
+    configure_all_logging(
+        log_level=log_level,
+        log_dir=log_dir,
+        json_format=True,
     )
-    logger.info("Logging configured", level=log_level)
+
+    logger.info("Logging configured", level=log_level, log_dir=log_dir or "stderr only")
 
     # Also configure stdlib logging for voice_recv to see packet-level debug info
     if log_level == "DEBUG":
@@ -85,7 +85,14 @@ def build_dependencies() -> BotDependencies:
         persona = Persona(
             id="default",
             display_name="Clanker",
-            system_prompt="You are Clanker9000, a helpful bot.",
+            system_prompt=(
+                "You are Clanker9000. 85% helpful assistant, 15% shitposter—not as "
+                "separate modes but as a unified personality. You deploy the full "
+                "capabilities of an AI to produce what would normally be high-effort "
+                "responses, but for the explicit purpose of low-effort shitposting. "
+                "Maximum power, minimum dignity. Be helpful. Be slightly unhinged. "
+                "Do not yap. Keep it concise—no one wants to read a novel in Discord."
+            ),
             tts_voice=None,
             providers=None,
         )
@@ -139,8 +146,12 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
     register_commands(bot, deps)
 
     # Import here to avoid circular imports
+    from .cogs.vc_monitor import VCMonitorCog
     from .command_handlers.common import is_clanker_thread
     from .command_handlers.thread_chat import handle_thread_message
+
+    # Create VC monitor for auto-leave feature
+    vc_monitor = VCMonitorCog(bot)
 
     @bot.event
     async def on_ready() -> None:
@@ -173,6 +184,15 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
 
         # Process the message
         await handle_thread_message(message, deps)
+
+    @bot.event
+    async def on_voice_state_update(
+        member: discord.Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState,
+    ) -> None:
+        """Handle voice state changes for auto-leave."""
+        await vc_monitor.on_voice_state_update(member, before, after)
 
     return bot
 
