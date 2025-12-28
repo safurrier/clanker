@@ -1582,7 +1582,7 @@
 </tr>
 <tr>
 <td><code>/shitpost [n] [guidance]</code></td>
-<td>Generate meme previews (1-5, default 3)</td>
+<td>Generate meme previews (1-5, default 1)</td>
 </tr>
 <tr>
 <td><code>/join</code></td>
@@ -1591,6 +1591,10 @@
 <tr>
 <td><code>/leave</code></td>
 <td>Leave the current voice channel</td>
+</tr>
+<tr>
+<td><code>/transcript</code></td>
+<td>Show recent voice transcripts (ephemeral)</td>
 </tr>
 </tbody>
 </table>
@@ -1691,6 +1695,16 @@
 <td><code>CLANKER_CONFIG_PATH</code></td>
 <td>No</td>
 <td>Path to config.yaml</td>
+</tr>
+<tr>
+<td><code>VOICE_DEBUG</code></td>
+<td>No</td>
+<td>Enable voice debug capture (<code>1</code> to enable)</td>
+</tr>
+<tr>
+<td><code>VOICE_DEBUG_DIR</code></td>
+<td>No</td>
+<td>Debug output directory (default: <code>./voice_debug</code>)</td>
 </tr>
 </tbody>
 </table>

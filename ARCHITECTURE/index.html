@@ -699,9 +699,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#energy-based-vad-not-ml" class="md-nav__link">
+  <a href="#ml-based-vad-with-fallback" class="md-nav__link">
     <span class="md-ellipsis">
-      Energy-Based VAD (Not ML)
+      ML-Based VAD with Fallback
     </span>
   </a>
   
@@ -1361,9 +1361,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#energy-based-vad-not-ml" class="md-nav__link">
+  <a href="#ml-based-vad-with-fallback" class="md-nav__link">
     <span class="md-ellipsis">
-      Energy-Based VAD (Not ML)
+      ML-Based VAD with Fallback
     </span>
   </a>
   
@@ -1600,7 +1600,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Audio Input → VAD → Chunking → STT → Text Output
 </code></pre></div>
 <p><strong>1. Voice Activity Detection</strong> (<code>vad.py</code>)
-- Energy-based detection using <code>audioop.rms</code>
+- Silero VAD (ML-based, default) with EnergyVAD fallback
 - Configurable thresholds and padding
 - Returns <code>SpeechSegment</code> objects with timestamps</p>
 <p><strong>2. Audio Chunking</strong> (<code>chunker.py</code>)
@@ -1698,7 +1698,7 @@
 </tr>
 <tr>
 <td><code>/shitpost</code></td>
-<td><code>command_handlers/messages.py</code></td>
+<td><code>command_handlers/chat.py</code></td>
 <td>Generate meme previews</td>
 </tr>
 <tr>
@@ -1712,12 +1712,18 @@
 <td>Leave voice channel</td>
 </tr>
 <tr>
+<td><code>/transcript</code></td>
+<td><code>command_handlers/transcript.py</code></td>
+<td>Show recent voice transcripts</td>
+</tr>
+<tr>
 <td><code>/admin_*</code></td>
 <td><code>command_handlers/admin.py</code></td>
 <td>Admin commands</td>
 </tr>
 </tbody>
 </table>
+<p><strong>Thread Auto-Reply:</strong> Messages in bot-created threads (<code>clanker-{hex}</code>) automatically get LLM responses via <code>command_handlers/thread_chat.py</code>.</p>
 <h2 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h2>
 <h3 id="chat-request-flow">Chat Request Flow<a class="headerlink" href="#chat-request-flow" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>User Message
@@ -1814,13 +1820,13 @@
 - Log failures don't break chat flow
 - Background task handles persistence
 - Task reference tracked to prevent garbage collection</p>
-<h3 id="energy-based-vad-not-ml">Energy-Based VAD (Not ML)<a class="headerlink" href="#energy-based-vad-not-ml" title="Permanent link">&para;</a></h3>
-<p><strong>Decision:</strong> Use simple RMS energy threshold for voice detection.</p>
+<h3 id="ml-based-vad-with-fallback">ML-Based VAD with Fallback<a class="headerlink" href="#ml-based-vad-with-fallback" title="Permanent link">&para;</a></h3>
+<p><strong>Decision:</strong> Use Silero VAD (ML-based) by default with EnergyVAD fallback.</p>
 <p><strong>Rationale:</strong>
-- No heavy ML dependencies (torch, etc.)
-- Fast and predictable latency
-- Good enough for Discord voice quality
-- Silero VAD documented as upgrade path if needed</p>
+- Silero VAD provides high-accuracy speech detection
+- EnergyVAD (RMS-based) serves as lightweight fallback when torch unavailable
+- Voice optional dependency (<code>[voice]</code>) keeps base install minimal
+- Warmup function pre-loads model to avoid first-request latency</p>
 <h2 id="technical-stack">Technical Stack<a class="headerlink" href="#technical-stack" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1909,7 +1915,9 @@
 </ol>
 <h3 id="adding-voice-features">Adding Voice Features<a class="headerlink" href="#adding-voice-features" title="Permanent link">&para;</a></h3>
 <p>The voice pipeline is modular:
-- Replace VAD with ML-based (Silero) by implementing <code>detect_speech_segments</code>
+- VAD implementations in <code>vad.py</code> (SileroVAD default, EnergyVAD fallback)
+- Audio format conversions via <code>providers/audio_utils.py</code>
+- Debug capture system in <code>voice/debug/</code> (enable with <code>VOICE_DEBUG=1</code>)
 - Add speaker diarization in <code>worker.py</code>
 - Implement real-time streaming STT</p>
 
