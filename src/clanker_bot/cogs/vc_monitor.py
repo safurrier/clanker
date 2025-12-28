@@ -359,52 +359,6 @@ class VCMonitorCog:
                     )
 
 
-def find_nudge_text_channel(
-    guild: discord.Guild,
-    voice_channel: discord.VoiceChannel | discord.StageChannel,
-) -> discord.TextChannel | None:
-    """Find the best text channel to send a nudge message.
-
-    Priority:
-    1. A text channel with the same name as the voice channel
-    2. A text channel named "general", "chat", or "bot-commands"
-    3. The guild's system channel
-    4. The first text channel the bot can send messages in
-
-    Args:
-        guild: The guild to search.
-        voice_channel: The voice channel users are gathering in.
-
-    Returns:
-        A text channel to send the nudge, or None if no suitable channel found.
-    """
-    # 1. Look for a text channel with the same name
-    for channel in guild.text_channels:
-        if channel.name.lower() == voice_channel.name.lower():
-            if channel.permissions_for(guild.me).send_messages:
-                return channel
-
-    # 2. Look for common general channels
-    common_names = ["general", "chat", "bot-commands", "bots", "bot"]
-    for name in common_names:
-        for channel in guild.text_channels:
-            if channel.name.lower() == name:
-                if channel.permissions_for(guild.me).send_messages:
-                    return channel
-
-    # 3. Try the system channel
-    if guild.system_channel:
-        if guild.system_channel.permissions_for(guild.me).send_messages:
-            return guild.system_channel
-
-    # 4. First text channel we can send to
-    for channel in guild.text_channels:
-        if channel.permissions_for(guild.me).send_messages:
-            return channel
-
-    return None
-
-
 def create_nudge_message(channel_name: str, member_count: int) -> str:
     """Create a nudge message for a voice channel.
 

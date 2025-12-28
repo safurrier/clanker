@@ -150,7 +150,6 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
         JoinListenView,
         VCMonitorCog,
         create_nudge_message,
-        find_nudge_text_channel,
     )
     from .command_handlers.common import is_clanker_thread
     from .command_handlers.thread_chat import handle_thread_message
@@ -161,16 +160,10 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
         voice_channel: discord.VoiceChannel | discord.StageChannel,
         human_count: int,
     ) -> None:
-        """Handle nudge-to-join: send a message with a Join button."""
-        # Find a text channel to send the nudge
-        text_channel = find_nudge_text_channel(guild, voice_channel)
-        if text_channel is None:
-            logger.warning(
-                "nudge.no_text_channel: guild={}, voice_channel={}",
-                guild.id,
-                voice_channel.id,
-            )
-            return
+        """Handle nudge-to-join: send a message with a Join button.
+
+        Sends the nudge to the voice channel's built-in text chat (Text in Voice).
+        """
 
         # Create the callback for when Join button is clicked
         async def on_join_clicked(
@@ -210,13 +203,13 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
             on_join=on_join_clicked,
         )
 
-        # Send the nudge
-        await text_channel.send(message, view=view)
+        # Send the nudge to the voice channel's text chat (Text in Voice)
+        # VoiceChannel is Messageable in discord.py
+        await voice_channel.send(message, view=view)
         logger.info(
-            "nudge.sent: guild={}, voice_channel={}, text_channel={}",
+            "nudge.sent_to_vc: guild={}, voice_channel={}",
             guild.id,
             voice_channel.id,
-            text_channel.id,
         )
 
     # Create VC monitor for auto-leave and nudge-to-join features
