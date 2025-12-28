@@ -7,12 +7,26 @@ Clanker9000 provides a clean separation between a reusable SDK (`clanker`) and a
 ## Features
 
 - **Multi-Persona Support** - Define multiple bot personalities via YAML config, each with custom system prompts and voice settings
-- **Voice Pipeline** - Real-time voice activity detection, chunking, and speech-to-text transcription
+- **Voice Pipeline** - Real-time voice activity detection (Silero VAD), chunking, and speech-to-text transcription with idle flush for faster responses
+- **Thread Auto-Reply** - Automatic conversation in bot-created threads without requiring slash commands
 - **Provider Architecture** - Pluggable adapters for LLM (OpenAI), STT (Whisper), TTS (ElevenLabs), and image generation (Memegen)
-- **Shitpost Generator** - Template-based LLM content generation with category sampling
-- **Policy System** - Pluggable validation (profanity filtering) before response generation
-- **Replay Logging** - JSONL audit trail of all interactions for debugging and replay
+- **Shitpost Generator** - Template-based LLM meme generation with preview/post/regenerate workflow
+- **Voice Debug Capture** - Debug system for offline voice pipeline analysis (enable with `VOICE_DEBUG=1`)
 - **Health Monitoring** - Built-in health endpoint with uptime and version tracking
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/chat <prompt>` | Chat with Clanker |
+| `/speak <prompt>` | Chat with TTS audio response |
+| `/shitpost [n] [guidance]` | Generate meme previews with Post/Regenerate/Dismiss buttons |
+| `/join` | Join your voice channel for transcription |
+| `/leave` | Leave the current voice channel |
+| `/transcript` | Show recent voice transcripts (ephemeral) |
+| `/admin_active_meetings` | List active voice meetings |
+| `/admin_stop_new_meetings` | Prevent new voice meetings |
+| `/admin_allow_new_meetings` | Allow new voice meetings |
 
 ## Installation
 
@@ -49,6 +63,10 @@ export DISCORD_TOKEN="..."
 
 # Optional: Custom config path
 export CLANKER_CONFIG_PATH="./config.yaml"
+
+# Optional: Voice debug capture (for pipeline analysis)
+export VOICE_DEBUG=1
+export VOICE_DEBUG_DIR="./voice_debug"
 ```
 
 ## Quick Start
@@ -139,15 +157,25 @@ default_persona: clanker
 src/
 ├── clanker/              # Core SDK (reusable library)
 │   ├── config/           # Configuration loading
-│   ├── policies/         # Validation policies
 │   ├── providers/        # LLM, STT, TTS, Image adapters
+│   │   └── audio_utils.py  # Stereo-to-mono, resampling utilities
 │   ├── shitposts/        # Template-based content generation
-│   ├── voice/            # VAD, chunking, transcription pipeline
+│   ├── voice/            # Voice processing pipeline
+│   │   ├── vad.py        # Voice activity detection (Silero/Energy)
+│   │   ├── chunker.py    # Audio chunking
+│   │   ├── formats.py    # AudioFormat abstraction
+│   │   ├── worker.py     # Transcription orchestration
+│   │   └── debug/        # Debug capture system
 │   ├── models.py         # Domain models (Context, Persona, Message)
 │   └── respond.py        # Core response orchestration
 │
 ├── clanker_bot/          # Discord bot host
-│   ├── command_handlers/ # Command implementations (chat, voice, admin)
+│   ├── command_handlers/ # Command implementations
+│   │   ├── chat.py       # /chat, /speak, /shitpost
+│   │   ├── voice.py      # /join, /leave
+│   │   ├── transcript.py # /transcript
+│   │   ├── thread_chat.py # Thread auto-reply handler
+│   │   └── admin.py      # Admin commands
 │   ├── views/            # Discord UI views (shitpost preview)
 │   ├── commands.py       # Slash command registration
 │   ├── voice_ingest.py   # Voice receive integration
@@ -166,6 +194,7 @@ src/
 - [Contributing](./docs/CONTRIBUTING.md) - Development setup and guidelines
 - [Configuration Schema](./docs/config_schema.md) - Full config reference
 - [Voice Pipeline](./docs/voice_ingest_pipeline.md) - Voice processing details
+- [Voice Debugging](./docs/voice-debugging.md) - Debug capture and analysis
 
 ## Development
 
