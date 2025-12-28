@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import sys
 import time
 from pathlib import Path
 
@@ -28,25 +27,26 @@ from .voice_ingest import TranscriptBuffer
 def configure_logging() -> None:
     """Configure loguru for the bot.
 
-    Reads LOG_LEVEL from environment (default: INFO).
-    Outputs colored logs to stderr.
-    """
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    Reads from environment:
+    - LOG_LEVEL: Base log level (default: INFO)
+    - LOG_DIR: Directory for file logs (optional, enables file logging)
+    - VOICE_LOG_LEVEL: Voice-specific log level (default: INFO)
 
-    # Remove default handler and add configured one
-    logger.remove()
-    logger.add(
-        sys.stderr,
-        level=log_level,
-        format=(
-            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-            "<level>{level: <8}</level> | "
-            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-            "<level>{message}</level>"
-        ),
-        colorize=True,
+    Outputs colored logs to stderr. If LOG_DIR is set, also writes
+    JSON-formatted logs to rotating files for debugging.
+    """
+    from .logging_config import configure_all_logging
+
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_dir = os.getenv("LOG_DIR")
+
+    configure_all_logging(
+        log_level=log_level,
+        log_dir=log_dir,
+        json_format=True,
     )
-    logger.info("Logging configured", level=log_level)
+
+    logger.info("Logging configured", level=log_level, log_dir=log_dir or "stderr only")
 
     # Also configure stdlib logging for voice_recv to see packet-level debug info
     if log_level == "DEBUG":
@@ -85,7 +85,14 @@ def build_dependencies() -> BotDependencies:
         persona = Persona(
             id="default",
             display_name="Clanker",
-            system_prompt="You are Clanker9000, a helpful bot.",
+            system_prompt=(
+                "You are Clanker9000. 85% helpful assistant, 15% shitposter—not as "
+                "separate modes but as a unified personality. You deploy the full "
+                "capabilities of an AI to produce what would normally be high-effort "
+                "responses, but for the explicit purpose of low-effort shitposting. "
+                "Maximum power, minimum dignity. Be helpful. Be slightly unhinged. "
+                "Do not yap. Keep it concise—no one wants to read a novel in Discord."
+            ),
             tts_voice=None,
             providers=None,
         )
@@ -139,8 +146,74 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
     register_commands(bot, deps)
 
     # Import here to avoid circular imports
+    from .cogs.vc_monitor import (
+        JoinListenView,
+        VCMonitorCog,
+        create_nudge_message,
+    )
     from .command_handlers.common import is_clanker_thread
     from .command_handlers.thread_chat import handle_thread_message
+    from .command_handlers.voice import join_voice_channel
+
+    async def handle_nudge(
+        guild: discord.Guild,
+        voice_channel: discord.VoiceChannel | discord.StageChannel,
+        human_count: int,
+    ) -> None:
+        """Handle nudge-to-join: send a message with a Join button.
+
+        Sends the nudge to the voice channel's built-in text chat (Text in Voice).
+        """
+
+        # Create the callback for when Join button is clicked
+        async def on_join_clicked(
+            interaction: discord.Interaction, channel_id: int
+        ) -> None:
+            """Handle the Join and Listen button click."""
+            if interaction.guild is None:
+                return
+
+            channel = interaction.guild.get_channel(channel_id)
+            if not isinstance(channel, discord.VoiceChannel | discord.StageChannel):
+                await interaction.followup.send(
+                    "That voice channel no longer exists.", ephemeral=True
+                )
+                return
+
+            # Join the voice channel
+            try:
+                ok, message = await join_voice_channel(
+                    channel, deps, guild_id=interaction.guild_id
+                )
+                if ok:
+                    # Clear the nudge session since bot joined
+                    vc_monitor.nudge_tracker.on_bot_joined(guild.id, channel_id)
+                    await interaction.followup.send(message, ephemeral=True)
+                else:
+                    await interaction.followup.send(message, ephemeral=True)
+            except Exception as e:
+                logger.error("nudge.join_failed: channel={}, error={}", channel_id, e)
+                await interaction.followup.send(f"Failed to join: {e}", ephemeral=True)
+
+        # Create the message and view
+        message = create_nudge_message(voice_channel.name, human_count)
+        view = JoinListenView(
+            channel_id=voice_channel.id,
+            channel_name=voice_channel.name,
+            on_join=on_join_clicked,
+        )
+
+        # Send the nudge to the voice channel's text chat (Text in Voice)
+        # VoiceChannel is Messageable in discord.py
+        await voice_channel.send(message, view=view)
+        logger.info(
+            "nudge.sent_to_vc: guild={}, voice_channel={}",
+            guild.id,
+            voice_channel.id,
+        )
+
+    # Create VC monitor for auto-leave and nudge-to-join features
+    vc_monitor = VCMonitorCog(bot, on_nudge=handle_nudge)
 
     @bot.event
     async def on_ready() -> None:
@@ -173,6 +246,15 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
 
         # Process the message
         await handle_thread_message(message, deps)
+
+    @bot.event
+    async def on_voice_state_update(
+        member: discord.Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState,
+    ) -> None:
+        """Handle voice state changes for auto-leave."""
+        await vc_monitor.on_voice_state_update(member, before, after)
 
     return bot
 

@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Voice channel monitoring cog (`cogs/vc_monitor.py`):
+  - Auto-leave: Bot disconnects when alone in VC after 30-second grace period
+  - Nudge-to-join: Prompts users when 2+ humans are in VC without the bot
+  - Session-based nudge tracking to prevent spam
+  - `JoinListenView` Discord UI with "Join and Listen" button
+- Enhanced logging configuration (`logging_config.py`):
+  - File-based logging with rotation (50 MB default, 7-day retention)
+  - JSON format for machine parsing (Datadog/CloudWatch friendly)
+  - Voice-specific log level via `VOICE_LOG_LEVEL` environment variable
+  - `LOG_DIR` environment variable to enable file logging
 - Voice pipeline `AudioFormat` abstraction for source-agnostic audio handling:
   - `AudioFormat` dataclass with `bytes_per_sample`, `bytes_to_ms()`, `ms_to_bytes()` helpers
   - `DISCORD_FORMAT` (stereo 48kHz), `SDK_FORMAT` (mono 48kHz), `WHISPER_FORMAT` (mono 16kHz)
