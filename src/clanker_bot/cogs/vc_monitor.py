@@ -206,6 +206,12 @@ class VCMonitorCog:
         bot: discord.Client,
         auto_leave_manager: AutoLeaveManager | None = None,
         nudge_tracker: NudgeTracker | None = None,
+        on_nudge: Callable[
+            [discord.Guild, discord.VoiceChannel | discord.StageChannel, int],
+            Awaitable[None],
+        ]
+        | None = None,
+        min_humans_for_nudge: int = 2,
     ) -> None:
         """Initialize the VC monitor cog.
 
@@ -213,10 +219,15 @@ class VCMonitorCog:
             bot: The Discord bot instance.
             auto_leave_manager: Manager for auto-leave with grace period.
             nudge_tracker: Tracker for nudge cooldowns.
+            on_nudge: Async callback invoked when nudge conditions are met.
+                      Receives (guild, channel, human_count).
+            min_humans_for_nudge: Minimum humans required to trigger nudge.
         """
         self.bot = bot
         self.auto_leave = auto_leave_manager or AutoLeaveManager()
         self.nudge_tracker = nudge_tracker or NudgeTracker()
+        self._on_nudge = on_nudge
+        self.min_humans_for_nudge = min_humans_for_nudge
 
     async def on_voice_state_update(
         self,
@@ -224,13 +235,92 @@ class VCMonitorCog:
         before: discord.VoiceState,
         after: discord.VoiceState,
     ) -> None:
-        """Handle voice state updates for auto-leave.
+        """Handle voice state updates for auto-leave and nudge-to-join.
 
         Called when a member's voice state changes (join, leave, move).
-        Checks if the bot should auto-leave when left alone.
+        - Auto-leave: Checks if the bot should leave when left alone
+        - Nudge-to-join: Checks if we should nudge when 2+ humans gather
         """
         guild = member.guild
+        before_channel = before.channel
+        after_channel = after.channel
 
+        # --- Handle nudge-to-join (when bot is NOT in VC) ---
+        await self._handle_nudge_logic(guild, member, before_channel, after_channel)
+
+        # --- Handle auto-leave (when bot IS in VC) ---
+        await self._handle_auto_leave_logic(
+            guild, member, before_channel, after_channel
+        )
+
+    async def _handle_nudge_logic(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+        before_channel: discord.VoiceChannel | discord.StageChannel | None,
+        after_channel: discord.VoiceChannel | discord.StageChannel | None,
+    ) -> None:
+        """Handle nudge-to-join logic when bot is not in VC."""
+        # Skip if no nudge callback configured
+        if self._on_nudge is None:
+            return
+
+        # Skip bot events
+        if member.bot:
+            return
+
+        # Check if bot is in any VC in this guild
+        # Note: We use duck typing here to support both real discord.VoiceClient
+        # and fake test doubles
+        voice_client = guild.voice_client
+        bot_channel_id: int | None = None
+        if voice_client is not None:
+            is_connected = getattr(voice_client, "is_connected", None)
+            if callable(is_connected) and is_connected():
+                vc_channel = getattr(voice_client, "channel", None)
+                if vc_channel is not None and hasattr(vc_channel, "id"):
+                    bot_channel_id = vc_channel.id
+
+        # --- Handle channel leave: end session if below threshold ---
+        if before_channel is not None:
+            human_count = sum(1 for m in before_channel.members if not m.bot)
+            if human_count < self.min_humans_for_nudge:
+                self.nudge_tracker.end_session(guild.id, before_channel.id)
+                logger.debug(
+                    "nudge.session_check_leave: guild={}, channel={}, humans={}",
+                    guild.id,
+                    before_channel.id,
+                    human_count,
+                )
+
+        # --- Handle channel join: check if we should nudge ---
+        if after_channel is not None:
+            # Don't nudge if bot is already in THIS channel
+            if bot_channel_id is not None and bot_channel_id == after_channel.id:
+                return
+
+            human_count = sum(1 for m in after_channel.members if not m.bot)
+
+            if human_count >= self.min_humans_for_nudge:
+                # Check if we should nudge (not already nudged this session)
+                if self.nudge_tracker.should_nudge(guild.id, after_channel.id):
+                    logger.info(
+                        "nudge.triggering: guild={}, channel={}, humans={}",
+                        guild.id,
+                        after_channel.id,
+                        human_count,
+                    )
+                    self.nudge_tracker.mark_nudged(guild.id, after_channel.id)
+                    await self._on_nudge(guild, after_channel, human_count)
+
+    async def _handle_auto_leave_logic(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+        before_channel: discord.VoiceChannel | discord.StageChannel | None,
+        after_channel: discord.VoiceChannel | discord.StageChannel | None,
+    ) -> None:
+        """Handle auto-leave logic when bot is in VC."""
         # Get the bot's voice client for this guild
         voice_client = guild.voice_client
         if not isinstance(voice_client, discord.VoiceClient):
@@ -242,10 +332,6 @@ class VCMonitorCog:
         bot_channel = voice_client.channel
         if not isinstance(bot_channel, discord.VoiceChannel | discord.StageChannel):
             return
-
-        # Check if this update affects the bot's channel
-        before_channel = before.channel
-        after_channel = after.channel
 
         # Someone left the bot's channel
         if before_channel is not None and before_channel.id == bot_channel.id:
@@ -271,6 +357,52 @@ class VCMonitorCog:
                         guild.id,
                         bot_channel.id,
                     )
+
+
+def find_nudge_text_channel(
+    guild: discord.Guild,
+    voice_channel: discord.VoiceChannel | discord.StageChannel,
+) -> discord.TextChannel | None:
+    """Find the best text channel to send a nudge message.
+
+    Priority:
+    1. A text channel with the same name as the voice channel
+    2. A text channel named "general", "chat", or "bot-commands"
+    3. The guild's system channel
+    4. The first text channel the bot can send messages in
+
+    Args:
+        guild: The guild to search.
+        voice_channel: The voice channel users are gathering in.
+
+    Returns:
+        A text channel to send the nudge, or None if no suitable channel found.
+    """
+    # 1. Look for a text channel with the same name
+    for channel in guild.text_channels:
+        if channel.name.lower() == voice_channel.name.lower():
+            if channel.permissions_for(guild.me).send_messages:
+                return channel
+
+    # 2. Look for common general channels
+    common_names = ["general", "chat", "bot-commands", "bots", "bot"]
+    for name in common_names:
+        for channel in guild.text_channels:
+            if channel.name.lower() == name:
+                if channel.permissions_for(guild.me).send_messages:
+                    return channel
+
+    # 3. Try the system channel
+    if guild.system_channel:
+        if guild.system_channel.permissions_for(guild.me).send_messages:
+            return guild.system_channel
+
+    # 4. First text channel we can send to
+    for channel in guild.text_channels:
+        if channel.permissions_for(guild.me).send_messages:
+            return channel
+
+    return None
 
 
 def create_nudge_message(channel_name: str, member_count: int) -> str:

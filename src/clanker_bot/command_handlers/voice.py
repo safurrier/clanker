@@ -107,6 +107,46 @@ async def _setup_transcription(
         return f"{ResponseMessage.JOINED_VOICE} ({ResponseMessage.TRANSCRIPTION_SETUP_ERROR})"
 
 
+async def join_voice_channel(
+    voice_channel: discord.VoiceChannel | discord.StageChannel,
+    deps: BotDependencies,
+    guild_id: int | None = None,
+) -> tuple[bool, str]:
+    """Join a voice channel and set up transcription.
+
+    This is the core join logic, usable from slash commands or nudge buttons.
+
+    Args:
+        voice_channel: The voice channel to join.
+        deps: Bot dependencies.
+        guild_id: Guild ID for transcript buffer (optional).
+
+    Returns:
+        Tuple of (success, status_message).
+    """
+    logger.debug(
+        "voice.joining_channel: channel={}, channel_name={}",
+        voice_channel.id,
+        voice_channel.name,
+    )
+
+    # Join the voice channel
+    voice_client_cls = _get_voice_client_cls(deps)
+    ok, status = await deps.voice_manager.join(
+        voice_channel, voice_client_cls=voice_client_cls
+    )
+
+    if not ok:
+        logger.debug("voice.join_failed: status={}", status)
+        return False, str(status)
+
+    logger.debug("voice.joined_channel: channel={}", voice_channel.id)
+
+    # Setup transcription
+    message = await _setup_transcription(deps, voice_client_cls, guild_id)
+    return True, message
+
+
 async def handle_join(
     interaction: discord.Interaction,
     deps: BotDependencies,
@@ -133,30 +173,11 @@ async def handle_join(
         await interaction.response.send_message(ResponseMessage.JOIN_VOICE_FIRST)
         return
 
-    logger.debug(
-        "voice.joining_channel: channel={}, channel_name={}",
-        voice_channel.id,
-        voice_channel.name,
-    )
-
     # Defer response - transcription setup can take >3s (Silero VAD loading)
     await interaction.response.defer()
 
-    # Join the voice channel
-    voice_client_cls = _get_voice_client_cls(deps)
-    ok, status = await deps.voice_manager.join(
-        voice_channel, voice_client_cls=voice_client_cls
-    )
-
-    if not ok:
-        logger.debug("voice.join_failed: status={}", status)
-        await interaction.followup.send(str(status))
-        return
-
-    logger.debug("voice.joined_channel: channel={}", voice_channel.id)
-
-    # Setup transcription and send response
-    message = await _setup_transcription(deps, voice_client_cls, guild_id)
+    # Use core join logic
+    ok, message = await join_voice_channel(voice_channel, deps, guild_id)
     await interaction.followup.send(message)
 
 

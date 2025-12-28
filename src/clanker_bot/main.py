@@ -146,12 +146,81 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
     register_commands(bot, deps)
 
     # Import here to avoid circular imports
-    from .cogs.vc_monitor import VCMonitorCog
+    from .cogs.vc_monitor import (
+        JoinListenView,
+        VCMonitorCog,
+        create_nudge_message,
+        find_nudge_text_channel,
+    )
     from .command_handlers.common import is_clanker_thread
     from .command_handlers.thread_chat import handle_thread_message
+    from .command_handlers.voice import join_voice_channel
 
-    # Create VC monitor for auto-leave feature
-    vc_monitor = VCMonitorCog(bot)
+    async def handle_nudge(
+        guild: discord.Guild,
+        voice_channel: discord.VoiceChannel | discord.StageChannel,
+        human_count: int,
+    ) -> None:
+        """Handle nudge-to-join: send a message with a Join button."""
+        # Find a text channel to send the nudge
+        text_channel = find_nudge_text_channel(guild, voice_channel)
+        if text_channel is None:
+            logger.warning(
+                "nudge.no_text_channel: guild={}, voice_channel={}",
+                guild.id,
+                voice_channel.id,
+            )
+            return
+
+        # Create the callback for when Join button is clicked
+        async def on_join_clicked(
+            interaction: discord.Interaction, channel_id: int
+        ) -> None:
+            """Handle the Join and Listen button click."""
+            if interaction.guild is None:
+                return
+
+            channel = interaction.guild.get_channel(channel_id)
+            if not isinstance(channel, discord.VoiceChannel | discord.StageChannel):
+                await interaction.followup.send(
+                    "That voice channel no longer exists.", ephemeral=True
+                )
+                return
+
+            # Join the voice channel
+            try:
+                ok, message = await join_voice_channel(
+                    channel, deps, guild_id=interaction.guild_id
+                )
+                if ok:
+                    # Clear the nudge session since bot joined
+                    vc_monitor.nudge_tracker.on_bot_joined(guild.id, channel_id)
+                    await interaction.followup.send(message, ephemeral=True)
+                else:
+                    await interaction.followup.send(message, ephemeral=True)
+            except Exception as e:
+                logger.error("nudge.join_failed: channel={}, error={}", channel_id, e)
+                await interaction.followup.send(f"Failed to join: {e}", ephemeral=True)
+
+        # Create the message and view
+        message = create_nudge_message(voice_channel.name, human_count)
+        view = JoinListenView(
+            channel_id=voice_channel.id,
+            channel_name=voice_channel.name,
+            on_join=on_join_clicked,
+        )
+
+        # Send the nudge
+        await text_channel.send(message, view=view)
+        logger.info(
+            "nudge.sent: guild={}, voice_channel={}, text_channel={}",
+            guild.id,
+            voice_channel.id,
+            text_channel.id,
+        )
+
+    # Create VC monitor for auto-leave and nudge-to-join features
+    vc_monitor = VCMonitorCog(bot, on_nudge=handle_nudge)
 
     @bot.event
     async def on_ready() -> None:

@@ -353,3 +353,221 @@ class TestNudgeMessage:
         )
 
         assert "shitpost" in message.lower() or "meme" in message.lower()
+
+
+class TestNudgeIntegration:
+    """Integration tests for nudge-to-join in VCMonitorCog."""
+
+    @pytest.mark.asyncio
+    async def test_nudge_triggered_when_second_human_joins(self) -> None:
+        """Nudge should be triggered when 2nd human joins a VC."""
+        from clanker_bot.cogs.vc_monitor import NudgeTracker, VCMonitorCog
+
+        # Create fake guild with voice channel
+        human1 = FakeMember(id=1, name="User1", bot=False)
+        human2 = FakeMember(id=2, name="User2", bot=False)
+        channel = FakeVoiceChannel(id=100, name="General Voice", members=[human1, human2])
+        guild = FakeGuild(id=1, voice_channels=[channel])
+        channel.guild = guild
+
+        # Create mock bot without voice client (bot not in VC)
+        mock_bot = MagicMock()
+        mock_bot.user = FakeMember(id=999, name="Clanker9000", bot=True)
+
+        # Mock send_nudge to track calls
+        nudge_callback = AsyncMock()
+
+        nudge_tracker = NudgeTracker()
+        cog = VCMonitorCog(
+            bot=mock_bot,
+            nudge_tracker=nudge_tracker,
+            on_nudge=nudge_callback,
+        )
+
+        # Simulate human2 joining channel (before: None, after: channel)
+        before = FakeVoiceState(channel=None)
+        after = FakeVoiceState(channel=channel)
+
+        # Create member with guild reference
+        human2_member = MagicMock()
+        human2_member.id = human2.id
+        human2_member.bot = False
+        human2_member.guild = guild
+        guild.voice_client = None  # Bot not in VC
+
+        await cog.on_voice_state_update(human2_member, before, after)
+
+        # Nudge should have been triggered
+        nudge_callback.assert_called_once()
+        call_args = nudge_callback.call_args
+        assert call_args[0][0] == guild  # First arg is guild
+        assert call_args[0][1].id == channel.id  # Second arg is channel
+
+    @pytest.mark.asyncio
+    async def test_nudge_not_triggered_when_bot_already_in_vc(self) -> None:
+        """Nudge should NOT trigger if bot is already in the VC."""
+        from clanker_bot.cogs.vc_monitor import NudgeTracker, VCMonitorCog
+
+        human1 = FakeMember(id=1, name="User1", bot=False)
+        human2 = FakeMember(id=2, name="User2", bot=False)
+        bot_member = FakeMember(id=999, name="Clanker9000", bot=True)
+        channel = FakeVoiceChannel(
+            id=100, name="General Voice", members=[human1, human2, bot_member]
+        )
+        guild = FakeGuild(id=1, voice_channels=[channel])
+        channel.guild = guild
+
+        mock_bot = MagicMock()
+        mock_bot.user = bot_member
+
+        # Bot IS in this VC
+        voice_client = FakeVoiceClient(channel=channel)
+        guild.voice_client = voice_client
+
+        nudge_callback = AsyncMock()
+        cog = VCMonitorCog(
+            bot=mock_bot,
+            nudge_tracker=NudgeTracker(),
+            on_nudge=nudge_callback,
+        )
+
+        before = FakeVoiceState(channel=None)
+        after = FakeVoiceState(channel=channel)
+
+        human2_member = MagicMock()
+        human2_member.id = human2.id
+        human2_member.bot = False
+        human2_member.guild = guild
+
+        await cog.on_voice_state_update(human2_member, before, after)
+
+        # Nudge should NOT be called - bot is already there
+        nudge_callback.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_nudge_not_repeated_for_same_session(self) -> None:
+        """Nudge should only happen once per session."""
+        from clanker_bot.cogs.vc_monitor import NudgeTracker, VCMonitorCog
+
+        human1 = FakeMember(id=1, name="User1", bot=False)
+        human2 = FakeMember(id=2, name="User2", bot=False)
+        human3 = FakeMember(id=3, name="User3", bot=False)
+        channel = FakeVoiceChannel(id=100, name="General Voice", members=[human1, human2])
+        guild = FakeGuild(id=1, voice_channels=[channel])
+        channel.guild = guild
+
+        mock_bot = MagicMock()
+        mock_bot.user = FakeMember(id=999, name="Clanker9000", bot=True)
+        guild.voice_client = None
+
+        nudge_callback = AsyncMock()
+        nudge_tracker = NudgeTracker()
+        cog = VCMonitorCog(
+            bot=mock_bot,
+            nudge_tracker=nudge_tracker,
+            on_nudge=nudge_callback,
+        )
+
+        # First join triggers nudge
+        before = FakeVoiceState(channel=None)
+        after = FakeVoiceState(channel=channel)
+
+        human2_member = MagicMock()
+        human2_member.id = human2.id
+        human2_member.bot = False
+        human2_member.guild = guild
+
+        await cog.on_voice_state_update(human2_member, before, after)
+        assert nudge_callback.call_count == 1
+
+        # Third human joins - should NOT trigger another nudge
+        channel.members.append(human3)
+        human3_member = MagicMock()
+        human3_member.id = human3.id
+        human3_member.bot = False
+        human3_member.guild = guild
+
+        await cog.on_voice_state_update(human3_member, before, after)
+        # Still only 1 call - no repeat nudge
+        assert nudge_callback.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_session_ends_when_humans_drop_below_threshold(self) -> None:
+        """Session should end when humans drop below 2, allowing future nudges."""
+        from clanker_bot.cogs.vc_monitor import NudgeTracker, VCMonitorCog
+
+        human1 = FakeMember(id=1, name="User1", bot=False)
+        human2 = FakeMember(id=2, name="User2", bot=False)
+        channel = FakeVoiceChannel(id=100, name="General Voice", members=[human1, human2])
+        guild = FakeGuild(id=1, voice_channels=[channel])
+        channel.guild = guild
+
+        mock_bot = MagicMock()
+        mock_bot.user = FakeMember(id=999, name="Clanker9000", bot=True)
+        guild.voice_client = None
+
+        nudge_callback = AsyncMock()
+        nudge_tracker = NudgeTracker()
+        cog = VCMonitorCog(
+            bot=mock_bot,
+            nudge_tracker=nudge_tracker,
+            on_nudge=nudge_callback,
+        )
+
+        # First: human2 joins, nudge triggered
+        before_join = FakeVoiceState(channel=None)
+        after_join = FakeVoiceState(channel=channel)
+
+        human2_member = MagicMock()
+        human2_member.id = human2.id
+        human2_member.bot = False
+        human2_member.guild = guild
+
+        await cog.on_voice_state_update(human2_member, before_join, after_join)
+        assert nudge_callback.call_count == 1
+
+        # Second: human2 leaves, only 1 human left - session ends
+        channel.members = [human1]
+        before_leave = FakeVoiceState(channel=channel)
+        after_leave = FakeVoiceState(channel=None)
+
+        await cog.on_voice_state_update(human2_member, before_leave, after_leave)
+
+        # Third: human2 rejoins - should trigger NEW nudge
+        channel.members = [human1, human2]
+        await cog.on_voice_state_update(human2_member, before_join, after_join)
+        assert nudge_callback.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_nudge_only_for_first_human_join(self) -> None:
+        """Nudge should only trigger when going from 1 to 2+ humans, not 0 to 1."""
+        from clanker_bot.cogs.vc_monitor import NudgeTracker, VCMonitorCog
+
+        human1 = FakeMember(id=1, name="User1", bot=False)
+        # Channel with only 1 human
+        channel = FakeVoiceChannel(id=100, name="General Voice", members=[human1])
+        guild = FakeGuild(id=1, voice_channels=[channel])
+        channel.guild = guild
+
+        mock_bot = MagicMock()
+        mock_bot.user = FakeMember(id=999, name="Clanker9000", bot=True)
+        guild.voice_client = None
+
+        nudge_callback = AsyncMock()
+        cog = VCMonitorCog(
+            bot=mock_bot,
+            nudge_tracker=NudgeTracker(),
+            on_nudge=nudge_callback,
+        )
+
+        # First human joins - should NOT nudge (only 1 human)
+        before = FakeVoiceState(channel=None)
+        after = FakeVoiceState(channel=channel)
+
+        human1_member = MagicMock()
+        human1_member.id = human1.id
+        human1_member.bot = False
+        human1_member.guild = guild
+
+        await cog.on_voice_state_update(human1_member, before, after)
+        nudge_callback.assert_not_called()
