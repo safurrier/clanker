@@ -54,7 +54,12 @@ All I/O operations are async. Use `httpx.AsyncClient` for HTTP.
 | Discord command registration | `src/clanker_bot/commands.py` |
 | Command handlers | `src/clanker_bot/command_handlers/` |
 | Discord UI views | `src/clanker_bot/views/` |
+| Discord cogs | `src/clanker_bot/cogs/` |
+| Logging configuration | `src/clanker_bot/logging_config.py` |
 | Configuration | `src/clanker/config/` |
+| Persistence layer | `src/clanker_bot/persistence/` |
+| SQL queries | `src/clanker_bot/persistence/db/queries/` |
+| Generated queries | `src/clanker_bot/persistence/generated/` |
 
 ## Commands
 
@@ -94,6 +99,9 @@ uv run pytest tests -m "not network"
 | `CLANKER_CONFIG_PATH` | No | Custom config path |
 | `VOICE_DEBUG` | No | Enable voice debug capture (`1` to enable) |
 | `VOICE_DEBUG_DIR` | No | Debug output directory (default: `./voice_debug`) |
+| `LOG_DIR` | No | Directory for file logs (enables file logging when set) |
+| `LOG_LEVEL` | No | Base log level (default: `INFO`) |
+| `VOICE_LOG_LEVEL` | No | Voice-specific log level (default: `INFO`) |
 
 ## Voice Processing with VAD
 
@@ -204,3 +212,16 @@ Audio utilities (`src/clanker/providers/audio_utils.py`):
 
 ### Update dependencies
 Edit `pyproject.toml`, then `uv sync`.
+
+### Modify database queries (sqlc)
+SQL queries use sqlc-gen-python for type-safe generated code:
+
+```bash
+# After editing db/queries/*.sql files:
+sqlc generate
+python3 scripts/fix_sqlc_placeholders.py
+uv run ruff check src/clanker_bot/persistence/generated/ --fix
+uv run ruff format src/clanker_bot/persistence/generated/
+```
+
+See `src/clanker_bot/persistence/README.md` for details.
