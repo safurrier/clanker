@@ -21,6 +21,7 @@ from .commands import BotDependencies, ClankerClient, register_commands
 from .discord_adapter import VoiceSessionManager
 from .health import HealthState, create_health_app
 from .metrics import Metrics
+from .persistence import SqlFeedbackStore
 from .voice_ingest import TranscriptBuffer
 
 
@@ -60,7 +61,7 @@ def configure_logging() -> None:
         logging.getLogger("discord.voice_state").setLevel(logging.DEBUG)
 
 
-def build_dependencies() -> BotDependencies:
+async def build_dependencies() -> BotDependencies:
     """Build dependencies from environment configuration."""
     config_path = os.getenv("CLANKER_CONFIG_PATH")
     if config_path:
@@ -124,6 +125,14 @@ def build_dependencies() -> BotDependencies:
     admin_state = AdminState()
     transcript_buffer = TranscriptBuffer()
     logger.debug("TranscriptBuffer initialized")
+
+    # Initialize feedback store if DATABASE_URL is set
+    feedback_store: SqlFeedbackStore | None = None
+    if os.getenv("DATABASE_URL"):
+        feedback_store = SqlFeedbackStore()
+        await feedback_store.initialize()
+        logger.info("Feedback store initialized")
+
     return BotDependencies(
         llm=llm,
         stt=stt,
@@ -135,6 +144,7 @@ def build_dependencies() -> BotDependencies:
         admin_user_ids=admin_ids,
         admin_state=admin_state,
         transcript_buffer=transcript_buffer,
+        feedback_store=feedback_store,
     )
 
 
@@ -299,15 +309,15 @@ def main() -> None:
     token = os.getenv("DISCORD_TOKEN")
     if not token:
         raise RuntimeError("Missing DISCORD_TOKEN")
-    deps = build_dependencies()
-    bot = build_bot(deps)
-    state = HealthState(
-        started_at=time.time(),
-        active_voice_provider=deps.voice_manager.is_busy,
-        version="0.1.0",
-    )
 
     async def runner() -> None:
+        deps = await build_dependencies()
+        bot = build_bot(deps)
+        state = HealthState(
+            started_at=time.time(),
+            active_voice_provider=deps.voice_manager.is_busy,
+            version="0.1.0",
+        )
         await run_health_server(state)
         await bot.start(token)
 

@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from io import BytesIO
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import discord
 from loguru import logger
+
+from clanker.models import Interaction, Outcome
+
+if TYPE_CHECKING:
+    from clanker.providers.feedback import FeedbackStore
 
 
 @dataclass
@@ -30,10 +37,12 @@ class ShitpostPreviewView(discord.ui.View):
 
     Args:
         invoker_id: Discord user ID of the command invoker (only they can interact)
+        guild_id: Discord guild ID where the command was invoked
         preview_id: Unique ID for this preview (for logging/tracking)
         payload: The meme content to post
         embed: The embed to display in the preview
         regenerate_callback: Async function to generate a new meme
+        feedback_store: Optional FeedbackStore for recording interaction outcomes
         timeout: View timeout in seconds (default 15 minutes)
     """
 
@@ -41,18 +50,23 @@ class ShitpostPreviewView(discord.ui.View):
         self,
         *,
         invoker_id: int,
+        guild_id: int | None = None,
         preview_id: str | None = None,
         payload: MemePayload,
         embed: discord.Embed,
         regenerate_callback: RegenerateCallback | None = None,
+        feedback_store: FeedbackStore | None = None,
         timeout: float = 900.0,  # 15 minutes
     ) -> None:
         super().__init__(timeout=timeout)
         self.invoker_id = invoker_id
+        self.guild_id = guild_id
         self.preview_id = preview_id or str(uuid.uuid4())
         self.payload = payload
         self.embed = embed
         self.regenerate_callback = regenerate_callback
+        self.feedback_store = feedback_store
+        self._pending_tasks: set[asyncio.Task[None]] = set()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Only allow the original invoker to interact with this view."""
@@ -63,6 +77,44 @@ class ShitpostPreviewView(discord.ui.View):
             )
             return False
         return True
+
+    async def _record_outcome(self, outcome: Outcome) -> None:
+        """Fire-and-forget interaction recording.
+
+        Records the interaction outcome without blocking the UI flow.
+        Errors are logged but don't affect the user experience.
+        """
+        if self.feedback_store is None:
+            return
+
+        interaction = Interaction(
+            id=self.preview_id,
+            user_id=str(self.invoker_id),
+            context_id=str(self.guild_id) if self.guild_id else "0",
+            command="shitpost",
+            outcome=outcome,
+            metadata={
+                "template_id": self.payload.template_id,
+            },
+            created_at=datetime.now(timezone.utc),
+        )
+
+        # Fire and forget - don't block UI for database write
+        task = asyncio.create_task(self._safe_record(interaction))
+        self._pending_tasks.add(task)
+        task.add_done_callback(self._pending_tasks.discard)
+
+    async def _safe_record(self, interaction: Interaction) -> None:
+        """Safely record an interaction, logging any errors."""
+        try:
+            await self.feedback_store.record(interaction)  # type: ignore[union-attr]
+        except Exception as e:
+            logger.opt(exception=True).warning(
+                "feedback.record_failed",
+                preview_id=self.preview_id,
+                outcome=interaction.outcome.value,
+                error=str(e),
+            )
 
     def _build_file(self) -> discord.File | None:
         """Build a discord.File from the payload image bytes."""
@@ -121,6 +173,7 @@ class ShitpostPreviewView(discord.ui.View):
 
             # Acknowledge without changing the preview
             await interaction.response.send_message("Posted!", ephemeral=True)
+            await self._record_outcome(Outcome.ACCEPTED)
             logger.info(
                 "shitpost.posted",
                 preview_id=self.preview_id,
@@ -165,6 +218,7 @@ class ShitpostPreviewView(discord.ui.View):
         try:
             new_payload, new_embed = await self.regenerate_callback()
             await self._update_preview(interaction, new_payload, new_embed)
+            await self._record_outcome(Outcome.REGENERATED)
             logger.info(
                 "shitpost.regenerated",
                 preview_id=self.preview_id,
@@ -195,6 +249,7 @@ class ShitpostPreviewView(discord.ui.View):
                 attachments=[],
                 view=None,
             )
+            await self._record_outcome(Outcome.REJECTED)
             logger.info(
                 "shitpost.dismissed",
                 preview_id=self.preview_id,
@@ -209,6 +264,7 @@ class ShitpostPreviewView(discord.ui.View):
 
     async def on_timeout(self) -> None:
         """Handle view timeout by disabling buttons."""
+        await self._record_outcome(Outcome.TIMEOUT)
         logger.info("shitpost.preview_timeout", preview_id=self.preview_id)
         # Views on ephemeral messages can't be edited after timeout
         # without the original interaction, so we just log it
