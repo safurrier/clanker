@@ -183,7 +183,23 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
             )
             return False
 
-        # Clear stale state before rejoining
+        # Disconnect any stale voice client at the guild level
+        # Discord.py tracks voice clients per-guild, not in our VoiceSessionManager
+        if guild.voice_client is not None:
+            logger.debug(
+                "voice_reconnect.disconnecting_stale_client: guild={}",
+                guild_id,
+            )
+            try:
+                await guild.voice_client.disconnect(force=True)
+            except Exception as e:
+                logger.warning(
+                    "voice_reconnect.disconnect_error: guild={}, error={}",
+                    guild_id,
+                    e,
+                )
+
+        # Clear our internal state
         deps.voice_manager.clear_state()
 
         # Attempt to rejoin
