@@ -1082,6 +1082,7 @@
 <li><strong>Shitpost Generator</strong> - Template-based LLM content generation</li>
 <li><strong>Policy System</strong> - Pluggable validation before response generation</li>
 <li><strong>Replay Logging</strong> - JSONL audit trail for debugging</li>
+<li><strong>Feedback Persistence</strong> - Track user interactions with sqlc-gen-python</li>
 </ul>
 <h2 id="quick-links">Quick Links<a class="headerlink" href="#quick-links" title="Permanent link">&para;</a></h2>
 <table>
@@ -1156,9 +1157,10 @@
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>│
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>└── clanker_bot/          # Discord bot host
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    ├── command_handlers/ # Command implementations
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    ├── views/            # Discord UI views
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    ├── commands.py       # Slash command registration
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    └── voice_ingest.py   # Voice receive integration
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    ├── persistence/      # Database layer (sqlc)
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    ├── views/            # Discord UI views
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    ├── commands.py       # Slash command registration
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    └── voice_ingest.py   # Voice receive integration
 </code></pre></div>
 <h2 id="development">Development<a class="headerlink" href="#development" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>check<span class="w">   </span><span class="c1"># Run all quality checks</span>
