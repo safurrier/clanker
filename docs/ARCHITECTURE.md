@@ -170,6 +170,39 @@ Schema enforces:
 - At least one persona defined
 - Default persona must exist
 
+### Persistence (`clanker_bot/persistence/`)
+
+SQL-based persistence using sqlc-generated queries with SQLAlchemy async:
+
+| Component | Purpose |
+|-----------|---------|
+| `connection.py` | SQLAlchemy async engine management |
+| `sql_feedback.py` | FeedbackStore implementation |
+| `db/schema.sql` | Database schema (tables, indexes) |
+| `db/queries/*.sql` | sqlc query definitions |
+| `generated/` | sqlc-generated Python code (DO NOT EDIT) |
+
+**FeedbackStore Protocol:**
+
+```python
+class FeedbackStore(Protocol):
+    async def record(self, interaction: Interaction) -> None: ...
+    async def get_user_stats(self, user_id: str, ...) -> dict[Outcome, int]: ...
+    async def get_recent_interactions(self, user_id: str, ...) -> list[Interaction]: ...
+    async def get_acceptance_rate(self, user_id: str, command: str) -> float: ...
+```
+
+**Why sqlc?**
+- Type-safe query generation from raw SQL
+- No ORM overhead; explicit SQL control
+- Generated dataclasses match schema exactly
+
+**Regenerating queries:**
+```bash
+sqlc generate
+python3 scripts/fix_sqlc_placeholders.py  # Convert ? to :pN for SQLAlchemy
+```
+
 ### Discord Bot Host (`clanker_bot/`)
 
 | Module | Responsibility |

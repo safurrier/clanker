@@ -230,6 +230,11 @@ class VoiceIngestSink(voice_recv.AudioSink):
     Processing happens in the async world via a periodic task.
     """
 
+    # Health monitoring thresholds (seconds)
+    STALE_WARNING_THRESHOLD = 60  # Warn after 1 min of no audio
+    STALE_ERROR_THRESHOLD = 180  # Error after 3 min of no audio
+    HEALTH_LOG_INTERVAL = 60  # Log health status every 60s when stale
+
     def __init__(
         self,
         worker: VoiceIngestWorker,
@@ -242,6 +247,9 @@ class VoiceIngestSink(voice_recv.AudioSink):
         self._total_bytes: int = 0
         self._process_task: asyncio.Task[None] | None = None
         self._stopped = False
+        self._last_audio_time: datetime | None = None
+        self._last_health_log_time: datetime | None = None
+        self._stale_logged = False
         logger.debug("voice_sink.created: callback={}", on_transcript is not None)
 
     def wants_opus(self) -> bool:
@@ -329,6 +337,15 @@ class VoiceIngestSink(voice_recv.AudioSink):
         self._total_bytes += len(mono_pcm)
         self.worker.add_pcm(user_id, mono_pcm)
 
+        # Track last audio time for health monitoring
+        self._last_audio_time = datetime.now()
+        if self._stale_logged:
+            logger.info(
+                "voice_sink.recovered: audio resumed after stale period, frames={}",
+                self._frame_count,
+            )
+            self._stale_logged = False
+
         # Log progress every 500 frames (~10 seconds at 50fps)
         if self._frame_count % 500 == 0:
             logger.debug(
@@ -338,12 +355,51 @@ class VoiceIngestSink(voice_recv.AudioSink):
                 len(self.worker.buffers),
             )
 
+    def _check_health(self) -> None:
+        """Check connection health and log warnings if stale."""
+        if self._last_audio_time is None:
+            return  # No audio received yet, nothing to check
+
+        now = datetime.now()
+        silence_seconds = (now - self._last_audio_time).total_seconds()
+
+        # Check if we should log a health warning
+        if silence_seconds >= self.STALE_WARNING_THRESHOLD:
+            # Only log periodically to avoid spam
+            should_log = (
+                self._last_health_log_time is None
+                or (now - self._last_health_log_time).total_seconds()
+                >= self.HEALTH_LOG_INTERVAL
+            )
+
+            if should_log:
+                self._last_health_log_time = now
+                self._stale_logged = True
+
+                if silence_seconds >= self.STALE_ERROR_THRESHOLD:
+                    logger.error(
+                        "voice_sink.stale: no audio for {:.0f}s - connection may be "
+                        "dead, frames_before_stale={}, last_audio={}",
+                        silence_seconds,
+                        self._frame_count,
+                        self._last_audio_time.isoformat(),
+                    )
+                else:
+                    logger.warning(
+                        "voice_sink.stale: no audio for {:.0f}s, frames={}, "
+                        "last_audio={}",
+                        silence_seconds,
+                        self._frame_count,
+                        self._last_audio_time.isoformat(),
+                    )
+
     async def _process_loop(self) -> None:
         """Background task that periodically processes buffered audio."""
         logger.debug("voice_sink.process_loop_started")
         while not self._stopped:
             try:
                 await asyncio.sleep(1.0)  # Check every second
+                self._check_health()
                 if self.worker.should_process():
                     await self._flush()
             except asyncio.CancelledError:

@@ -14,6 +14,7 @@ Clanker9000 provides a clean separation between a reusable SDK (`clanker`) and a
 - **Shitpost Generator** - Template-based LLM content generation
 - **Policy System** - Pluggable validation before response generation
 - **Replay Logging** - JSONL audit trail for debugging
+- **Feedback Persistence** - Track user interactions with sqlc-gen-python
 
 ## Quick Links
 
@@ -57,6 +58,7 @@ src/
 │
 └── clanker_bot/          # Discord bot host
     ├── command_handlers/ # Command implementations
+    ├── persistence/      # Database layer (sqlc)
     ├── views/            # Discord UI views
     ├── commands.py       # Slash command registration
     └── voice_ingest.py   # Voice receive integration

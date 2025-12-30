@@ -74,6 +74,9 @@ export LOG_LEVEL="INFO"
 
 # Optional: Voice-specific log level (reduces noise from voice pipeline)
 export VOICE_LOG_LEVEL="INFO"
+
+# Optional: Database persistence (defaults to SQLite ./data/clanker.db)
+export DATABASE_URL="sqlite:///data/clanker.db"
 ```
 
 ## Quick Start
@@ -183,6 +186,9 @@ src/
 │   │   ├── transcript.py # /transcript
 │   │   ├── thread_chat.py # Thread auto-reply handler
 │   │   └── admin.py      # Admin commands
+│   ├── persistence/      # Database layer (sqlc-gen-python)
+│   │   ├── db/           # Schema and SQL queries
+│   │   └── generated/    # sqlc-generated Python code
 │   ├── views/            # Discord UI views (shitpost preview)
 │   ├── commands.py       # Slash command registration
 │   ├── voice_ingest.py   # Voice receive integration
