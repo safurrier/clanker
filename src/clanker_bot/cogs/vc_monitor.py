@@ -68,16 +68,18 @@ class AutoLeaveManager:
     """
 
     grace_period_seconds: float = 30.0
+    on_leave: Callable[[int], Awaitable[None]] | None = None
     _pending_leaves: dict[int, asyncio.Task[None]] = field(default_factory=dict)
 
     def schedule_leave(
-        self, voice_client: discord.VoiceClient, channel_id: int
+        self, voice_client: discord.VoiceClient, channel_id: int, guild_id: int
     ) -> asyncio.Task[None]:
         """Schedule a disconnect after the grace period.
 
         Args:
             voice_client: The voice client to disconnect.
             channel_id: ID of the channel (for tracking).
+            guild_id: ID of the guild (for marking expected disconnect).
 
         Returns:
             The scheduled task (can be cancelled).
@@ -94,6 +96,9 @@ class AutoLeaveManager:
             await asyncio.sleep(self.grace_period_seconds)
             if voice_client.is_connected():
                 logger.info("auto_leave.disconnecting: channel={}", channel_id)
+                # Mark as expected disconnect before disconnecting
+                if self.on_leave is not None:
+                    await self.on_leave(guild_id)
                 await voice_client.disconnect(force=False)
             self._pending_leaves.pop(channel_id, None)
 
@@ -340,7 +345,7 @@ class VCMonitorCog:
                 bot_channel, bot_user.id
             ):
                 # Bot is now alone, schedule leave
-                self.auto_leave.schedule_leave(voice_client, bot_channel.id)
+                self.auto_leave.schedule_leave(voice_client, bot_channel.id, guild.id)
                 logger.info(
                     "auto_leave.triggered: guild={}, channel={}",
                     guild.id,

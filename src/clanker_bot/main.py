@@ -158,6 +158,7 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
 
     # Import here to avoid circular imports
     from .cogs.vc_monitor import (
+        AutoLeaveManager,
         JoinListenView,
         VCMonitorCog,
         create_nudge_message,
@@ -282,8 +283,19 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
             voice_channel.id,
         )
 
+    # Create auto-leave manager with callback to mark expected disconnects
+    async def on_auto_leave(guild_id: int) -> None:
+        """Mark auto-leave as expected to prevent reconnection attempts."""
+        if reconnector:
+            reconnector.mark_expected_disconnect(guild_id)
+            logger.debug("auto_leave.marked_expected: guild={}", guild_id)
+
+    auto_leave_manager = AutoLeaveManager(on_leave=on_auto_leave)
+
     # Create VC monitor for auto-leave and nudge-to-join features
-    vc_monitor = VCMonitorCog(bot, on_nudge=handle_nudge)
+    vc_monitor = VCMonitorCog(
+        bot, auto_leave_manager=auto_leave_manager, on_nudge=handle_nudge
+    )
 
     @bot.event
     async def on_ready() -> None:

@@ -122,8 +122,8 @@ class TestAutoLeave:
 
         manager = AutoLeaveManager(grace_period_seconds=0.1)
 
-        # Schedule auto-leave
-        task = manager.schedule_leave(voice_client, channel.id)
+        # Schedule auto-leave (guild_id=999 for testing)
+        task = manager.schedule_leave(voice_client, channel.id, guild_id=999)
 
         # Immediately should not have left yet
         assert voice_client.disconnect_called is False
@@ -145,8 +145,8 @@ class TestAutoLeave:
 
         manager = AutoLeaveManager(grace_period_seconds=0.5)
 
-        # Schedule auto-leave
-        manager.schedule_leave(voice_client, channel.id)
+        # Schedule auto-leave (guild_id=999 for testing)
+        manager.schedule_leave(voice_client, channel.id, guild_id=999)
 
         # Cancel before grace period ends
         await asyncio.sleep(0.1)
