@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Voice connection resilience (`voice_resilience.py`):
+  - `VoiceKeepalive`: Sends Opus silence packets every 15s to prevent Discord load-balancer disconnects
+  - `VoiceReconnector`: Automatic reconnection with configurable retries on unexpected disconnects
+  - Integrated into voice ingest pipeline via `VoiceIngestSession` wrapper
+  - Protocol-based design with `VoiceClientProtocol` for type-safe voice client handling
 - Voice channel monitoring cog (`cogs/vc_monitor.py`):
   - Auto-leave: Bot disconnects when alone in VC after 30-second grace period
   - Nudge-to-join: Prompts users when 2+ humans are in VC without the bot
