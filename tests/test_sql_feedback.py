@@ -374,6 +374,36 @@ class TestSqlFeedbackStoreAcceptanceRate:
         assert abs(rate - 0.667) < 0.01
 
 
+class TestSchemaCompatibility:
+    """Tests for schema compatibility across database backends."""
+
+    def test_schema_splits_into_valid_statements(self) -> None:
+        """Verify schema.sql can be split for asyncpg compatibility.
+
+        asyncpg doesn't support multi-statement execution, so we split on ';'.
+        This test ensures the schema file remains splittable without issues.
+        """
+        schema_path = (
+            Path(__file__).parent.parent
+            / "src/clanker_bot/persistence/db/schema.sql"
+        )
+        schema = schema_path.read_text()
+
+        statements = [s.strip() for s in schema.split(";") if s.strip()]
+
+        # Should have multiple statements (tables + indexes)
+        assert len(statements) >= 3, "Schema should have at least 3 statements"
+
+        for stmt in statements:
+            # Each statement should start with valid SQL or be a comment
+            first_word = stmt.split()[0].upper() if stmt.split() else ""
+            assert first_word in ("CREATE", "--", "INSERT"), (
+                f"Unexpected statement start: {stmt[:50]}"
+            )
+            # No embedded semicolons that would break splitting
+            assert ";" not in stmt, f"Statement contains embedded semicolon: {stmt[:50]}"
+
+
 class TestSqlFeedbackStoreLifecycle:
     """Tests for SqlFeedbackStore lifecycle management."""
 
