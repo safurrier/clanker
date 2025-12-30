@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from typing import cast
 
@@ -130,7 +131,13 @@ def _create_disconnect_handler(
     guild_id: int,
     channel_id: int,
 ) -> Callable[[Exception | None], None]:
-    """Create a disconnect handler for voice reconnection."""
+    """Create a disconnect handler for voice reconnection.
+
+    Captures the current event loop so the callback runs on the bot's loop,
+    not in a background thread (which would cause cross-loop errors).
+    """
+    # Capture the bot's event loop at handler creation time
+    loop = asyncio.get_running_loop()
 
     async def handle_disconnect(error: Exception | None) -> None:
         """Handle unexpected voice disconnect."""
@@ -147,7 +154,7 @@ def _create_disconnect_handler(
 
         await reconnector.handle_disconnect(guild_id, channel_id, error)
 
-    return create_reconnect_handler(handle_disconnect)
+    return create_reconnect_handler(handle_disconnect, loop=loop)
 
 
 async def join_voice_channel(

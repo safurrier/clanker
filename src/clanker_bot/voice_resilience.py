@@ -130,25 +130,9 @@ async def _run_disconnect_callback(
         logger.exception("voice_reconnect.callback_error: {}", e)
 
 
-def _schedule_async_callback(
-    on_disconnect: Callable[[Exception | None], Awaitable[None]],
-    error: Exception | None,
-) -> None:
-    """Schedule an async callback from a sync context."""
-    try:
-        loop = asyncio.get_running_loop()
-        # Store reference to prevent garbage collection (required by RUF006)
-        task = loop.create_task(_run_disconnect_callback(on_disconnect, error))
-        # Fire-and-forget: we don't need the result but must reference the task
-        task.add_done_callback(lambda _: None)
-    except RuntimeError:
-        # No running loop - create one for the callback
-        logger.warning("voice_reconnect.no_event_loop: running callback in new loop")
-        asyncio.run(_run_disconnect_callback(on_disconnect, error))
-
-
 def create_reconnect_handler(
     on_disconnect: Callable[[Exception | None], Awaitable[None]],
+    loop: asyncio.AbstractEventLoop,
 ) -> Callable[[Exception | None], None]:
     """Create an `after` callback for voice_recv.listen().
 
@@ -156,16 +140,22 @@ def create_reconnect_handler(
     either due to an error or normal exhaustion. It bridges the sync callback
     to your async disconnect handler.
 
+    IMPORTANT: The `after` callback runs in a background thread (audioreader-stopper),
+    not in the bot's event loop. We use `run_coroutine_threadsafe` to schedule
+    the async callback on the provided event loop, avoiding cross-loop errors.
+
     Args:
         on_disconnect: Async function to call when disconnect occurs.
                       Receives the error (or None if no error).
+        loop: The event loop to schedule the callback on (typically the bot's loop).
 
     Returns:
         A sync callback suitable for voice_recv.listen(sink, after=callback).
 
     Example:
         handler = create_reconnect_handler(
-            lambda err: reconnector.handle_disconnect(guild_id, channel_id, err)
+            lambda err: reconnector.handle_disconnect(guild_id, channel_id, err),
+            loop=asyncio.get_running_loop(),
         )
         voice_client.listen(sink, after=handler)
     """
@@ -175,7 +165,20 @@ def create_reconnect_handler(
             "voice_reconnect.handler_called: error={}",
             type(error).__name__ if error else None,
         )
-        _schedule_async_callback(on_disconnect, error)
+        # Schedule callback on the bot's event loop from this background thread.
+        # run_coroutine_threadsafe is thread-safe and returns a Future we can ignore.
+        future = asyncio.run_coroutine_threadsafe(
+            _run_disconnect_callback(on_disconnect, error),
+            loop,
+        )
+        # Add a callback to log any errors (the future result is discarded)
+        future.add_done_callback(
+            lambda f: (
+                logger.error("voice_reconnect.future_error: {}", f.exception())
+                if f.exception()
+                else None
+            )
+        )
 
     return handler
 

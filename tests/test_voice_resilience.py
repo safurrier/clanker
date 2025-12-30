@@ -3,20 +3,19 @@
 Tests for:
 - Silence keepalive to prevent Discord load-balancer disconnects
 - After callback for detecting and recovering from disconnects
+- Cross-thread callback scheduling (regression test for audioreader-stopper thread)
 """
 
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+import threading
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from clanker_bot.voice_ingest import VoiceIngestSink, VoiceIngestWorker
 from tests.fakes import FakeSTT
-
 
 # --- Fixtures ---
 
@@ -139,7 +138,8 @@ class TestReconnectionCallback:
             error_received.append(error)
             callback_invoked.set()
 
-        handler = create_reconnect_handler(on_disconnect)
+        loop = asyncio.get_running_loop()
+        handler = create_reconnect_handler(on_disconnect, loop=loop)
 
         # Simulate error from voice_recv
         test_error = Exception("Connection lost")
@@ -163,7 +163,8 @@ class TestReconnectionCallback:
             error_received.append(error)
             callback_invoked.set()
 
-        handler = create_reconnect_handler(on_disconnect)
+        loop = asyncio.get_running_loop()
+        handler = create_reconnect_handler(on_disconnect, loop=loop)
 
         # Simulate normal stop (None error)
         handler(None)
@@ -181,7 +182,8 @@ class TestReconnectionCallback:
         async def failing_callback(error: Exception | None) -> None:
             raise RuntimeError("Callback failed")
 
-        handler = create_reconnect_handler(failing_callback)
+        loop = asyncio.get_running_loop()
+        handler = create_reconnect_handler(failing_callback, loop=loop)
 
         # Should not raise, just log
         with patch("clanker_bot.voice_resilience.logger") as mock_logger:
@@ -189,6 +191,42 @@ class TestReconnectionCallback:
             await asyncio.sleep(0.1)  # Let the async task run
             # Callback error should be logged
             assert mock_logger.exception.called or mock_logger.error.called
+
+    @pytest.mark.asyncio
+    async def test_reconnect_handler_works_from_background_thread(self) -> None:
+        """Regression test: handler must work when called from a background thread.
+
+        The voice_recv `after` callback runs in an 'audioreader-stopper' thread,
+        not in the bot's event loop. This test verifies that the callback is
+        correctly scheduled on the provided event loop using run_coroutine_threadsafe.
+        """
+        from clanker_bot.voice_resilience import create_reconnect_handler
+
+        callback_invoked = asyncio.Event()
+        callback_loop: list[asyncio.AbstractEventLoop] = []
+
+        async def on_disconnect(error: Exception | None) -> None:
+            # Record which loop we're running on
+            callback_loop.append(asyncio.get_running_loop())
+            callback_invoked.set()
+
+        bot_loop = asyncio.get_running_loop()
+        handler = create_reconnect_handler(on_disconnect, loop=bot_loop)
+
+        # Simulate voice_recv calling the handler from a background thread
+        def call_from_thread() -> None:
+            handler(Exception("Connection lost from thread"))
+
+        thread = threading.Thread(target=call_from_thread, name="audioreader-stopper")
+        thread.start()
+        thread.join(timeout=1.0)
+
+        # Wait for async callback to complete on the bot's loop
+        await asyncio.wait_for(callback_invoked.wait(), timeout=2.0)
+
+        # Verify callback ran on the bot's event loop, not a new one
+        assert len(callback_loop) == 1
+        assert callback_loop[0] is bot_loop
 
 
 class TestVoiceReconnector:
