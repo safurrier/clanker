@@ -14,7 +14,7 @@ import sqlalchemy
 from clanker.models import Interaction, Outcome
 from clanker.providers.errors import PermanentProviderError, TransientProviderError
 
-from .connection import close_pool, get_connection, get_engine, init_pool, is_sqlite
+from .connection import close_pool, get_connection, get_engine, init_pool
 from .generated.interactions import (
     AsyncQuerier as InteractionsQuerier,
 )
@@ -50,15 +50,11 @@ class SqlFeedbackStore:
 
         engine = get_engine()
         async with engine.begin() as conn:
-            if is_sqlite():
-                # SQLite: execute each statement separately
-                for statement in schema.split(";"):
-                    statement = statement.strip()
-                    if statement:
-                        await conn.execute(sqlalchemy.text(statement))
-            else:
-                # PostgreSQL: execute as a single transaction
-                await conn.execute(sqlalchemy.text(schema))
+            # Execute each statement separately (asyncpg doesn't support multi-statement)
+            for statement in schema.split(";"):
+                statement = statement.strip()
+                if statement:
+                    await conn.execute(sqlalchemy.text(statement))
 
         self._initialized = True
 

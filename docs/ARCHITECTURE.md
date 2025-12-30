@@ -361,6 +361,23 @@ Chat Flow (optional response)
 - Voice optional dependency (`[voice]`) keeps base install minimal
 - Warmup function pre-loads model to avoid first-request latency
 
+### Module-Level Database Engine
+
+**Decision:** Use a module-level global `AsyncEngine` in `persistence/connection.py` with explicit `init_pool()`/`close_pool()` lifecycle.
+
+**Rationale:**
+- Standard pattern for single-process applications (Discord bot runs as one process)
+- SQLAlchemy engine manages connection pooling internally; creating multiple engines wastes resources
+- Lazy initialization (`_engine` starts `None`) avoids startup overhead when persistence is disabled
+- The `SqlFeedbackStore` is injected via `BotDependencies`, hiding the global from the rest of the codebase
+- Tests call `close_pool()` in fixtures to reset state between test files
+
+**Scaling considerations:**
+- Works well with Neon Postgres for production (asyncpg driver, connection pooling)
+- Single bot instance: global engine is sufficient
+- Multiple bot processes: each has its own pool (Postgres handles many connections)
+- High write volume (10K+/min): would need write batching, not engine changes
+
 ## Technical Stack
 
 | Component | Technology |
