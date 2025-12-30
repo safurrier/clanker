@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Callable
 from typing import cast
 
 import discord
@@ -9,6 +11,7 @@ import discord.ext.voice_recv as voice_recv
 from loguru import logger
 
 from ..voice_ingest import TranscriptBuffer, start_voice_ingest, voice_client_cls
+from ..voice_resilience import create_reconnect_handler
 from .messages import ResponseMessage
 from .types import BotDependencies
 
@@ -64,14 +67,16 @@ async def _setup_transcription(
     deps: BotDependencies,
     voice_client_cls: type[discord.VoiceClient] | None,
     guild_id: int | None,
+    channel_id: int | None,
 ) -> str:
     """Set up transcription and return status message."""
     logger.debug(
-        "voice.transcription_setup: enabled={}, stt={}, buffer={}, guild={}",
+        "voice.transcription_setup: enabled={}, stt={}, buffer={}, guild={}, channel={}",
         deps.voice_ingest_enabled,
         deps.stt is not None,
         deps.transcript_buffer is not None,
         guild_id,
+        channel_id,
     )
 
     if not deps.voice_ingest_enabled:
@@ -97,7 +102,21 @@ async def _setup_transcription(
                 guild_id, deps.transcript_buffer
             )
 
-        await start_voice_ingest(recv_client, deps.stt, on_transcript=on_transcript)
+        # Create disconnect handler for reconnection
+        on_disconnect = None
+        if guild_id is not None and channel_id is not None:
+            on_disconnect = _create_disconnect_handler(deps, guild_id, channel_id)
+
+        session = await start_voice_ingest(
+            recv_client,
+            deps.stt,
+            on_transcript=on_transcript,
+            on_disconnect=on_disconnect,
+        )
+
+        # Store session for cleanup
+        deps.voice_manager.set_ingest_session(session)
+
         logger.debug("voice.ingest_started: guild={}", guild_id)
         return (
             f"{ResponseMessage.JOINED_VOICE} ({ResponseMessage.TRANSCRIPTION_ENABLED})"
@@ -105,6 +124,37 @@ async def _setup_transcription(
     except Exception:
         logger.exception("Failed to start voice ingest.")
         return f"{ResponseMessage.JOINED_VOICE} ({ResponseMessage.TRANSCRIPTION_SETUP_ERROR})"
+
+
+def _create_disconnect_handler(
+    deps: BotDependencies,
+    guild_id: int,
+    channel_id: int,
+) -> Callable[[Exception | None], None]:
+    """Create a disconnect handler for voice reconnection.
+
+    Captures the current event loop so the callback runs on the bot's loop,
+    not in a background thread (which would cause cross-loop errors).
+    """
+    # Capture the bot's event loop at handler creation time
+    loop = asyncio.get_running_loop()
+
+    async def handle_disconnect(error: Exception | None) -> None:
+        """Handle unexpected voice disconnect."""
+        reconnector = deps.voice_manager.reconnector
+        if reconnector is None:
+            logger.warning(
+                "voice.disconnect_no_reconnector: guild={}, error={}",
+                guild_id,
+                type(error).__name__ if error else None,
+            )
+            # Just clear state since we can't reconnect
+            deps.voice_manager.clear_state()
+            return
+
+        await reconnector.handle_disconnect(guild_id, channel_id, error)
+
+    return create_reconnect_handler(handle_disconnect, loop=loop)
 
 
 async def join_voice_channel(
@@ -131,10 +181,8 @@ async def join_voice_channel(
     )
 
     # Join the voice channel
-    voice_client_cls = _get_voice_client_cls(deps)
-    ok, status = await deps.voice_manager.join(
-        voice_channel, voice_client_cls=voice_client_cls
-    )
+    vc_cls = _get_voice_client_cls(deps)
+    ok, status = await deps.voice_manager.join(voice_channel, voice_client_cls=vc_cls)
 
     if not ok:
         logger.debug("voice.join_failed: status={}", status)
@@ -142,8 +190,10 @@ async def join_voice_channel(
 
     logger.debug("voice.joined_channel: channel={}", voice_channel.id)
 
-    # Setup transcription
-    message = await _setup_transcription(deps, voice_client_cls, guild_id)
+    # Setup transcription with reconnection support
+    message = await _setup_transcription(
+        deps, vc_cls, guild_id, channel_id=voice_channel.id
+    )
     return True, message
 
 
