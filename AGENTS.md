@@ -204,6 +204,7 @@ SDK layer (`src/clanker/voice/`):
 
 Discord layer (`src/clanker_bot/`):
 - `voice_ingest.py` - Discord audio capture, stereo-to-mono conversion, buffering, async processing
+- `voice_resilience.py` - Voice connection keepalive and automatic reconnection
 
 Audio utilities (`src/clanker/providers/audio_utils.py`):
 - `stereo_to_mono()` - Convert stereo PCM to mono

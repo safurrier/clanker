@@ -45,3 +45,4 @@ tests/data/ami/*.pcm
 PROGRESS.md
 docker/dev.env
 .coverage.*
+logs/

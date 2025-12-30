@@ -27,8 +27,12 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    import discord
 
 # Opus silence frame - Discord's voice protocol recognizes this as valid audio
 # without producing any audible sound
@@ -40,6 +44,19 @@ DEFAULT_KEEPALIVE_INTERVAL = 15.0
 # Default reconnection settings
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_RETRY_DELAY = 5.0
+
+
+@runtime_checkable
+class VoiceClientProtocol(Protocol):
+    """Protocol for voice client with keepalive capabilities."""
+
+    def is_connected(self) -> bool:
+        """Check if connected to voice."""
+        ...
+
+    def send_audio_packet(self, data: bytes, *, encode: bool = True) -> None:
+        """Send an audio packet."""
+        ...
 
 
 @dataclass
@@ -54,7 +71,7 @@ class VoiceKeepalive:
         interval_seconds: Time between silence packets (default: 15s).
     """
 
-    voice_client: object  # discord.VoiceClient, but we accept any duck-typed object
+    voice_client: VoiceClientProtocol | discord.VoiceClient
     interval_seconds: float = DEFAULT_KEEPALIVE_INTERVAL
     _task: asyncio.Task[None] | None = field(default=None, init=False)
 
@@ -81,19 +98,16 @@ class VoiceKeepalive:
         try:
             while True:
                 # Check if still connected
-                is_connected = getattr(self.voice_client, "is_connected", lambda: False)
-                if not is_connected():
+                if not self.voice_client.is_connected():
                     logger.debug("voice_keepalive.disconnected: stopping loop")
                     break
 
                 # Send silence packet
                 try:
-                    send_audio_packet = getattr(
-                        self.voice_client, "send_audio_packet", None
+                    self.voice_client.send_audio_packet(
+                        OPUS_SILENCE_FRAME, encode=False
                     )
-                    if send_audio_packet:
-                        send_audio_packet(OPUS_SILENCE_FRAME, encode=False)
-                        logger.debug("voice_keepalive.sent_silence")
+                    logger.debug("voice_keepalive.sent_silence")
                 except Exception as e:
                     logger.warning("voice_keepalive.send_error: {}", e)
 
@@ -103,6 +117,34 @@ class VoiceKeepalive:
             logger.debug("voice_keepalive.cancelled")
         finally:
             self._task = None
+
+
+async def _run_disconnect_callback(
+    on_disconnect: Callable[[Exception | None], Awaitable[None]],
+    error: Exception | None,
+) -> None:
+    """Execute the disconnect callback with error handling."""
+    try:
+        await on_disconnect(error)
+    except Exception as e:
+        logger.exception("voice_reconnect.callback_error: {}", e)
+
+
+def _schedule_async_callback(
+    on_disconnect: Callable[[Exception | None], Awaitable[None]],
+    error: Exception | None,
+) -> None:
+    """Schedule an async callback from a sync context."""
+    try:
+        loop = asyncio.get_running_loop()
+        # Store reference to prevent garbage collection (required by RUF006)
+        task = loop.create_task(_run_disconnect_callback(on_disconnect, error))
+        # Fire-and-forget: we don't need the result but must reference the task
+        task.add_done_callback(lambda _: None)
+    except RuntimeError:
+        # No running loop - create one for the callback
+        logger.warning("voice_reconnect.no_event_loop: running callback in new loop")
+        asyncio.run(_run_disconnect_callback(on_disconnect, error))
 
 
 def create_reconnect_handler(
@@ -133,27 +175,7 @@ def create_reconnect_handler(
             "voice_reconnect.handler_called: error={}",
             type(error).__name__ if error else None,
         )
-
-        # Bridge to async world
-        async def run_callback() -> None:
-            try:
-                await on_disconnect(error)
-            except Exception as e:
-                logger.exception("voice_reconnect.callback_error: {}", e)
-
-        # Schedule the async callback
-        try:
-            loop = asyncio.get_running_loop()
-            # Store reference to prevent garbage collection (required by RUF006)
-            task = loop.create_task(run_callback())
-            # Fire-and-forget: we don't need the result but must reference the task
-            task.add_done_callback(lambda _: None)
-        except RuntimeError:
-            # No running loop - create one for the callback
-            logger.warning(
-                "voice_reconnect.no_event_loop: running callback in new loop"
-            )
-            asyncio.run(run_callback())
+        _schedule_async_callback(on_disconnect, error)
 
     return handler
 
