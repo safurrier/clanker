@@ -18,6 +18,8 @@ from clanker.voice.formats import DISCORD_FORMAT, SDK_FORMAT
 from clanker.voice.vad import EnergyVAD, SileroVAD, SpeechDetector, resolve_detector
 from clanker.voice.worker import AudioBuffer, TranscriptEvent, transcript_loop_once
 
+from .voice_resilience import VoiceKeepalive
+
 
 @dataclass
 class TranscriptBuffer:
@@ -436,42 +438,69 @@ class VoiceIngestSink(voice_recv.AudioSink):
             )
 
 
+@dataclass
+class VoiceIngestSession:
+    """Holds all components of an active voice ingest session.
+
+    This allows callers to manage the sink and keepalive together,
+    and provides a cleanup method to stop everything.
+    """
+
+    sink: VoiceIngestSink
+    keepalive: VoiceKeepalive | None = None
+
+    def cleanup(self) -> None:
+        """Stop all components of the voice ingest session."""
+        self.sink.stop_processing()
+        if self.keepalive:
+            self.keepalive.stop()
+        logger.debug("voice_ingest_session.cleanup: stopped sink and keepalive")
+
+
 async def start_voice_ingest(
     voice_client: voice_recv.VoiceRecvClient,
     stt: STT,
     on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
+    on_disconnect: Callable[[Exception | None], None] | None = None,
     detector: SpeechDetector | None = None,
     chunk_seconds: float = 7.5,
     idle_timeout_seconds: float = 3.0,
     max_silence_ms: int = 1000,
     debug_capture: DebugCapture | None = None,
-) -> VoiceIngestSink:
+    enable_keepalive: bool = True,
+    keepalive_interval: float = 15.0,
+) -> VoiceIngestSession:
     """Start voice ingest on a voice_recv-enabled voice client.
 
     Args:
         voice_client: A VoiceRecvClient instance with listen() support.
         stt: Speech-to-text provider.
         on_transcript: Optional callback for transcript events.
+        on_disconnect: Optional callback when audio stops (error or normal).
+                      Used for reconnection logic. Receives the error or None.
         detector: Optional speech detector override.
         chunk_seconds: Process buffer every N seconds (7.5s default).
         idle_timeout_seconds: Flush partial buffers after N seconds of no audio (3.0s default).
         max_silence_ms: Silence gap to split utterances (1000ms = natural pauses).
         debug_capture: Optional debug capture instance. If None and VOICE_DEBUG=1 is set,
             a DebugCapture will be created automatically.
+        enable_keepalive: Whether to enable silence keepalive (default: True).
+        keepalive_interval: Interval between keepalive packets in seconds (default: 15.0).
 
     Returns:
-        The VoiceIngestSink instance (call stop_processing() on cleanup).
+        VoiceIngestSession containing sink and keepalive (call cleanup() when done).
     """
     # Create debug capture from env if not provided
     if debug_capture is None:
         debug_capture = DebugCapture.from_env()
 
     logger.debug(
-        "start_voice_ingest: client_type={}, stt={}, callback={}, debug={}",
+        "start_voice_ingest: client_type={}, stt={}, callback={}, debug={}, keepalive={}",
         type(voice_client).__name__,
         type(stt).__name__,
         on_transcript is not None,
         debug_capture.enabled if debug_capture else False,
+        enable_keepalive,
     )
     worker = VoiceIngestWorker(
         stt=stt,
@@ -482,10 +511,20 @@ async def start_voice_ingest(
         debug_capture=debug_capture,
     )
     sink = VoiceIngestSink(worker, on_transcript=on_transcript)
-    voice_client.listen(sink)
+
+    # Start listening with optional disconnect callback
+    voice_client.listen(sink, after=on_disconnect)
     sink.start_processing()
     logger.debug("start_voice_ingest: listen() and processing started")
-    return sink
+
+    # Start keepalive if enabled
+    keepalive: VoiceKeepalive | None = None
+    if enable_keepalive:
+        keepalive = VoiceKeepalive(voice_client, interval_seconds=keepalive_interval)
+        keepalive.start()
+        logger.debug("start_voice_ingest: keepalive started")
+
+    return VoiceIngestSession(sink=sink, keepalive=keepalive)
 
 
 async def warmup_voice_detector(prefer_silero: bool = True) -> SpeechDetector:

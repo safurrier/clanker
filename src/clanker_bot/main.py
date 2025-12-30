@@ -23,6 +23,7 @@ from .health import HealthState, create_health_app
 from .metrics import Metrics
 from .persistence import SqlFeedbackStore
 from .voice_ingest import TranscriptBuffer
+from .voice_resilience import VoiceReconnector
 
 
 def configure_logging() -> None:
@@ -164,6 +165,49 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
     from .command_handlers.common import is_clanker_thread
     from .command_handlers.thread_chat import handle_thread_message
     from .command_handlers.voice import join_voice_channel
+
+    # Set up voice reconnector
+    async def rejoin_voice(guild_id: int, channel_id: int) -> bool:
+        """Rejoin a voice channel after unexpected disconnect."""
+        guild = bot.get_guild(guild_id)
+        if guild is None:
+            logger.warning("voice_reconnect.guild_not_found: guild={}", guild_id)
+            return False
+
+        channel = guild.get_channel(channel_id)
+        if not isinstance(channel, discord.VoiceChannel | discord.StageChannel):
+            logger.warning(
+                "voice_reconnect.channel_not_found: guild={}, channel={}",
+                guild_id,
+                channel_id,
+            )
+            return False
+
+        # Clear stale state before rejoining
+        deps.voice_manager.clear_state()
+
+        # Attempt to rejoin
+        try:
+            ok, message = await join_voice_channel(channel, deps, guild_id=guild_id)
+            if ok:
+                logger.info(
+                    "voice_reconnect.rejoin_success: guild={}, channel={}",
+                    guild_id,
+                    channel_id,
+                )
+            return ok
+        except Exception as e:
+            logger.exception(
+                "voice_reconnect.rejoin_error: guild={}, channel={}, error={}",
+                guild_id,
+                channel_id,
+                e,
+            )
+            return False
+
+    reconnector = VoiceReconnector(rejoin_callback=rejoin_voice)
+    deps.voice_manager.set_reconnector(reconnector)
+    logger.info("Voice reconnector configured")
 
     async def handle_nudge(
         guild: discord.Guild,
