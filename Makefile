@@ -1,4 +1,4 @@
-.PHONY: compile-deps setup clean-pyc clean-test clean-venv clean test ty lint format check clean-example docs-install docs-build docs-serve docs-check docs-clean dev-env refresh-containers rebuild-images build-image push-image setup-agent-docs
+.PHONY: compile-deps setup clean-pyc clean-test clean-venv clean test ty lint format check run run-debug run-voice-debug run-full-debug run-voice-only-debug clean-example docs-install docs-build docs-serve docs-check docs-clean dev-env refresh-containers rebuild-images build-image push-image setup-agent-docs
 
 # Module name - will be updated by init script
 MODULE_NAME := clanker
@@ -74,6 +74,35 @@ format: setup  # Run ruff formatter
 	uv run -m ruff format $(SRC_DIR)
 
 check: setup lint format test ty  # Run all quality checks
+
+# Running the Bot
+################
+run: setup  ## Run the bot (requires DISCORD_TOKEN and OPENAI_API_KEY)
+	uv run python -m clanker_bot.main
+
+run-debug: setup  ## Run with full debug logging
+	LOG_LEVEL=DEBUG \
+	LOG_DIR=./logs \
+	uv run python -m clanker_bot.main
+
+run-voice-debug: setup  ## Run with voice debug capture (saves audio to disk)
+	LOG_LEVEL=INFO \
+	VOICE_DEBUG=1 \
+	VOICE_DEBUG_DIR=./voice_debug \
+	uv run python -m clanker_bot.main
+
+run-full-debug: setup  ## Run with all debug features (verbose + voice capture + file logs)
+	LOG_LEVEL=DEBUG \
+	LOG_DIR=./logs \
+	VOICE_DEBUG=1 \
+	VOICE_DEBUG_DIR=./voice_debug \
+	uv run python -m clanker_bot.main
+
+run-voice-only-debug: setup  ## Run with voice-specific debug logging only (less noisy)
+	LOG_LEVEL=INFO \
+	VOICE_LOG_LEVEL=DEBUG \
+	LOG_DIR=./logs \
+	uv run python -m clanker_bot.main
 
 # Local CI Testing with act
 ###########################

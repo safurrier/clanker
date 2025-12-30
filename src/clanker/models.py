@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import cast
+from enum import Enum
+from typing import Any, cast
 
 from .constants import SCHEMA_VERSION
 
@@ -115,3 +116,42 @@ class ReplayEntry:
             response={"role": reply.role, "content": reply.content},
             has_audio=has_audio,
         )
+
+
+# --- Feedback Models ---
+
+
+class Outcome(str, Enum):
+    """Outcome of a user interaction with generated content."""
+
+    ACCEPTED = "accepted"  # User posted/confirmed content
+    REJECTED = "rejected"  # User dismissed/cancelled
+    REGENERATED = "regenerated"  # User requested new generation
+    TIMEOUT = "timeout"  # View timed out without action
+
+
+@dataclass(frozen=True)
+class Interaction:
+    """A recorded user interaction with generated content.
+
+    Uses string IDs for platform-agnosticism (Discord uses int,
+    but web/CLI could use UUIDs).
+    """
+
+    id: str  # Unique interaction ID
+    user_id: str  # Platform user identifier
+    context_id: str  # Guild/server/app context
+    command: str  # Command name (shitpost, chat, etc)
+    outcome: Outcome  # What the user did
+    metadata: Mapping[str, Any]  # Command-specific data
+    created_at: datetime  # When interaction occurred
+
+
+@dataclass(frozen=True)
+class UserPreferences:
+    """Aggregated user preferences derived from interactions."""
+
+    user_id: str
+    context_id: str
+    preferences: Mapping[str, Any]  # Flexible schema for prefs
+    updated_at: datetime

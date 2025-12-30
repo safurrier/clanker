@@ -359,6 +359,7 @@ async def handle_shitpost_preview(
             preview_id = str(uuid.uuid4())
             view = ShitpostPreviewView(
                 invoker_id=user_id,
+                guild_id=guild_id,
                 preview_id=preview_id,
                 payload=payload,
                 embed=embed,
@@ -370,6 +371,7 @@ async def handle_shitpost_preview(
                     guild_id=guild_id,
                     channel_id=channel_id,
                 ),
+                feedback_store=deps.feedback_store,
             )
 
             await _send_preview(interaction, payload, embed, view)

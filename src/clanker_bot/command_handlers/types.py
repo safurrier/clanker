@@ -14,6 +14,8 @@ from ..discord_adapter import VoiceSessionManager
 from ..metrics import Metrics
 
 if TYPE_CHECKING:
+    from clanker.providers.feedback import FeedbackStore
+
     from ..voice_ingest import TranscriptBuffer
 
 
@@ -33,3 +35,4 @@ class BotDependencies:
     admin_state: AdminState | None = None
     voice_ingest_enabled: bool = True
     transcript_buffer: TranscriptBuffer | None = None
+    feedback_store: FeedbackStore | None = None

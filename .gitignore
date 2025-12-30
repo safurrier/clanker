@@ -44,3 +44,4 @@ tests/data/ami/*.pcm
 .mcp.json
 PROGRESS.md
 docker/dev.env
+.coverage.*

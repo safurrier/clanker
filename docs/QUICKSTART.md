@@ -184,6 +184,7 @@ personas:
 | `DISCORD_TOKEN` | Yes | Discord bot token |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for TTS |
 | `CLANKER_CONFIG_PATH` | No | Path to config.yaml |
+| `DATABASE_URL` | No | Database URL (default: `sqlite:///data/clanker.db`) |
 | `VOICE_DEBUG` | No | Enable voice debug capture (`1` to enable) |
 | `VOICE_DEBUG_DIR` | No | Debug output directory (default: `./voice_debug`) |
 
