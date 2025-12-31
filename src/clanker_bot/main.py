@@ -25,6 +25,9 @@ from .persistence import SqlFeedbackStore
 from .voice_ingest import TranscriptBuffer
 from .voice_resilience import VoiceReconnector
 
+# How long to wait before auto-leaving an empty voice channel (seconds)
+AUTO_LEAVE_GRACE_PERIOD = 5.0
+
 
 def configure_logging() -> None:
     """Configure loguru for the bot.
@@ -294,7 +297,9 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
             reconnector.mark_expected_disconnect(guild_id)
             logger.debug("auto_leave.marked_expected: guild={}", guild_id)
 
-    auto_leave_manager = AutoLeaveManager(on_leave=on_auto_leave)
+    auto_leave_manager = AutoLeaveManager(
+        grace_period_seconds=AUTO_LEAVE_GRACE_PERIOD, on_leave=on_auto_leave
+    )
 
     # Create VC monitor for auto-leave and nudge-to-join features
     vc_monitor = VCMonitorCog(
