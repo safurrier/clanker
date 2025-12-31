@@ -191,6 +191,10 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
                 "voice_reconnect.disconnecting_stale_client: guild={}",
                 guild_id,
             )
+            # Mark as expected to prevent the after callback from triggering
+            # another reconnect attempt while we're already reconnecting
+            if deps.voice_manager.reconnector:
+                deps.voice_manager.reconnector.mark_expected_disconnect(guild_id)
             try:
                 await guild.voice_client.disconnect(force=True)
             except Exception as e:
