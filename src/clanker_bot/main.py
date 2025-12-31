@@ -25,6 +25,9 @@ from .persistence import SqlFeedbackStore
 from .voice_ingest import TranscriptBuffer
 from .voice_resilience import VoiceReconnector
 
+# How long to wait before auto-leaving an empty voice channel (seconds)
+AUTO_LEAVE_GRACE_PERIOD = 5.0
+
 
 def configure_logging() -> None:
     """Configure loguru for the bot.
@@ -158,6 +161,7 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
 
     # Import here to avoid circular imports
     from .cogs.vc_monitor import (
+        AutoLeaveManager,
         JoinListenView,
         VCMonitorCog,
         create_nudge_message,
@@ -183,7 +187,27 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
             )
             return False
 
-        # Clear stale state before rejoining
+        # Disconnect any stale voice client at the guild level
+        # Discord.py tracks voice clients per-guild, not in our VoiceSessionManager
+        if guild.voice_client is not None:
+            logger.debug(
+                "voice_reconnect.disconnecting_stale_client: guild={}",
+                guild_id,
+            )
+            # Mark as expected to prevent the after callback from triggering
+            # another reconnect attempt while we're already reconnecting
+            if deps.voice_manager.reconnector:
+                deps.voice_manager.reconnector.mark_expected_disconnect(guild_id)
+            try:
+                await guild.voice_client.disconnect(force=True)
+            except Exception as e:
+                logger.warning(
+                    "voice_reconnect.disconnect_error: guild={}, error={}",
+                    guild_id,
+                    e,
+                )
+
+        # Clear our internal state
         deps.voice_manager.clear_state()
 
         # Attempt to rejoin
@@ -266,8 +290,21 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
             voice_channel.id,
         )
 
+    # Create auto-leave manager with callback to mark expected disconnects
+    async def on_auto_leave(guild_id: int) -> None:
+        """Mark auto-leave as expected to prevent reconnection attempts."""
+        if reconnector:
+            reconnector.mark_expected_disconnect(guild_id)
+            logger.debug("auto_leave.marked_expected: guild={}", guild_id)
+
+    auto_leave_manager = AutoLeaveManager(
+        grace_period_seconds=AUTO_LEAVE_GRACE_PERIOD, on_leave=on_auto_leave
+    )
+
     # Create VC monitor for auto-leave and nudge-to-join features
-    vc_monitor = VCMonitorCog(bot, on_nudge=handle_nudge)
+    vc_monitor = VCMonitorCog(
+        bot, auto_leave_manager=auto_leave_manager, on_nudge=handle_nudge
+    )
 
     @bot.event
     async def on_ready() -> None:
