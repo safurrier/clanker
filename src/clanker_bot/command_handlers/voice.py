@@ -279,6 +279,14 @@ async def handle_join(
 
     # Use actor-based voice if enabled
     if USE_VOICE_ACTOR and deps.voice_actor is not None:
+        # Wire actor transcripts into the shared transcript buffer
+        # so /transcript and chat context commands still work
+        if deps.transcript_buffer is not None and guild_id is not None:
+            on_transcript = _create_transcript_callback(
+                guild_id, deps.transcript_buffer
+            )
+            deps.voice_actor.set_transcript_callback(on_transcript)
+
         result = await deps.voice_actor.join(
             channel_id=voice_channel.id,
             guild_id=guild_id or 0,

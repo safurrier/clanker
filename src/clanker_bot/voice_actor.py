@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -219,9 +219,10 @@ class VoiceActor:
     )
     _stale_posted: bool = field(default=False, init=False)
     _timer_tasks: list[asyncio.Task] = field(default_factory=list, init=False)
-    _on_transcript: Callable[[TranscriptEvent], None] | None = field(
+    _on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = field(
         default=None, init=False
     )
+    _loop: asyncio.AbstractEventLoop | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         """Initialize detector if not provided."""
@@ -291,29 +292,36 @@ class VoiceActor:
         """Post audio data from voice_recv thread.
 
         IMPORTANT: This is called from the voice_recv thread, not the
-        bot's event loop. Uses put_nowait() which is thread-safe.
+        bot's event loop. Uses call_soon_threadsafe to safely marshal
+        the message onto the event loop.
 
         Args:
             user_id: Discord user ID who spoke.
             pcm_bytes: Raw PCM audio bytes (mono, 48kHz, 16-bit).
         """
-        self._inbox.put_nowait(
-            AudioReceived(
-                user_id=user_id,
-                pcm_bytes=pcm_bytes,
-                timestamp=datetime.now(),
-            )
+        msg = AudioReceived(
+            user_id=user_id,
+            pcm_bytes=pcm_bytes,
+            timestamp=datetime.now(),
         )
+        if self._loop is not None:
+            self._loop.call_soon_threadsafe(self._inbox.put_nowait, msg)
+        else:
+            self._inbox.put_nowait(msg)
 
     def post_disconnect(self, error: Exception | None) -> None:
         """Post disconnect event from voice_recv after callback.
 
-        Thread-safe: uses put_nowait().
+        Thread-safe: uses call_soon_threadsafe to marshal onto event loop.
 
         Args:
             error: The error that caused disconnect, or None.
         """
-        self._inbox.put_nowait(DisconnectDetected(error=error))
+        msg = DisconnectDetected(error=error)
+        if self._loop is not None:
+            self._loop.call_soon_threadsafe(self._inbox.put_nowait, msg)
+        else:
+            self._inbox.put_nowait(msg)
 
     def get_transcripts(self, guild_id: int) -> list[TranscriptEvent]:
         """Get recent transcripts for a guild.
@@ -329,12 +337,12 @@ class VoiceActor:
         return self._transcript_buffer.get(guild_id)
 
     def set_transcript_callback(
-        self, callback: Callable[[TranscriptEvent], None] | None
+        self, callback: Callable[[TranscriptEvent], Awaitable[None]] | None
     ) -> None:
         """Set callback for transcript events.
 
         Args:
-            callback: Function to call with each transcript event.
+            callback: Async function to call with each transcript event.
         """
         self._on_transcript = callback
 
@@ -348,6 +356,7 @@ class VoiceActor:
 
         The loop runs forever until cancelled.
         """
+        self._loop = asyncio.get_running_loop()
         logger.info("voice_actor.started")
 
         # Start timer tasks
@@ -754,7 +763,7 @@ class VoiceActor:
                     self._transcript_buffer.add(self._guild_id, event)
 
                 if self._on_transcript:
-                    self._on_transcript(event)
+                    await self._on_transcript(event)
 
                 logger.info(
                     "voice_actor.transcript: speaker={}, text={}",
