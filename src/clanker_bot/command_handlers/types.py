@@ -16,6 +16,7 @@ from ..metrics import Metrics
 if TYPE_CHECKING:
     from clanker.providers.feedback import FeedbackStore
 
+    from ..voice_actor import VoiceActor
     from ..voice_ingest import TranscriptBuffer
 
 
@@ -36,3 +37,4 @@ class BotDependencies:
     voice_ingest_enabled: bool = True
     transcript_buffer: TranscriptBuffer | None = None
     feedback_store: FeedbackStore | None = None
+    voice_actor: VoiceActor | None = None  # Actor-based voice (USE_VOICE_ACTOR=1)

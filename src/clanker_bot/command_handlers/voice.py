@@ -10,6 +10,7 @@ import discord
 import discord.ext.voice_recv as voice_recv
 from loguru import logger
 
+from ..voice_actor import USE_VOICE_ACTOR
 from ..voice_ingest import TranscriptBuffer, start_voice_ingest, voice_client_cls
 from ..voice_resilience import create_reconnect_handler
 from .messages import ResponseMessage
@@ -104,14 +105,19 @@ async def _setup_transcription(
 
         # Create disconnect handler for reconnection
         on_disconnect = None
+        on_stale_reconnect = None
         if guild_id is not None and channel_id is not None:
             on_disconnect = _create_disconnect_handler(deps, guild_id, channel_id)
+            on_stale_reconnect = _create_stale_reconnect_handler(
+                deps, guild_id, channel_id
+            )
 
         session = await start_voice_ingest(
             recv_client,
             deps.stt,
             on_transcript=on_transcript,
             on_disconnect=on_disconnect,
+            on_stale_reconnect=on_stale_reconnect,
         )
 
         # Store session for cleanup
@@ -155,6 +161,50 @@ def _create_disconnect_handler(
         await reconnector.handle_disconnect(guild_id, channel_id, error)
 
     return create_reconnect_handler(handle_disconnect, loop=loop)
+
+
+def _create_stale_reconnect_handler(
+    deps: BotDependencies,
+    guild_id: int,
+    channel_id: int,
+):
+    """Create a handler for stale audio reconnection.
+
+    This is called when audio has been stale for too long (2 minutes),
+    indicating a "zombie" connection where the socket is alive but no
+    audio is being received. Unlike the disconnect handler (called by
+    voice_recv when audio stops), this is called proactively from the
+    health check loop.
+    """
+
+    async def handle_stale_reconnect() -> None:
+        """Handle stale audio by forcing a reconnect."""
+        logger.warning(
+            "voice.stale_reconnect_triggered: guild={}, channel={}",
+            guild_id,
+            channel_id,
+        )
+
+        reconnector = deps.voice_manager.reconnector
+        if reconnector is None:
+            logger.warning(
+                "voice.stale_reconnect_no_reconnector: guild={}",
+                guild_id,
+            )
+            return
+
+        # Trigger the reconnect flow with a synthetic "stale audio" error
+        # This will go through the normal reconnect logic with retries
+        class StaleAudioError(Exception):
+            """Synthetic error to trigger reconnection due to stale audio."""
+
+            pass
+
+        await reconnector.handle_disconnect(
+            guild_id, channel_id, StaleAudioError("No audio received for 2+ minutes")
+        )
+
+    return handle_stale_reconnect
 
 
 async def join_voice_channel(
@@ -204,9 +254,10 @@ async def handle_join(
     user_id = interaction.user.id if interaction.user else None
     guild_id = interaction.guild_id
     logger.debug(
-        "voice.join_requested: user={}, guild={}",
+        "voice.join_requested: user={}, guild={}, use_actor={}",
         user_id,
         guild_id,
+        USE_VOICE_ACTOR,
     )
 
     # Validate preconditions
@@ -226,7 +277,20 @@ async def handle_join(
     # Defer response - transcription setup can take >3s (Silero VAD loading)
     await interaction.response.defer()
 
-    # Use core join logic
+    # Use actor-based voice if enabled
+    if USE_VOICE_ACTOR and deps.voice_actor is not None:
+        result = await deps.voice_actor.join(
+            channel_id=voice_channel.id,
+            guild_id=guild_id or 0,
+        )
+        if result.success:
+            message = f"{ResponseMessage.JOINED_VOICE} ({ResponseMessage.TRANSCRIPTION_ENABLED})"
+        else:
+            message = f"Failed to join: {result.error}"
+        await interaction.followup.send(message)
+        return
+
+    # Use legacy join logic
     ok, message = await join_voice_channel(voice_channel, deps, guild_id)
     await interaction.followup.send(message)
 
@@ -235,6 +299,16 @@ async def handle_leave(
     interaction: discord.Interaction,
     deps: BotDependencies,
 ) -> None:
+    # Use actor-based voice if enabled
+    if USE_VOICE_ACTOR and deps.voice_actor is not None:
+        result = await deps.voice_actor.leave()
+        if result.success:
+            await interaction.response.send_message(ResponseMessage.LEFT_VOICE)
+        else:
+            await interaction.response.send_message(result.error or "Not connected")
+        return
+
+    # Use legacy leave logic
     ok, status = await deps.voice_manager.leave()
     if ok:
         await interaction.response.send_message(ResponseMessage.LEFT_VOICE)

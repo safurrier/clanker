@@ -235,16 +235,19 @@ class VoiceIngestSink(voice_recv.AudioSink):
     # Health monitoring thresholds (seconds)
     STALE_WARNING_THRESHOLD = 60  # Warn after 1 min of no audio
     STALE_ERROR_THRESHOLD = 180  # Error after 3 min of no audio
+    STALE_RECONNECT_THRESHOLD = 120  # Force reconnect after 2 min of no audio
     HEALTH_LOG_INTERVAL = 60  # Log health status every 60s when stale
 
     def __init__(
         self,
         worker: VoiceIngestWorker,
         on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
+        on_stale_reconnect: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
         super().__init__()
         self.worker = worker
         self.on_transcript = on_transcript
+        self.on_stale_reconnect = on_stale_reconnect
         self._frame_count: int = 0
         self._total_bytes: int = 0
         self._process_task: asyncio.Task[None] | None = None
@@ -252,6 +255,7 @@ class VoiceIngestSink(voice_recv.AudioSink):
         self._last_audio_time: datetime | None = None
         self._last_health_log_time: datetime | None = None
         self._stale_logged = False
+        self._reconnect_requested = False
         logger.debug("voice_sink.created: callback={}", on_transcript is not None)
 
     def wants_opus(self) -> bool:
@@ -357,13 +361,34 @@ class VoiceIngestSink(voice_recv.AudioSink):
                 len(self.worker.buffers),
             )
 
-    def _check_health(self) -> None:
-        """Check connection health and log warnings if stale."""
+    async def _check_health(self) -> None:
+        """Check connection health, log warnings if stale, and trigger reconnect."""
         if self._last_audio_time is None:
             return  # No audio received yet, nothing to check
 
         now = datetime.now()
         silence_seconds = (now - self._last_audio_time).total_seconds()
+
+        # Check if we should trigger a stale reconnect
+        if (
+            silence_seconds >= self.STALE_RECONNECT_THRESHOLD
+            and not self._reconnect_requested
+            and self.on_stale_reconnect is not None
+        ):
+            self._reconnect_requested = True
+            logger.warning(
+                "voice_sink.stale_reconnect: no audio for {:.0f}s, triggering "
+                "reconnect, frames_before_stale={}, last_audio={}",
+                silence_seconds,
+                self._frame_count,
+                self._last_audio_time.isoformat(),
+            )
+            # Trigger the reconnect callback
+            try:
+                await self.on_stale_reconnect()
+            except Exception as e:
+                logger.exception("voice_sink.stale_reconnect_error: {}", e)
+            return  # Don't continue health checks, we're reconnecting
 
         # Check if we should log a health warning
         if silence_seconds >= self.STALE_WARNING_THRESHOLD:
@@ -401,7 +426,7 @@ class VoiceIngestSink(voice_recv.AudioSink):
         while not self._stopped:
             try:
                 await asyncio.sleep(1.0)  # Check every second
-                self._check_health()
+                await self._check_health()
                 if self.worker.should_process():
                     await self._flush()
             except asyncio.CancelledError:
@@ -462,6 +487,7 @@ async def start_voice_ingest(
     stt: STT,
     on_transcript: Callable[[TranscriptEvent], Awaitable[None]] | None = None,
     on_disconnect: Callable[[Exception | None], None] | None = None,
+    on_stale_reconnect: Callable[[], Awaitable[None]] | None = None,
     detector: SpeechDetector | None = None,
     chunk_seconds: float = 7.5,
     idle_timeout_seconds: float = 3.0,
@@ -478,6 +504,10 @@ async def start_voice_ingest(
         on_transcript: Optional callback for transcript events.
         on_disconnect: Optional callback when audio stops (error or normal).
                       Used for reconnection logic. Receives the error or None.
+        on_stale_reconnect: Optional callback when audio has been stale too long.
+                           Called after 2 minutes of no audio to force reconnect.
+                           This handles "zombie" connections where the socket is alive
+                           but no audio is being received.
         detector: Optional speech detector override.
         chunk_seconds: Process buffer every N seconds (7.5s default).
         idle_timeout_seconds: Flush partial buffers after N seconds of no audio (3.0s default).
@@ -495,12 +525,14 @@ async def start_voice_ingest(
         debug_capture = DebugCapture.from_env()
 
     logger.debug(
-        "start_voice_ingest: client_type={}, stt={}, callback={}, debug={}, keepalive={}",
+        "start_voice_ingest: client_type={}, stt={}, callback={}, debug={}, keepalive={}, "
+        "stale_reconnect={}",
         type(voice_client).__name__,
         type(stt).__name__,
         on_transcript is not None,
         debug_capture.enabled if debug_capture else False,
         enable_keepalive,
+        on_stale_reconnect is not None,
     )
     worker = VoiceIngestWorker(
         stt=stt,
@@ -510,7 +542,9 @@ async def start_voice_ingest(
         max_silence_ms=max_silence_ms,
         debug_capture=debug_capture,
     )
-    sink = VoiceIngestSink(worker, on_transcript=on_transcript)
+    sink = VoiceIngestSink(
+        worker, on_transcript=on_transcript, on_stale_reconnect=on_stale_reconnect
+    )
 
     # Start listening with optional disconnect callback
     voice_client.listen(sink, after=on_disconnect)

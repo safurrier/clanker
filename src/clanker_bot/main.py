@@ -22,6 +22,7 @@ from .discord_adapter import VoiceSessionManager
 from .health import HealthState, create_health_app
 from .metrics import Metrics
 from .persistence import SqlFeedbackStore
+from .voice_actor import USE_VOICE_ACTOR, VoiceActor
 from .voice_ingest import TranscriptBuffer
 from .voice_resilience import VoiceReconnector
 
@@ -137,6 +138,7 @@ async def build_dependencies() -> BotDependencies:
         await feedback_store.initialize()
         logger.info("Feedback store initialized")
 
+    # Voice actor will be initialized in build_bot() where we have access to bot
     return BotDependencies(
         llm=llm,
         stt=stt,
@@ -149,14 +151,34 @@ async def build_dependencies() -> BotDependencies:
         admin_state=admin_state,
         transcript_buffer=transcript_buffer,
         feedback_store=feedback_store,
+        voice_actor=None,  # Set in build_bot() if USE_VOICE_ACTOR=1
     )
 
 
-def build_bot(deps: BotDependencies) -> ClankerClient:
-    """Create the Discord client and register commands."""
+def build_bot(deps: BotDependencies) -> tuple[ClankerClient, BotDependencies]:
+    """Create the Discord client and register commands.
+
+    Returns:
+        Tuple of (bot, updated_deps) - deps may have voice_actor set if enabled.
+    """
     intents = discord.Intents.default()
     intents.message_content = True  # Required for reading thread messages
     bot = ClankerClient(intents=intents)
+
+    # Initialize voice actor if enabled
+    voice_actor: VoiceActor | None = None
+    if USE_VOICE_ACTOR and deps.stt is not None:
+        voice_actor = VoiceActor(bot=bot, stt=deps.stt)
+        logger.info("Voice actor initialized (USE_VOICE_ACTOR=1)")
+    elif USE_VOICE_ACTOR:
+        logger.warning("USE_VOICE_ACTOR=1 but no STT provider, actor disabled")
+
+    # Update deps with actor if created
+    if voice_actor is not None:
+        from dataclasses import replace
+
+        deps = replace(deps, voice_actor=voice_actor)
+
     register_commands(bot, deps)
 
     # Import here to avoid circular imports
@@ -347,7 +369,7 @@ def build_bot(deps: BotDependencies) -> ClankerClient:
         """Handle voice state changes for auto-leave."""
         await vc_monitor.on_voice_state_update(member, before, after)
 
-    return bot
+    return bot, deps
 
 
 async def run_health_server(state: HealthState) -> None:
@@ -393,14 +415,30 @@ def main() -> None:
 
     async def runner() -> None:
         deps = await build_dependencies()
-        bot = build_bot(deps)
+        bot, deps = build_bot(deps)
+
+        # Start voice actor loop if enabled
+        voice_actor_task: asyncio.Task | None = None
+        if deps.voice_actor is not None:
+            voice_actor_task = asyncio.create_task(deps.voice_actor.run())
+            logger.info("Voice actor loop started")
+
         state = HealthState(
             started_at=time.time(),
             active_voice_provider=deps.voice_manager.is_busy,
             version="0.1.0",
         )
         await run_health_server(state)
-        await bot.start(token)
+
+        try:
+            await bot.start(token)
+        finally:
+            if voice_actor_task is not None:
+                voice_actor_task.cancel()
+                try:
+                    await voice_actor_task
+                except asyncio.CancelledError:
+                    pass
 
     asyncio.run(runner())
 
