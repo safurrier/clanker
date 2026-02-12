@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import click
 
 from ...providers.errors import PermanentProviderError, TransientProviderError
 from ...respond import respond
-from ..main import CliContext, build_cli_context, read_prompt
+from ..main import CliContext, build_cli_context, read_prompt, run_async
 from ..output import output_json, output_text, write_audio
 
 
@@ -19,7 +18,7 @@ from ..output import output_json, output_text, write_audio
 @click.pass_obj
 def chat(ctx: CliContext, prompt: str | None, use_json: bool) -> None:
     """Send a prompt to the LLM and print the response."""
-    asyncio.run(_chat(ctx, prompt, use_json))
+    run_async(_chat(ctx, prompt, use_json))
 
 
 async def _chat(ctx: CliContext, prompt: str | None, use_json: bool) -> None:
@@ -62,7 +61,7 @@ def speak(
     voice: str | None,
 ) -> None:
     """Send a prompt to the LLM and synthesize speech."""
-    asyncio.run(_speak(ctx, prompt, output_path, voice))
+    run_async(_speak(ctx, prompt, output_path, voice))
 
 
 async def _speak(

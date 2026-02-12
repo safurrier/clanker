@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
+from collections.abc import Coroutine
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, TypeVar
 
 import click
 
 from ..config import ClankerConfig, PersonaConfig, load_config
 from ..models import Context, Message, Persona
 from ..providers.factory import ProviderFactory
+
+_T = TypeVar("_T")
 
 
 @dataclass
@@ -71,6 +76,26 @@ def build_cli_context(persona: Persona, prompt: str) -> Context:
         messages=[Message(role="user", content=prompt)],
         metadata={"source": "cli"},
     )
+
+
+def run_async(coro: Coroutine[Any, Any, _T]) -> _T:
+    """Run an async coroutine, draining background tasks before exit.
+
+    ``respond()`` fires a background ``asyncio.create_task`` for replay
+    logging.  A bare ``asyncio.run()`` cancels pending tasks on shutdown,
+    producing noisy ``CancelledError`` tracebacks.  This wrapper gives
+    those tasks a chance to finish cleanly.
+    """
+
+    async def _wrapper() -> _T:
+        result = await coro
+        # Let fire-and-forget tasks (e.g. replay log) finish
+        pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+        return result
+
+    return asyncio.run(_wrapper())
 
 
 def read_prompt(prompt: str | None) -> str:

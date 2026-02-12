@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import io
 import wave
 from pathlib import Path
@@ -11,7 +10,7 @@ import click
 
 from ...providers.errors import PermanentProviderError, TransientProviderError
 from ...voice.vad import EnergyVAD, detect_speech_segments, resolve_detector
-from ..main import CliContext
+from ..main import CliContext, run_async
 from ..output import output_json, output_text
 
 
@@ -35,7 +34,7 @@ def transcribe(
     use_json: bool,
 ) -> None:
     """Transcribe an audio file (WAV)."""
-    asyncio.run(_transcribe(ctx, audio_file, vad, vad_type, use_json))
+    run_async(_transcribe(ctx, audio_file, vad, vad_type, use_json))
 
 
 async def _transcribe(

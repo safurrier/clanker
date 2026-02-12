@@ -11,7 +11,6 @@ import pytest
 from click.testing import CliRunner
 
 from clanker.cli.main import cli
-from clanker.models import Message
 from tests.fakes import FakeLLM, FakeSTT, FakeTTS
 
 
@@ -180,7 +179,6 @@ class TestTranscribe:
     @pytest.fixture()
     def wav_file(self, tmp_path: Path) -> Path:
         """Create a minimal mono 16-bit WAV file."""
-        import struct
         import wave
 
         path = tmp_path / "test.wav"
@@ -194,23 +192,15 @@ class TestTranscribe:
             wf.writeframes(samples)
         return path
 
-    def test_transcribe_basic(
-        self, runner: CliRunner, wav_file: Path
-    ) -> None:
-        p_llm, p_stt, p_tts = _patch_factory(
-            stt=FakeSTT(transcript="hello world")
-        )
+    def test_transcribe_basic(self, runner: CliRunner, wav_file: Path) -> None:
+        p_llm, p_stt, p_tts = _patch_factory(stt=FakeSTT(transcript="hello world"))
         with p_llm, p_stt, p_tts:
             result = runner.invoke(cli, ["transcribe", "--no-vad", str(wav_file)])
         assert result.exit_code == 0
         assert "hello world" in result.output
 
-    def test_transcribe_json(
-        self, runner: CliRunner, wav_file: Path
-    ) -> None:
-        p_llm, p_stt, p_tts = _patch_factory(
-            stt=FakeSTT(transcript="hello")
-        )
+    def test_transcribe_json(self, runner: CliRunner, wav_file: Path) -> None:
+        p_llm, p_stt, p_tts = _patch_factory(stt=FakeSTT(transcript="hello"))
         with p_llm, p_stt, p_tts:
             result = runner.invoke(
                 cli, ["transcribe", "--no-vad", "--json", str(wav_file)]
@@ -219,9 +209,7 @@ class TestTranscribe:
         data = json.loads(result.output)
         assert data["text"] == "hello"
 
-    def test_transcribe_with_vad(
-        self, runner: CliRunner, wav_file: Path
-    ) -> None:
+    def test_transcribe_with_vad(self, runner: CliRunner, wav_file: Path) -> None:
         p_llm, p_stt, p_tts = _patch_factory(stt=FakeSTT(transcript="vad"))
         with p_llm, p_stt, p_tts:
             result = runner.invoke(cli, ["transcribe", str(wav_file)])
@@ -240,7 +228,8 @@ class TestConfig:
     @pytest.fixture()
     def config_file(self, tmp_path: Path) -> Path:
         path = tmp_path / "config.yaml"
-        path.write_text(textwrap.dedent("""\
+        path.write_text(
+            textwrap.dedent("""\
             providers:
               llm: openai
               stt: openai
@@ -250,7 +239,8 @@ class TestConfig:
                 display_name: Test Bot
                 system_prompt: You are a test bot.
                 tts_voice: voice123
-        """))
+        """)
+        )
         return path
 
     def test_config_show(self, runner: CliRunner, config_file: Path) -> None:
@@ -263,9 +253,7 @@ class TestConfig:
         result = runner.invoke(cli, ["config", "show"])
         assert result.exit_code != 0
 
-    def test_config_personas(
-        self, runner: CliRunner, config_file: Path
-    ) -> None:
+    def test_config_personas(self, runner: CliRunner, config_file: Path) -> None:
         result = runner.invoke(
             cli, ["--config", str(config_file), "config", "personas"]
         )
@@ -273,9 +261,7 @@ class TestConfig:
         assert "test" in result.output
         assert "Test Bot" in result.output
 
-    def test_config_validate_valid(
-        self, runner: CliRunner, config_file: Path
-    ) -> None:
+    def test_config_validate_valid(self, runner: CliRunner, config_file: Path) -> None:
         with patch.dict(
             "os.environ",
             {"OPENAI_API_KEY": "test-key", "ELEVENLABS_API_KEY": "test-key"},
@@ -308,7 +294,8 @@ class TestTopLevel:
 
     def test_config_flag(self, runner: CliRunner, tmp_path: Path) -> None:
         cfg = tmp_path / "config.yaml"
-        cfg.write_text(textwrap.dedent("""\
+        cfg.write_text(
+            textwrap.dedent("""\
             providers:
               llm: openai
               stt: openai
@@ -317,17 +304,17 @@ class TestTopLevel:
               - id: custom
                 display_name: Custom
                 system_prompt: custom prompt
-        """))
+        """)
+        )
         p_llm, p_stt, p_tts = _patch_factory(FakeLLM(reply_text="ok"))
         with p_llm, p_stt, p_tts:
-            result = runner.invoke(
-                cli, ["--config", str(cfg), "chat", "hi"]
-            )
+            result = runner.invoke(cli, ["--config", str(cfg), "chat", "hi"])
         assert result.exit_code == 0
 
     def test_invalid_persona(self, runner: CliRunner, tmp_path: Path) -> None:
         cfg = tmp_path / "config.yaml"
-        cfg.write_text(textwrap.dedent("""\
+        cfg.write_text(
+            textwrap.dedent("""\
             providers:
               llm: openai
               stt: openai
@@ -336,7 +323,8 @@ class TestTopLevel:
               - id: alpha
                 display_name: Alpha
                 system_prompt: prompt
-        """))
+        """)
+        )
         result = runner.invoke(
             cli, ["--config", str(cfg), "--persona", "nope", "chat", "hi"]
         )

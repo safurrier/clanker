@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from urllib.parse import quote
 
 import click
@@ -18,7 +17,7 @@ from ...shitposts import (
     sample_meme_template,
     sample_template,
 )
-from ..main import CliContext, build_cli_context
+from ..main import CliContext, build_cli_context, run_async
 from ..output import output_json, output_text
 
 
@@ -53,7 +52,7 @@ def shitpost(
             for t in templates:
                 output_text(f"{t.name}  [{t.category}]")
         return
-    asyncio.run(_shitpost(ctx, topic, template_name, category, use_json))
+    run_async(_shitpost(ctx, topic, template_name, category, use_json))
 
 
 async def _shitpost(
@@ -129,7 +128,7 @@ def meme(
             for t in templates:
                 output_text(f"{t.template_id}  {t.variant}  (slots: {t.text_slots})")
         return
-    asyncio.run(_meme(ctx, topic, template_id, use_json))
+    run_async(_meme(ctx, topic, template_id, use_json))
 
 
 async def _meme(
