@@ -448,3 +448,158 @@ Tests implemented in `tests/test_voice_to_meme.py`:
 ### VC Features (Future)
 * **VC monitoring nudge**: Add a Cog to listen to VC channels in guild. When 2+ people present, send a View to start listening/join. Auto-dismiss after 5 minutes
 * **Auto leave**: When no users present, leave/end the voice call
+
+---
+
+## Voice Connection Refactoring: Actor Model
+
+**Status**: ✅ Implemented (behind feature flag `USE_VOICE_ACTOR=1`)
+
+**Implementation Details**:
+- `src/clanker_bot/voice_actor.py` (~660 LOC) - Full actor implementation with message types, VoiceStatus enum, VoiceActorSink adapter
+- `tests/test_voice_actor.py` (~580 LOC, 56 tests) - Comprehensive test coverage
+- Integrated with command handlers (`handle_join`, `handle_leave`)
+- Feature flag for gradual rollout: `USE_VOICE_ACTOR=1`
+
+**Remaining Work**:
+- Testing in production environment
+- Monitor for edge cases and race conditions
+- Once stable, deprecate old `voice_ingest.py`/`voice_resilience.py` code
+
+### Problem
+
+The current voice management code is spread across 4 files (~790 LOC) with complex callback chains:
+
+- `voice_ingest.py` - `VoiceIngestWorker`, `VoiceIngestSink`, `VoiceIngestSession`
+- `voice_resilience.py` - `VoiceKeepalive`, `VoiceReconnector`, `create_reconnect_handler`
+- `discord_adapter.py` - `VoiceSessionManager`, `VoiceSessionState`
+- `command_handlers/voice.py` - `_setup_transcription`, disconnect/stale handlers
+
+State is scattered across multiple objects, making it hard to answer "what state are we in?" The callback chain for reconnection loops through 6+ functions across files.
+
+### Proposed Solution: Actor Model
+
+Refactor to a single `VoiceActor` class that:
+
+1. **Owns all state** in one place (status, guild_id, channel_id, buffers, etc.)
+2. **Processes messages sequentially** via `asyncio.Queue` (no race conditions)
+3. **Eliminates callbacks** — everything is a message (`JoinRequest`, `AudioReceived`, `StaleTimeout`, etc.)
+4. **Handles thread boundary naturally** — `Queue.put_nowait()` is thread-safe for `voice_recv.write()`
+
+### Why Actor Model over State Machine
+
+Both patterns were considered. Actor model wins for this use case because:
+
+| Aspect | State Machine | Actor Model |
+|--------|--------------|-------------|
+| Thread safety | Need locks or `run_coroutine_threadsafe` | `Queue.put_nowait` just works |
+| Testing | Call private methods or mock timers | Post messages directly to inbox |
+| Debugging | Correlate logs across methods | Message *is* the log |
+| Conceptual fit | Better for UI/game loops | Better for event-driven I/O (Discord) |
+
+### Message Types
+
+```python
+@dataclass(frozen=True)
+class JoinRequest:
+    channel_id: int
+    guild_id: int
+    response_queue: asyncio.Queue[JoinResult]
+
+@dataclass(frozen=True)
+class LeaveRequest:
+    response_queue: asyncio.Queue[LeaveResult]
+
+@dataclass(frozen=True)
+class AudioReceived:
+    user_id: int
+    pcm_bytes: bytes
+    timestamp: datetime
+
+@dataclass(frozen=True)
+class StaleTimeout:
+    silence_seconds: float
+
+@dataclass(frozen=True)
+class DisconnectDetected:
+    error: Exception | None
+
+@dataclass(frozen=True)
+class ReconnectAttempt:
+    attempt: int
+
+@dataclass(frozen=True)
+class SendKeepalive:
+    pass
+
+@dataclass(frozen=True)
+class ProcessBuffers:
+    pass
+```
+
+### Actor Structure
+
+```python
+class VoiceActor:
+    def __init__(self, bot: discord.Client, stt: STT) -> None:
+        self._inbox: asyncio.Queue[VoiceMessage] = asyncio.Queue()
+        # All state in one place
+        self._status: VoiceStatus = VoiceStatus.Disconnected
+        self._guild_id: int | None = None
+        self._channel_id: int | None = None
+        self._voice_client: discord.VoiceClient | None = None
+        self._audio_buffers: dict[int, bytearray] = {}
+        self._last_audio_time: datetime | None = None
+        self._reconnect_attempt: int = 0
+
+    async def join(self, channel_id: int, guild_id: int) -> JoinResult:
+        """Public API — posts message, waits for response."""
+        response_queue: asyncio.Queue[JoinResult] = asyncio.Queue()
+        await self._inbox.put(JoinRequest(channel_id, guild_id, response_queue))
+        return await response_queue.get()
+
+    def post_audio(self, user_id: int, pcm: bytes) -> None:
+        """Called from voice_recv thread — thread-safe."""
+        self._inbox.put_nowait(AudioReceived(user_id, pcm, datetime.now()))
+
+    async def run(self) -> None:
+        """Main loop — processes one message at a time."""
+        async for msg in self._iter_inbox():
+            await self._handle(msg)
+
+    async def _handle(self, msg: VoiceMessage) -> None:
+        logger.info("voice.msg: status={}, msg={}", self._status, type(msg).__name__)
+        match msg:
+            case JoinRequest(): ...
+            case LeaveRequest(): ...
+            case AudioReceived(): ...
+            case StaleTimeout(): ...
+            case DisconnectDetected(): ...
+            case ReconnectAttempt(): ...
+            case SendKeepalive(): ...
+            case ProcessBuffers(): ...
+```
+
+### Benefits
+
+1. **Single log point captures everything** — message queue is the audit log
+2. **Testing is straightforward** — post messages, assert state
+3. **Reconnect flow is explicit** — each attempt is a `ReconnectAttempt` message
+4. **Message history for debugging** — can keep last N messages for post-mortem
+5. **Natural fit for Discord** — already event-driven, this aligns with that model
+
+### File Structure After Refactor
+
+```
+voice_actor.py (~400 LOC)     - VoiceActor, VoiceStatus, message types
+voice_sink.py (~100 LOC)      - Thin adapter that posts to actor's queue
+transcript_buffer.py (~80 LOC) - TranscriptBuffer (unchanged)
+command_handlers/voice.py (~80 LOC) - Simplified: just calls actor.join()/leave()
+```
+
+### Implementation Notes
+
+- Start with a parallel implementation alongside existing code
+- Add feature flag to switch between old/new implementations
+- Migrate one path at a time (join → leave → reconnect → stale detection)
+- Remove old code once new implementation is stable
