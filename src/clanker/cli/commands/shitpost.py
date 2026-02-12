@@ -158,7 +158,7 @@ async def _meme(
     except (TransientProviderError, PermanentProviderError) as exc:
         raise click.ClickException(str(exc)) from exc
 
-    encoded = "/".join(quote(line) for line in lines)
+    encoded = "/".join(quote(line, safe="") for line in lines)
     url = f"https://api.memegen.link/images/{template.template_id}/{encoded}.png"
 
     if use_json:

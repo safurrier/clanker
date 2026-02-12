@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import wave
 from pathlib import Path
 
@@ -74,10 +75,10 @@ async def _transcribe(
             else:
                 output_text("(no speech detected)")
             return
-        audio_to_transcribe = speech_audio
+        audio_to_transcribe = _pcm_to_wav(speech_audio, sample_rate)
     else:
         segments = []
-        audio_to_transcribe = pcm_bytes
+        audio_to_transcribe = _pcm_to_wav(pcm_bytes, sample_rate)
 
     try:
         text = await stt.transcribe(audio_to_transcribe, sample_rate_hz=sample_rate)
@@ -108,3 +109,14 @@ def _read_wav(path: Path) -> tuple[bytes, int]:
         sample_rate = wf.getframerate()
         pcm_bytes = wf.readframes(wf.getnframes())
     return pcm_bytes, sample_rate
+
+
+def _pcm_to_wav(pcm_bytes: bytes, sample_rate: int) -> bytes:
+    """Wrap raw PCM bytes in a WAV container (mono 16-bit)."""
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm_bytes)
+    return buf.getvalue()
