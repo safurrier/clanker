@@ -12,9 +12,9 @@ from typing import Any, TypeVar
 
 import click
 
-from ..config import ClankerConfig, PersonaConfig, load_config
-from ..models import Context, Message, Persona
-from ..providers.factory import ProviderFactory
+from clanker.config import ClankerConfig, PersonaConfig, load_config
+from clanker.models import Context, Message, Persona
+from clanker.providers.factory import ProviderFactory
 
 _T = TypeVar("_T")
 

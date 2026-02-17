@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from clanker.cli.main import cli
+from clanker_cli.main import cli
 
 pytestmark = pytest.mark.network
 

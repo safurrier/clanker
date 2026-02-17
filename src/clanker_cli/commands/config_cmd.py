@@ -7,9 +7,9 @@ from pathlib import Path
 import click
 import yaml
 
-from ...config import load_config
-from ..main import CliContext
-from ..output import output_text
+from clanker.config import load_config
+from clanker_cli.main import CliContext
+from clanker_cli.output import output_text
 
 
 @click.group("config")
@@ -55,7 +55,7 @@ def validate(path: Path) -> None:
     except (ValueError, yaml.YAMLError) as exc:
         raise click.ClickException(f"Invalid config: {exc}") from exc
 
-    from ...providers.factory import ProviderFactory
+    from clanker.providers.factory import ProviderFactory
 
     factory = ProviderFactory()
     try:

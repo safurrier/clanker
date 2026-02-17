@@ -6,8 +6,8 @@ from urllib.parse import quote
 
 import click
 
-from ...providers.errors import PermanentProviderError, TransientProviderError
-from ...shitposts import (
+from clanker.providers.errors import PermanentProviderError, TransientProviderError
+from clanker.shitposts import (
     ShitpostContext,
     build_request,
     load_meme_templates,
@@ -17,8 +17,8 @@ from ...shitposts import (
     sample_meme_template,
     sample_template,
 )
-from ..main import CliContext, build_cli_context, run_async
-from ..output import output_json, output_text
+from clanker_cli.main import CliContext, build_cli_context, run_async
+from clanker_cli.output import output_json, output_text
 
 
 @click.command()

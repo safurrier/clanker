@@ -8,10 +8,10 @@ from pathlib import Path
 
 import click
 
-from ...providers.errors import PermanentProviderError, TransientProviderError
-from ...voice.vad import EnergyVAD, detect_speech_segments, resolve_detector
-from ..main import CliContext, run_async
-from ..output import output_json, output_text
+from clanker.providers.errors import PermanentProviderError, TransientProviderError
+from clanker.voice.vad import EnergyVAD, detect_speech_segments, resolve_detector
+from clanker_cli.main import CliContext, run_async
+from clanker_cli.output import output_json, output_text
 
 
 @click.command()

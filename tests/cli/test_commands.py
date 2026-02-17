@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from clanker.cli.main import cli
+from clanker_cli.main import cli
 from tests.fakes import FakeLLM, FakeSTT, FakeTTS
 
 

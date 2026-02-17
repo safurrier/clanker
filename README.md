@@ -175,9 +175,6 @@ default_persona: clanker
 ```
 src/
   clanker/                  # Core SDK (no Discord dependencies)
-    cli/                    # Click-based CLI
-      commands/             # chat, speak, transcribe, shitpost, meme, config
-      main.py               # CLI entry point and shared context
     config/                 # Configuration loading (YAML)
     providers/              # Pluggable provider adapters
       openai/               # LLM (GPT) and STT (Whisper)
@@ -195,6 +192,10 @@ src/
       debug/                # Debug capture system
     models.py               # Domain models (Context, Persona, Message)
     respond.py              # Core response orchestration
+
+  clanker_cli/              # Click-based CLI (consumes SDK)
+    commands/               # chat, speak, transcribe, shitpost, meme, config
+    main.py                 # CLI entry point and shared context
 
   clanker_bot/              # Discord bot host
     command_handlers/       # /chat, /speak, /shitpost, /join, /leave, etc.

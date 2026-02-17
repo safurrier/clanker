@@ -6,10 +6,10 @@ from pathlib import Path
 
 import click
 
-from ...providers.errors import PermanentProviderError, TransientProviderError
-from ...respond import respond
-from ..main import CliContext, build_cli_context, read_prompt, run_async
-from ..output import output_json, output_text, write_audio
+from clanker.providers.errors import PermanentProviderError, TransientProviderError
+from clanker.respond import respond
+from clanker_cli.main import CliContext, build_cli_context, read_prompt, run_async
+from clanker_cli.output import output_json, output_text, write_audio
 
 
 @click.command()
@@ -75,7 +75,7 @@ async def _speak(
     # If a voice override is provided, swap it into the persona
     persona = ctx.persona
     if voice:
-        from ...models import Persona
+        from clanker.models import Persona
 
         persona = Persona(
             id=persona.id,
