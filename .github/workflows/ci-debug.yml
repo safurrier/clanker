@@ -1,0 +1,44 @@
+name: CI Debug (Local Testing)
+
+# This workflow is designed for fast local iteration with act
+# It runs a subset of checks for quick feedback
+#
+# Usage: make ci-debug
+#
+# Customize the steps below for the specific tests you're working on
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  quick-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv sync --all-extras
+
+      # Customize these steps based on what you're debugging
+      - name: Run Linter
+        run: uv run -m ruff check src
+
+      - name: Run Type Checker
+        run: uv run ty check src
+
+      # Add more steps as needed for debugging
+      # - name: Run Specific Test
+      #   run: uv run -m pytest tests/test_specific.py -v

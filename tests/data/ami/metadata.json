@@ -1,0 +1,41 @@
+{
+  "source": "AMI Corpus",
+  "meeting_id": "ES2002a",
+  "url": "https://groups.inf.ed.ac.uk/ami/download/",
+  "speakers": [
+    {
+      "speaker": "A",
+      "speaker_index": 0,
+      "wav_file": "ES2002a.Headset-0.wav",
+      "pcm_file": "ES2002a_speaker_A.pcm",
+      "sample_rate": 16000
+    },
+    {
+      "speaker": "B",
+      "speaker_index": 1,
+      "wav_file": "ES2002a.Headset-1.wav",
+      "pcm_file": "ES2002a_speaker_B.pcm",
+      "sample_rate": 16000
+    },
+    {
+      "speaker": "C",
+      "speaker_index": 2,
+      "wav_file": "ES2002a.Headset-2.wav",
+      "pcm_file": "ES2002a_speaker_C.pcm",
+      "sample_rate": 16000
+    },
+    {
+      "speaker": "D",
+      "speaker_index": 3,
+      "wav_file": "ES2002a.Headset-3.wav",
+      "pcm_file": "ES2002a_speaker_D.pcm",
+      "sample_rate": 16000
+    }
+  ],
+  "download_instructions": [
+    "1. Register at https://groups.inf.ed.ac.uk/ami/download/",
+    "2. Download ES2002a headset audio files",
+    "3. Extract to tests/data/ami/",
+    "4. Download corresponding word-level transcripts"
+  ]
+}

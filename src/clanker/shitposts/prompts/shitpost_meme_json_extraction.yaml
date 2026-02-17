@@ -1,0 +1,92 @@
+_type: prompt
+input_variables:
+  ["context"]
+template:
+  |
+  Act as an expert in internet culture, shitposting, memes, and humor. You are a master of the internet and the absurd.
+
+  Here is some context on a particular Meme:
+  \n\n
+  {context}
+  \n\n
+  Task:
+  Extract relevant information about the meme into a structured format.
+
+  Steps:
+
+  1) Read through the following sections: Origin, Spread, Examples
+  2) Parse any included examples from images
+    * Often times the actual meme text is in ALL CAPS
+    * You will need to use context to separate out the ALL CAPS meme text from extraneous information
+    * Some ALL CAPS text may need to be split into 2 sections or have combined words separated
+    * If the meme text is nsfw (e.g. includes NSFW content, inapropriate language, etc) then ignore this meme text and
+    do not add it to potential examples
+
+    Examples:
+
+    Input: 'Title: Atrapitis.gif, Alt Text: ITS A TRAP'
+    * Irrelvant information from the title Atrapitis.gif
+    * All caps ITS A TRAP from the alt text infers this is the meme text
+    Output: ['', 'ITS A TRAP']
+
+    Input: Title: 9148130.jpg, Alt Text: I DON'T KNOW THEREFORE ALIENS memegenerator.net
+    * Irrelvant information from the title 9148130.jpg and the end of the alt text memegenerator.net
+    * All caps I DON'T KNOW THEREFORE ALIENS from the alt text infers this is the meme text
+    Output: ['', 'I DON'T KNOW THEREFORE ALIENS']
+
+    Input: Title: Front Page Awkward Seal, Alt Text: WHEN YOU'RE THE CASHIER ANDTWO PEOPLE ARE ARGUINGOVER WHOPAYS"
+    * Irrelvant information from the title Front Page Awkward Seal
+    * All caps WHEN YOU'RE THE CASHIER is a good place to separate the meme text from the rest of the alt text
+    * ANDTWO PEOPLE ARE ARGUINGOVER WHOPAYS from the alt text needs to be corrected with certain words split for understanding to AND TWO PEOPLE ARE ARGUING OVER WHO PAYS
+    Output: ['WHEN YOU'RE THE CASHIER', 'AND TWO PEOPLE ARE ARGUING OVER WHO PAYS']
+
+  3) Parse the key information into the supplied format:
+    * template_id
+      * This is supplied in the meme context
+    * variant
+      * This is the name of the meme
+    * variant_description
+      * This is the description of the meme
+        * A good description should cover
+          * What the meme content is
+          * The context the meme is used in
+          * The structure of the meme joke
+    * examples
+      * This is the meme text separated into sections that would be added to the meme. Most often this will be 1-2 text lines, but this is largely dependent on the meme.
+    * reference
+      * The URL link to the knowyourmeme.com page for the meme
+    * potentially_nsfw
+      * If the meme may not be appropriate for a work settings
+    * do_not_use
+      * Fill this in based on potentially_nsfw
+
+  The following are examples of structured extracted information for memes:
+
+  {{
+    template_id='aag',
+    variant='Ancient Aliens Guy',
+    variant_description='A meme featuring the Ancient Aliens guy from the History Channel. Ancient Aliens is a series of image macros based on the History Channel TV series with the same name starring alien expert Giorgio A. Tsoukalos, who often tends to explain inexplicable phenomena as the direct result of aliens or extraterrestrials being on Earth. In a somewhat similar fashion to Bill OReillys You Cannot Explain That series, the Ancient Aliens macros exaggerate his beliefs to such an extent that they become humourous.',
+    examples=[
+        ["I don't know", "Therefore Aliens"],
+        ["Avatar", "Based on a True Story"],
+        ["I'm not saying it was aliens", "But it was aliens"],
+    ],
+    applicable_context='Used when discussing inexplicable or mysterious events or phenomena.',
+    reference='http://knowyourmeme.com/memes/ancient-aliens',
+  }}
+
+  {{
+    template_id='afraid',
+    variant='Afraid to Ask Andy',
+    variant_description='Featuring Andy Dwyer from "Parks and Recreation," this meme is used to humorously express ignorance or confusion about a topic, followed by "…and at this point I’m afraid to ask.” Popular since 2014, it is often adapted to various topics expressing confusion or ignorance.',
+    examples=[
+        ["I don't know what this meme is for", "and at this point I'm too afraid to ask"],
+        ["I don’t know what GamerGate is", "And at this point I’m too afraid to ask"],
+        ["Don't know what net neutrality is", "And at this point I'm too afraid to ask"],
+        ["Don't know if we hate Nicolas Cage or love him", "And at this point I'm too afraid to ask"]
+    ],
+    applicable_context='Used when expressing ignorance or confusion about a complex or confusing topic.',
+    reference='https://knowyourmeme.com/memes/afraid-to-ask-andy',
+  }}
+
+  Given the context, complete the selected task.

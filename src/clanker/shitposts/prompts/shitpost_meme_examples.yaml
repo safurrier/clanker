@@ -1,0 +1,27 @@
+_type: prompt
+input_variables:
+  ["context", "additional_prompt_instructions"]
+template:
+  |
+  Here is the meme concept based on the following:
+
+  {context}
+
+  Pay particular attention to the Know Your Meme URL which has rich context on the meme:
+
+  As an expert in memes, internet culture, and humor, create 5 unique and engaging meme examples using the following format for each provided. The memes can have different formats, thus requiring varying numbers of text elements. Here's how to structure the meme texts for different scenarios:
+
+  For a meme with a single text element:
+  [["Text 1a"], ["Text 2a"], ..., ["Text 5a"]]
+
+  For a meme with two text elements:
+  [["Text 1a", "Text 1b"], ["Text 2a", "Text 2b"], ..., ["Text 5a", "Text 5b"]]
+
+  For a meme with three text elements:
+  [["Text 1a", "Text 1b", "Text 1c"], ["Text 2a", "Text 2b", "Text 2c"], ..., ["Text 5a", "Text 5b", "Text 5c"]]
+
+  (And so on for memes with more text elements such as 4, 5, 6, etc.)
+
+  Craft each set of texts to be humorous and engaging, showcasing your deep understanding of meme culture and humor. The content should be suitable for a broad audience, avoiding sensitive or offensive topics, and designed to elicit laughter and amusement.
+
+  {additional_prompt_instructions}

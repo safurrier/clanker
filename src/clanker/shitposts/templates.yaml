@@ -1,0 +1,16 @@
+- name: one_liner
+  category: quip
+  prompt: "Write a single snappy line about {topic}."
+  tags: ["short", "quip"]
+- name: haiku
+  category: poetry
+  prompt: "Write a haiku about {topic}."
+  tags: ["haiku", "poetry"]
+- name: mini_play
+  category: theater
+  prompt: "Write a 4-line play about {topic}."
+  tags: ["play", "dialogue"]
+- name: meme_caption
+  category: meme
+  prompt: "Write a meme caption for {topic} in two lines."
+  tags: ["meme", "caption"]

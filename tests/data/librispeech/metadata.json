@@ -1,0 +1,35 @@
+{
+  "source": "LibriSpeech test-clean",
+  "url": "https://www.openslr.org/12",
+  "samples": [
+    {
+      "id": "1089-134686-0000",
+      "speaker_id": "1089",
+      "flac_file": "1089-134686-0000.flac",
+      "pcm_file": "1089-134686-0000.pcm",
+      "transcript": "HE HOPED THERE WOULD BE STEW FOR DINNER TURNIPS AND CARROTS AND BRUISED POTATOES AND FAT MUTTON PIECES TO BE LADLED OUT IN THICK PEPPERED FLOUR FATTENED SAUCE",
+      "sample_rate": 16000
+    },
+    {
+      "id": "1089-134686-0001",
+      "speaker_id": "1089",
+      "flac_file": "1089-134686-0001.flac",
+      "pcm_file": "1089-134686-0001.pcm",
+      "transcript": "STUFF IT INTO YOU HIS BELLY COUNSELLED HIM",
+      "sample_rate": 16000
+    },
+    {
+      "id": "1089-134686-0002",
+      "speaker_id": "1089",
+      "flac_file": "1089-134686-0002.flac",
+      "pcm_file": "1089-134686-0002.pcm",
+      "transcript": "AFTER EARLY NIGHTFALL THE YELLOW LAMPS WOULD LIGHT UP HERE AND THERE THE SQUALID QUARTER OF THE BROTHELS",
+      "sample_rate": 16000
+    }
+  ],
+  "download_instructions": [
+    "1. Download test-clean.tar.gz from https://www.openslr.org/12",
+    "2. Extract to tests/data/librispeech/",
+    "3. Run: python scripts/download_test_audio.py --extract-librispeech"
+  ]
+}

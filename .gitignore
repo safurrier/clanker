@@ -1,0 +1,55 @@
+.DS_Store
+.idea/
+.venv/
+_build/
+notebooks/
+setup
+conf.py
+index.rst
+.coverage
+*.pyc
+setup_mac.sh
+docker/.env
+.vs_code/*
+.mypy_cache/*
+.pytest_cache/*
+.ruff_cache/*
+.aider*
+
+# Documentation build artifacts
+site/
+.cache/
+
+# AI/planning artifacts
+.ai/**
+
+# act (GitHub Actions local runner)
+.actrc.local
+.secrets
+.env.act
+
+# Runtime artifacts
+replay_log.jsonl
+voice_debug/
+
+# Test audio data (large files, download via make download-test-audio)
+tests/data/librispeech/*.flac
+tests/data/librispeech/*.pcm
+tests/data/librispeech/*.wav
+tests/data/ami/*.wav
+tests/data/ami/*.pcm
+# Keep metadata files
+!tests/data/librispeech/metadata.json
+!tests/data/ami/metadata.json
+.mcp.json
+PROGRESS.md
+docker/dev.env
+.coverage.*
+logs/
+
+# Local scratch/spike work
+scratch/
+
+# Ephemeral artifacts
+*.patch
+meme.txt
