@@ -1898,6 +1898,166 @@
 <li><strong>VC monitoring nudge</strong>: Add a Cog to listen to VC channels in guild. When 2+ people present, send a View to start listening/join. Auto-dismiss after 5 minutes</li>
 <li><strong>Auto leave</strong>: When no users present, leave/end the voice call</li>
 </ul>
+<hr />
+<h2 id="voice-connection-refactoring-actor-model">Voice Connection Refactoring: Actor Model<a class="headerlink" href="#voice-connection-refactoring-actor-model" title="Permanent link">&para;</a></h2>
+<p><strong>Status</strong>: ✅ Implemented (behind feature flag <code>USE_VOICE_ACTOR=1</code>)</p>
+<p><strong>Implementation Details</strong>:
+- <code>src/clanker_bot/voice_actor.py</code> (~660 LOC) - Full actor implementation with message types, VoiceStatus enum, VoiceActorSink adapter
+- <code>tests/test_voice_actor.py</code> (~580 LOC, 56 tests) - Comprehensive test coverage
+- Integrated with command handlers (<code>handle_join</code>, <code>handle_leave</code>)
+- Feature flag for gradual rollout: <code>USE_VOICE_ACTOR=1</code></p>
+<p><strong>Remaining Work</strong>:
+- Testing in production environment
+- Monitor for edge cases and race conditions
+- Once stable, deprecate old <code>voice_ingest.py</code>/<code>voice_resilience.py</code> code</p>
+<h3 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">&para;</a></h3>
+<p>The current voice management code is spread across 4 files (~790 LOC) with complex callback chains:</p>
+<ul>
+<li><code>voice_ingest.py</code> - <code>VoiceIngestWorker</code>, <code>VoiceIngestSink</code>, <code>VoiceIngestSession</code></li>
+<li><code>voice_resilience.py</code> - <code>VoiceKeepalive</code>, <code>VoiceReconnector</code>, <code>create_reconnect_handler</code></li>
+<li><code>discord_adapter.py</code> - <code>VoiceSessionManager</code>, <code>VoiceSessionState</code></li>
+<li><code>command_handlers/voice.py</code> - <code>_setup_transcription</code>, disconnect/stale handlers</li>
+</ul>
+<p>State is scattered across multiple objects, making it hard to answer "what state are we in?" The callback chain for reconnection loops through 6+ functions across files.</p>
+<h3 id="proposed-solution-actor-model">Proposed Solution: Actor Model<a class="headerlink" href="#proposed-solution-actor-model" title="Permanent link">&para;</a></h3>
+<p>Refactor to a single <code>VoiceActor</code> class that:</p>
+<ol>
+<li><strong>Owns all state</strong> in one place (status, guild_id, channel_id, buffers, etc.)</li>
+<li><strong>Processes messages sequentially</strong> via <code>asyncio.Queue</code> (no race conditions)</li>
+<li><strong>Eliminates callbacks</strong> — everything is a message (<code>JoinRequest</code>, <code>AudioReceived</code>, <code>StaleTimeout</code>, etc.)</li>
+<li><strong>Handles thread boundary naturally</strong> — <code>Queue.put_nowait()</code> is thread-safe for <code>voice_recv.write()</code></li>
+</ol>
+<h3 id="why-actor-model-over-state-machine">Why Actor Model over State Machine<a class="headerlink" href="#why-actor-model-over-state-machine" title="Permanent link">&para;</a></h3>
+<p>Both patterns were considered. Actor model wins for this use case because:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>State Machine</th>
+<th>Actor Model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Thread safety</td>
+<td>Need locks or <code>run_coroutine_threadsafe</code></td>
+<td><code>Queue.put_nowait</code> just works</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>Call private methods or mock timers</td>
+<td>Post messages directly to inbox</td>
+</tr>
+<tr>
+<td>Debugging</td>
+<td>Correlate logs across methods</td>
+<td>Message <em>is</em> the log</td>
+</tr>
+<tr>
+<td>Conceptual fit</td>
+<td>Better for UI/game loops</td>
+<td>Better for event-driven I/O (Discord)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="message-types">Message Types<a class="headerlink" href="#message-types" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">JoinRequest</span><span class="p">:</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">channel_id</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">guild_id</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">response_queue</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="n">JoinResult</span><span class="p">]</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">LeaveRequest</span><span class="p">:</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">response_queue</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="n">LeaveResult</span><span class="p">]</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">AudioReceived</span><span class="p">:</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>    <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    <span class="n">pcm_bytes</span><span class="p">:</span> <span class="nb">bytes</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="k">class</span><span class="w"> </span><span class="nc">StaleTimeout</span><span class="p">:</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>    <span class="n">silence_seconds</span><span class="p">:</span> <span class="nb">float</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="k">class</span><span class="w"> </span><span class="nc">DisconnectDetected</span><span class="p">:</span>
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>    <span class="n">error</span><span class="p">:</span> <span class="ne">Exception</span> <span class="o">|</span> <span class="kc">None</span>
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="k">class</span><span class="w"> </span><span class="nc">ReconnectAttempt</span><span class="p">:</span>
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>    <span class="n">attempt</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="k">class</span><span class="w"> </span><span class="nc">SendKeepalive</span><span class="p">:</span>
+<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a>    <span class="k">pass</span>
+<a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a>
+<a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a><span class="k">class</span><span class="w"> </span><span class="nc">ProcessBuffers</span><span class="p">:</span>
+<a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a>    <span class="k">pass</span>
+</code></pre></div>
+<h3 id="actor-structure">Actor Structure<a class="headerlink" href="#actor-structure" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">VoiceActor</span><span class="p">:</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bot</span><span class="p">:</span> <span class="n">discord</span><span class="o">.</span><span class="n">Client</span><span class="p">,</span> <span class="n">stt</span><span class="p">:</span> <span class="n">STT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_inbox</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="n">VoiceMessage</span><span class="p">]</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        <span class="c1"># All state in one place</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_status</span><span class="p">:</span> <span class="n">VoiceStatus</span> <span class="o">=</span> <span class="n">VoiceStatus</span><span class="o">.</span><span class="n">Disconnected</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_guild_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_channel_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_voice_client</span><span class="p">:</span> <span class="n">discord</span><span class="o">.</span><span class="n">VoiceClient</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_audio_buffers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_last_audio_time</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_reconnect_attempt</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">guild_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JoinResult</span><span class="p">:</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Public API — posts message, waits for response.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>        <span class="n">response_queue</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="n">JoinResult</span><span class="p">]</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inbox</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">JoinRequest</span><span class="p">(</span><span class="n">channel_id</span><span class="p">,</span> <span class="n">guild_id</span><span class="p">,</span> <span class="n">response_queue</span><span class="p">))</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>        <span class="k">return</span> <span class="k">await</span> <span class="n">response_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">post_audio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pcm</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Called from voice_recv thread — thread-safe.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_inbox</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="n">AudioReceived</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">pcm</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()))</span>
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Main loop — processes one message at a time.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>        <span class="k">async</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_inbox</span><span class="p">():</span>
+<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>
+<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">VoiceMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;voice.msg: status=</span><span class="si">{}</span><span class="s2">, msg=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+<a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>        <span class="k">match</span> <span class="n">msg</span><span class="p">:</span>
+<a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>            <span class="k">case</span> <span class="n">JoinRequest</span><span class="p">():</span> <span class="o">...</span>
+<a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>            <span class="k">case</span> <span class="n">LeaveRequest</span><span class="p">():</span> <span class="o">...</span>
+<a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>            <span class="k">case</span> <span class="n">AudioReceived</span><span class="p">():</span> <span class="o">...</span>
+<a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a>            <span class="k">case</span> <span class="n">StaleTimeout</span><span class="p">():</span> <span class="o">...</span>
+<a id="__codelineno-12-35" name="__codelineno-12-35" href="#__codelineno-12-35"></a>            <span class="k">case</span> <span class="n">DisconnectDetected</span><span class="p">():</span> <span class="o">...</span>
+<a id="__codelineno-12-36" name="__codelineno-12-36" href="#__codelineno-12-36"></a>            <span class="k">case</span> <span class="n">ReconnectAttempt</span><span class="p">():</span> <span class="o">...</span>
+<a id="__codelineno-12-37" name="__codelineno-12-37" href="#__codelineno-12-37"></a>            <span class="k">case</span> <span class="n">SendKeepalive</span><span class="p">():</span> <span class="o">...</span>
+<a id="__codelineno-12-38" name="__codelineno-12-38" href="#__codelineno-12-38"></a>            <span class="k">case</span> <span class="n">ProcessBuffers</span><span class="p">():</span> <span class="o">...</span>
+</code></pre></div>
+<h3 id="benefits">Benefits<a class="headerlink" href="#benefits" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Single log point captures everything</strong> — message queue is the audit log</li>
+<li><strong>Testing is straightforward</strong> — post messages, assert state</li>
+<li><strong>Reconnect flow is explicit</strong> — each attempt is a <code>ReconnectAttempt</code> message</li>
+<li><strong>Message history for debugging</strong> — can keep last N messages for post-mortem</li>
+<li><strong>Natural fit for Discord</strong> — already event-driven, this aligns with that model</li>
+</ol>
+<h3 id="file-structure-after-refactor">File Structure After Refactor<a class="headerlink" href="#file-structure-after-refactor" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>voice_actor.py (~400 LOC)     - VoiceActor, VoiceStatus, message types
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>voice_sink.py (~100 LOC)      - Thin adapter that posts to actor&#39;s queue
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>transcript_buffer.py (~80 LOC) - TranscriptBuffer (unchanged)
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>command_handlers/voice.py (~80 LOC) - Simplified: just calls actor.join()/leave()
+</code></pre></div>
+<h3 id="implementation-notes">Implementation Notes<a class="headerlink" href="#implementation-notes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Start with a parallel implementation alongside existing code</li>
+<li>Add feature flag to switch between old/new implementations</li>
+<li>Migrate one path at a time (join → leave → reconnect → stale detection)</li>
+<li>Remove old code once new implementation is stable</li>
+</ul>
 
 
 
