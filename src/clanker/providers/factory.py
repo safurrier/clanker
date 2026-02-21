@@ -7,6 +7,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import TypeVar
 
+from .anthropic import AnthropicLLM
 from .base import LLM, STT, TTS, ImageGen
 from .elevenlabs import ElevenLabsTTS
 from .memegen import MemegenImage
@@ -32,6 +33,9 @@ class ProviderFactory:
     def __init__(self) -> None:
         self._llm_registry: dict[str, Callable[[], LLM]] = {
             "openai": lambda: OpenAILLM(api_key=_require_env("OPENAI_API_KEY")),
+            "anthropic": lambda: AnthropicLLM(
+                api_key=_require_env("ANTHROPIC_API_KEY")
+            ),
         }
         self._stt_registry: dict[str, Callable[[], STT]] = {
             "openai": lambda: OpenAISTT(api_key=_require_env("OPENAI_API_KEY")),
