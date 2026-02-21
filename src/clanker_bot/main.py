@@ -16,7 +16,6 @@ from clanker.config import load_config
 from clanker.models import Persona
 from clanker.providers.factory import ProviderConfig, ProviderFactory
 
-from .admin import AdminState
 from .commands import BotDependencies, ClankerClient, register_commands
 from .discord_adapter import VoiceSessionManager
 from .health import HealthState, create_health_app
@@ -126,8 +125,6 @@ async def build_dependencies() -> BotDependencies:
 
     voice_manager = VoiceSessionManager()
     metrics = Metrics()
-    admin_ids = _load_admin_ids()
-    admin_state = AdminState()
     transcript_buffer = TranscriptBuffer()
     logger.debug("TranscriptBuffer initialized")
 
@@ -147,8 +144,6 @@ async def build_dependencies() -> BotDependencies:
         persona=persona,
         voice_manager=voice_manager,
         metrics=metrics,
-        admin_user_ids=admin_ids,
-        admin_state=admin_state,
         transcript_buffer=transcript_buffer,
         feedback_store=feedback_store,
         voice_actor=None,  # Set in build_bot() if USE_VOICE_ACTOR=1
@@ -441,23 +436,6 @@ def main() -> None:
                     pass
 
     asyncio.run(runner())
-
-
-def _load_admin_ids() -> set[int]:
-    """Load admin user IDs from environment variable."""
-    raw = os.getenv("CLANKER_ADMIN_IDS", "")
-    if not raw:
-        return set()
-    result = set()
-    for value in raw.split(","):
-        value = value.strip()
-        if not value:
-            continue
-        try:
-            result.add(int(value))
-        except ValueError:
-            logger.warning("Invalid admin ID in CLANKER_ADMIN_IDS: {!r}", value)
-    return result
 
 
 if __name__ == "__main__":

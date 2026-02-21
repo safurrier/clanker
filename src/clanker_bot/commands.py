@@ -8,9 +8,6 @@ from discord import app_commands
 from .command_handlers import (
     BotDependencies,
     ResponseMessage,
-    handle_admin_active_meetings,
-    handle_admin_allow_new_meetings,
-    handle_admin_stop_new_meetings,
     handle_chat,
     handle_join,
     handle_leave,
@@ -107,40 +104,6 @@ def register_commands(bot: ClankerClient, deps: BotDependencies) -> None:
             name="transcript",
             description="Show recent voice transcripts (ephemeral)",
             callback=transcript,
-        )
-    )
-
-    # Admin commands
-    async def admin_active_meetings(interaction: discord.Interaction) -> None:
-        await handle_admin_active_meetings(interaction, deps)
-
-    tree.add_command(
-        app_commands.Command(
-            name="admin_active_meetings",
-            description="List active meetings",
-            callback=admin_active_meetings,
-        )
-    )
-
-    async def admin_stop_new_meetings(interaction: discord.Interaction) -> None:
-        await handle_admin_stop_new_meetings(interaction, deps)
-
-    tree.add_command(
-        app_commands.Command(
-            name="admin_stop_new_meetings",
-            description="Stop new meetings",
-            callback=admin_stop_new_meetings,
-        )
-    )
-
-    async def admin_allow_new_meetings(interaction: discord.Interaction) -> None:
-        await handle_admin_allow_new_meetings(interaction, deps)
-
-    tree.add_command(
-        app_commands.Command(
-            name="admin_allow_new_meetings",
-            description="Allow new meetings",
-            callback=admin_allow_new_meetings,
         )
     )
 

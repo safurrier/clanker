@@ -5,9 +5,9 @@ Context for AI agents working on this codebase. `CLAUDE.md` is a symlink to this
 ## Project Overview
 
 **Clanker9000** is an SDK-first Discord bot with:
-- Chat via LLM (OpenAI)
+- Chat via LLM (OpenAI, Anthropic)
 - Voice transcription (Whisper STT)
-- Text-to-speech (ElevenLabs)
+- Text-to-speech (ElevenLabs — implemented but not yet deployed)
 - Shitpost generation (template-based LLM content)
 - CLI interface (Click-based, Discord-free)
 
@@ -123,7 +123,7 @@ uv run pytest tests -m "not network"
 |----------|----------|---------|
 | `OPENAI_API_KEY` | Yes | LLM and STT |
 | `DISCORD_TOKEN` | For bot | Discord bot token |
-| `ELEVENLABS_API_KEY` | For TTS | Text-to-speech |
+| `ELEVENLABS_API_KEY` | Not yet deployed | Text-to-speech via ElevenLabs (implemented, not enabled) |
 | `CLANKER_CONFIG_PATH` | No | Custom config path |
 | `VOICE_DEBUG` | No | Enable voice debug capture (`1` to enable) |
 | `VOICE_DEBUG_DIR` | No | Debug output directory (default: `./voice_debug`) |

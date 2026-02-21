@@ -337,8 +337,6 @@ class TestHandleThreadMessage:
             persona=persona,
             voice_manager=None,  # type: ignore[arg-type]
             metrics=None,
-            admin_user_ids=set(),
-            admin_state=None,  # type: ignore[arg-type]
         )
 
     @pytest.mark.asyncio
@@ -399,8 +397,6 @@ class TestHandleThreadMessage:
             persona=persona,
             voice_manager=None,  # type: ignore[arg-type]
             metrics=None,
-            admin_user_ids=set(),
-            admin_state=None,  # type: ignore[arg-type]
         )
 
         thread = FakeThread(

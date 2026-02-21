@@ -111,8 +111,6 @@ class TestTranscriptCommand:
             persona=persona,
             voice_manager=None,  # type: ignore[arg-type]
             metrics=None,
-            admin_user_ids=set(),
-            admin_state=None,  # type: ignore[arg-type]
             transcript_buffer=transcript_buffer,
         )
         interaction = FakeInteraction(
@@ -161,8 +159,6 @@ class TestTranscriptCommand:
             persona=persona,
             voice_manager=None,  # type: ignore[arg-type]
             metrics=None,
-            admin_user_ids=set(),
-            admin_state=None,  # type: ignore[arg-type]
             transcript_buffer=transcript_buffer,
         )
         interaction = FakeInteraction(
@@ -193,8 +189,6 @@ class TestTranscriptCommand:
             persona=persona,
             voice_manager=None,  # type: ignore[arg-type]
             metrics=None,
-            admin_user_ids=set(),
-            admin_state=None,  # type: ignore[arg-type]
             transcript_buffer=transcript_buffer,
         )
         interaction = FakeInteraction(
@@ -222,8 +216,6 @@ class TestTranscriptCommand:
             persona=persona,
             voice_manager=None,  # type: ignore[arg-type]
             metrics=None,
-            admin_user_ids=set(),
-            admin_state=None,  # type: ignore[arg-type]
             transcript_buffer=None,
         )
         interaction = FakeInteraction(
@@ -251,8 +243,6 @@ class TestTranscriptCommand:
             persona=persona,
             voice_manager=None,  # type: ignore[arg-type]
             metrics=None,
-            admin_user_ids=set(),
-            admin_state=None,  # type: ignore[arg-type]
             transcript_buffer=transcript_buffer,
         )
         interaction = FakeInteraction(

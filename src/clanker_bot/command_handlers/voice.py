@@ -17,11 +17,6 @@ from .messages import ResponseMessage
 from .types import BotDependencies
 
 
-def _can_join_meeting(interaction: discord.Interaction, deps: BotDependencies) -> bool:
-    """Check if new meetings are allowed."""
-    return not deps.admin_state or deps.admin_state.allow_new_meetings
-
-
 def _get_user_voice_channel(
     interaction: discord.Interaction,
 ) -> discord.VoiceChannel | None:
@@ -261,10 +256,6 @@ async def handle_join(
     )
 
     # Validate preconditions
-    if not _can_join_meeting(interaction, deps):
-        await interaction.response.send_message(ResponseMessage.NEW_MEETINGS_DISABLED)
-        return
-
     if not interaction.user:
         await interaction.response.send_message(ResponseMessage.UNABLE_TO_RESOLVE_VOICE)
         return
