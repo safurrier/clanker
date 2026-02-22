@@ -6,7 +6,7 @@ import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import BytesIO
 from typing import TYPE_CHECKING, cast
 
@@ -96,7 +96,7 @@ class ShitpostPreviewView(discord.ui.View):
             metadata={
                 "template_id": self.payload.template_id,
             },
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         # Fire and forget - don't block UI for database write

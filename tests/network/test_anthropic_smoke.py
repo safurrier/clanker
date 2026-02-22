@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
-import time
 
 import pytest
 
@@ -46,5 +46,5 @@ async def _retry_llm(llm: AnthropicLLM, context: Context) -> Message:
         except TransientProviderError:
             if attempt == 1:
                 raise
-            time.sleep(1)
+            await asyncio.sleep(1)
     raise AssertionError("Retry did not return")

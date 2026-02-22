@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from clanker.models import Context, Message, Persona
+from clanker.providers.errors import TransientProviderError
 from clanker.providers.openai import OpenAILLM, OpenAISTT
 
 
@@ -57,3 +58,40 @@ async def test_openai_stt_builds_request() -> None:
 
     assert requests
     assert requests[0].url.path.endswith("/audio/transcriptions")
+
+
+@pytest.mark.asyncio()
+async def test_openai_llm_network_error_raises_transient() -> None:
+    """httpx.ConnectError is mapped to TransientProviderError."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        llm = OpenAILLM(api_key="key", http_client=client)
+        context = Context(
+            request_id="req",
+            user_id=1,
+            guild_id=None,
+            channel_id=2,
+            persona=Persona(id="p", display_name="p", system_prompt="system"),
+            messages=[Message(role="user", content="hi")],
+            metadata={},
+        )
+        with pytest.raises(TransientProviderError):
+            await llm.generate(context, list(context.messages))
+
+
+@pytest.mark.asyncio()
+async def test_openai_stt_network_error_raises_transient() -> None:
+    """httpx.ConnectError is mapped to TransientProviderError."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        stt = OpenAISTT(api_key="key", http_client=client)
+        with pytest.raises(TransientProviderError):
+            await stt.transcribe(b"audio")

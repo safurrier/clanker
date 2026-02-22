@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, cast
 
@@ -111,7 +111,7 @@ class ReplayEntry:
     def create(cls, context: Context, reply: Message, has_audio: bool) -> ReplayEntry:
         """Create a replay entry from context and reply."""
         return cls(
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             context=context.to_dict(),
             response={"role": reply.role, "content": reply.content},
             has_audio=has_audio,

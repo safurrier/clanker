@@ -141,6 +141,20 @@ async def test_anthropic_llm_params_merged_into_payload() -> None:
     assert payload["max_tokens"] == 50
 
 
+@pytest.mark.asyncio()
+async def test_anthropic_llm_network_error_raises_transient() -> None:
+    """httpx.ConnectError is mapped to TransientProviderError."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        llm = AnthropicLLM(api_key="key", http_client=client)
+        with pytest.raises(TransientProviderError):
+            await llm.generate(_make_context(), [Message(role="user", content="hi")])
+
+
 def test_anthropic_factory_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     """ProviderFactory raises when ANTHROPIC_API_KEY is missing."""
     from clanker.providers.factory import ProviderFactory

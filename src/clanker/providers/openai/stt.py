@@ -58,12 +58,15 @@ class OpenAISTT(STT):
         client = self.http_client or self._managed_client
         if client is None:
             raise RuntimeError("No HTTP client available")
-        response = await client.post(
-            f"{self.base_url}/audio/transcriptions",
-            headers=headers,
-            data=data,
-            files=files,
-        )
+        try:
+            response = await client.post(
+                f"{self.base_url}/audio/transcriptions",
+                headers=headers,
+                data=data,
+                files=files,
+            )
+        except httpx.RequestError as exc:
+            raise TransientProviderError(f"OpenAI STT network error: {exc}") from exc
 
         if response.status_code in {429, 500, 502, 503, 504}:
             raise TransientProviderError(

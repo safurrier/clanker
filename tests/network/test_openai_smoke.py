@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
-import time
-import wave
 
 import pytest
 
@@ -40,13 +39,13 @@ async def _retry_llm(llm: OpenAILLM, context: Context) -> Message:
         try:
             return await llm.generate(
                 context,
-                context.messages,
+                list(context.messages),
                 params={"max_tokens": 20, "temperature": 0},
             )
         except TransientProviderError:
             if attempt == 1:
                 raise
-            time.sleep(1)
+            await asyncio.sleep(1)
     raise AssertionError("Retry did not return")
 
 
@@ -73,5 +72,5 @@ async def _retry_stt(stt: OpenAISTT, audio_bytes: bytes) -> str:
         except TransientProviderError:
             if attempt == 1:
                 raise
-            time.sleep(1)
+            await asyncio.sleep(1)
     raise AssertionError("Retry did not return")

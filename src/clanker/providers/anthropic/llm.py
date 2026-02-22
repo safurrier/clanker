@@ -85,7 +85,12 @@ class AnthropicLLM(LLM, StructuredLLM):
         if client is None:
             raise RuntimeError("No HTTP client available")
 
-        response = await client.post(ANTHROPIC_API_URL, headers=headers, json=payload)
+        try:
+            response = await client.post(
+                ANTHROPIC_API_URL, headers=headers, json=payload
+            )
+        except httpx.RequestError as exc:
+            raise TransientProviderError(f"Anthropic LLM network error: {exc}") from exc
 
         if response.status_code in {429, 500, 502, 503, 504}:
             raise TransientProviderError(
