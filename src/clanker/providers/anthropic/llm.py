@@ -125,14 +125,27 @@ class AnthropicLLM(LLM, StructuredLLM):
             Instance of response_model with validated data
         """
         client = self._get_instructor_client()
-        # Messages dict matches MessageParam at runtime
-        return await client.messages.create(  # type: ignore[return-value]
-            model=self.model,
-            max_tokens=DEFAULT_MAX_TOKENS,
-            response_model=response_model,
-            messages=[{"role": m.role, "content": m.content} for m in messages],  # type: ignore[arg-type]
-            max_retries=max_retries,
-        )
+
+        # Anthropic requires system messages in a top-level field, not inline.
+        system_parts = [m.content for m in messages if m.role == "system"]
+        system_content = "\n".join(system_parts) if system_parts else None
+        conversation = [
+            {"role": m.role, "content": m.content}
+            for m in messages
+            if m.role != "system"
+        ]
+
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": DEFAULT_MAX_TOKENS,
+            "response_model": response_model,
+            "messages": conversation,
+            "max_retries": max_retries,
+        }
+        if system_content:
+            kwargs["system"] = system_content
+
+        return await client.messages.create(**kwargs)  # type: ignore[return-value]
 
     def _get_instructor_client(self) -> AsyncInstructor:
         """Get or create the Instructor-patched async Anthropic client."""
@@ -154,9 +167,11 @@ class AnthropicLLM(LLM, StructuredLLM):
 
 
 def _extract_content(data: dict[str, Any]) -> str:
-    """Extract text content from an Anthropic Messages API response."""
+    """Extract and concatenate all text blocks from an Anthropic response."""
     content_blocks = data.get("content") or []
-    for block in content_blocks:
-        if block.get("type") == "text":
-            return str(block.get("text") or "")
-    return ""
+    parts = [
+        str(block.get("text") or "")
+        for block in content_blocks
+        if block.get("type") == "text"
+    ]
+    return "".join(parts)
