@@ -114,7 +114,7 @@ CLI tests use Click's `CliRunner` with patched providers:
 
 ```python
 from click.testing import CliRunner
-from clanker.cli.main import cli
+from clanker_cli.main import cli
 from tests.fakes import FakeLLM, FakeSTT, FakeTTS
 
 def _patch_factory(llm=None, stt=None, tts=None):

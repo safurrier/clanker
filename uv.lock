@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -170,7 +170,7 @@ wheels = [
 
 [[package]]
 name = "anthropic"
-version = "0.83.0"
+version = "0.84.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -182,9 +182,9 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/db/e5/02cd2919ec327b24234abb73082e6ab84c451182cc3cc60681af700f4c63/anthropic-0.83.0.tar.gz", hash = "sha256:a8732c68b41869266c3034541a31a29d8be0f8cd0a714f9edce3128b351eceb4", size = 534058, upload-time = "2026-02-19T19:26:38.904Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/04/ea/0869d6df9ef83dcf393aeefc12dd81677d091c6ffc86f783e51cf44062f2/anthropic-0.84.0.tar.gz", hash = "sha256:72f5f90e5aebe62dca316cb013629cfa24996b0f5a4593b8c3d712bc03c43c37", size = 539457, upload-time = "2026-02-25T05:22:38.54Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/75/b9d58e4e2a4b1fc3e75ffbab978f999baf8b7c4ba9f96e60edb918ba386b/anthropic-0.83.0-py3-none-any.whl", hash = "sha256:f069ef508c73b8f9152e8850830d92bd5ef185645dbacf234bb213344a274810", size = 456991, upload-time = "2026-02-19T19:26:40.114Z" },
+    { url = "https://files.pythonhosted.org/packages/64/ca/218fa25002a332c0aa149ba18ffc0543175998b1f65de63f6d106689a345/anthropic-0.84.0-py3-none-any.whl", hash = "sha256:861c4c50f91ca45f942e091d83b60530ad6d4f98733bfe648065364da05d29e7", size = 455156, upload-time = "2026-02-25T05:22:40.468Z" },
 ]
 
 [[package]]
@@ -531,20 +531,22 @@ name = "clanker9000"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "aiohttp" },
-    { name = "aiosqlite" },
     { name = "anthropic" },
     { name = "click" },
-    { name = "discord-ext-voice-recv" },
-    { name = "discord-py" },
     { name = "httpx" },
     { name = "instructor" },
     { name = "loguru" },
     { name = "pyyaml" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
 ]
 
 [package.optional-dependencies]
+bot = [
+    { name = "aiohttp" },
+    { name = "aiosqlite" },
+    { name = "discord-ext-voice-recv" },
+    { name = "discord-py" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+]
 dev = [
     { name = "dpytest" },
     { name = "pre-commit" },
@@ -575,13 +577,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = ">=3.9.5" },
-    { name = "aiosqlite", specifier = ">=0.19.0" },
+    { name = "aiohttp", marker = "extra == 'bot'", specifier = ">=3.9.5" },
+    { name = "aiosqlite", marker = "extra == 'bot'", specifier = ">=0.19.0" },
     { name = "anthropic", specifier = ">=0.40.0" },
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29.0" },
     { name = "click", specifier = ">=8.1.0" },
-    { name = "discord-ext-voice-recv", specifier = ">=0.4.0" },
-    { name = "discord-py", specifier = ">=2.4.0" },
+    { name = "discord-ext-voice-recv", marker = "extra == 'bot'", specifier = ">=0.4.0" },
+    { name = "discord-py", marker = "extra == 'bot'", specifier = ">=2.4.0" },
     { name = "dpytest", marker = "extra == 'dev'", specifier = ">=0.7.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "instructor", specifier = ">=1.13.0" },
@@ -594,14 +596,14 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.3.0" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
+    { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'bot'", specifier = ">=2.0.0" },
     { name = "tomli", marker = "extra == 'dev'", specifier = ">=2.0.1" },
     { name = "tomli-w", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "torch", marker = "extra == 'voice'", specifier = ">=2.0.1" },
     { name = "torchaudio", marker = "extra == 'voice'", specifier = ">=2.0.1" },
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.2" },
 ]
-provides-extras = ["dev", "voice", "postgres"]
+provides-extras = ["bot", "dev", "voice", "postgres"]
 
 [package.metadata.requires-dev]
 dev = [

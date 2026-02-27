@@ -20,7 +20,7 @@ clanker [--config PATH] [--persona ID] [--verbose]
 ## File Structure
 
 ```
-cli/
+clanker_cli/
 ├── __init__.py          # Exports: cli
 ├── main.py              # Click group, CliContext, async bridge, persona/config resolution
 ├── output.py            # output_text(), output_json(), write_audio() helpers
@@ -78,7 +78,7 @@ Implemented via `read_prompt()` in `main.py`.
 
 ## Adding a New CLI Command
 
-1. Create `src/clanker/cli/commands/new_cmd.py`
+1. Create `src/clanker_cli/commands/new_cmd.py`
 2. Define the command with `@click.command()` and `@click.pass_obj`
 3. Use `run_async()` for async operations
 4. Import and register in `main.py`: `cli.add_command(new_cmd)`

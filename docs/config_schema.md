@@ -2,7 +2,7 @@
 
 ```yaml
 providers:
-  llm: openai
+  llm: openai       # or: anthropic
   stt: openai
   tts: elevenlabs
   image: memegen

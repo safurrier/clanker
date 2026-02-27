@@ -10,7 +10,7 @@ Clanker9000 provides a clean separation between a reusable SDK (`clanker`) and a
 
 - **Multi-Persona Support** - Define bot personalities via YAML config
 - **Voice Pipeline** - Real-time VAD, chunking, and speech-to-text
-- **Provider Architecture** - Pluggable LLM, STT, TTS, and image adapters
+- **Provider Architecture** - Pluggable LLM (OpenAI, Anthropic), STT, TTS, and image adapters
 - **Shitpost Generator** - Template-based LLM content generation
 - **Policy System** - Pluggable validation before response generation
 - **Replay Logging** - JSONL audit trail for debugging

@@ -6,18 +6,34 @@ from pathlib import Path
 
 import click
 
-from ...providers.errors import PermanentProviderError, TransientProviderError
-from ...respond import respond
-from ..main import CliContext, build_cli_context, read_prompt, run_async
-from ..output import output_json, output_text, write_audio
+from clanker.providers.errors import PermanentProviderError, TransientProviderError
+from clanker.respond import respond
+from clanker_cli.main import CliContext, build_cli_context, read_prompt, run_async
+from clanker_cli.output import output_json, output_text, write_audio
 
 
-@click.command()
+@click.command(
+    epilog="""\b
+Examples:
+  clanker chat "What is the meaning of life?"
+  echo "Summarize this" | clanker chat
+  clanker chat --json "Tell me a joke"
+""",
+)
 @click.argument("prompt", required=False)
-@click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
+@click.option(
+    "--json",
+    "use_json",
+    is_flag=True,
+    help="Output as JSON with role and content fields.",
+)
 @click.pass_obj
 def chat(ctx: CliContext, prompt: str | None, use_json: bool) -> None:
-    """Send a prompt to the LLM and print the response."""
+    """Send a prompt to the LLM and print the response.
+
+    PROMPT can be passed as an argument or piped via stdin.
+    Uses the OpenAI provider by default, or the provider set in config.
+    """
     run_async(_chat(ctx, prompt, use_json))
 
 
@@ -41,7 +57,15 @@ async def _chat(ctx: CliContext, prompt: str | None, use_json: bool) -> None:
         output_text(reply.content)
 
 
-@click.command()
+@click.command(
+    epilog="""\b
+Examples:
+  clanker speak "Hello world"
+  clanker speak "Greetings" -o greeting.mp3
+  clanker speak --voice some-voice-id "Good morning"
+  echo "Read this aloud" | clanker speak -o narration.mp3
+""",
+)
 @click.argument("prompt", required=False)
 @click.option(
     "--output",
@@ -50,9 +74,13 @@ async def _chat(ctx: CliContext, prompt: str | None, use_json: bool) -> None:
     type=click.Path(),
     default="response.mp3",
     show_default=True,
-    help="Audio output file path.",
+    help="File path for the generated audio.",
 )
-@click.option("--voice", default=None, help="Override TTS voice ID.")
+@click.option(
+    "--voice",
+    default=None,
+    help="ElevenLabs voice ID. Overrides the persona's tts_voice setting.",
+)
 @click.pass_obj
 def speak(
     ctx: CliContext,
@@ -60,7 +88,12 @@ def speak(
     output_path: str,
     voice: str | None,
 ) -> None:
-    """Send a prompt to the LLM and synthesize speech."""
+    """Generate an LLM response and synthesize it as speech.
+
+    Sends PROMPT to the LLM, prints the text reply, and writes the
+    spoken audio to an MP3 file. PROMPT can be passed as an argument
+    or piped via stdin. Requires ELEVENLABS_API_KEY.
+    """
     run_async(_speak(ctx, prompt, output_path, voice))
 
 
@@ -75,7 +108,7 @@ async def _speak(
     # If a voice override is provided, swap it into the persona
     persona = ctx.persona
     if voice:
-        from ...models import Persona
+        from clanker.models import Persona
 
         persona = Persona(
             id=persona.id,

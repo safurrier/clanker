@@ -56,7 +56,9 @@ class ImageGen(Protocol):
 | Protocol | Provider | Module | Required Env |
 |----------|----------|--------|-------------|
 | LLM | OpenAI | `providers/openai/llm.py` | `OPENAI_API_KEY` |
+| LLM | Anthropic | `providers/anthropic/llm.py` | `ANTHROPIC_API_KEY` |
 | StructuredLLM | OpenAI | `providers/openai/llm.py` | `OPENAI_API_KEY` |
+| StructuredLLM | Anthropic | `providers/anthropic/llm.py` | `ANTHROPIC_API_KEY` |
 | STT | OpenAI Whisper | `providers/openai/stt.py` | `OPENAI_API_KEY` |
 | TTS | ElevenLabs | `providers/elevenlabs/tts.py` | `ELEVENLABS_API_KEY` |
 | ImageGen | Memegen | `providers/memegen/image.py` | None |

@@ -159,7 +159,7 @@ To enable voice transcription:
 
 | Provider Type | Available Values |
 |--------------|------------------|
-| `llm` | `openai` |
+| `llm` | `openai`, `anthropic` |
 | `stt` | `openai` |
 | `tts` | `elevenlabs` |
 | `image` | `memegen` |
@@ -180,7 +180,8 @@ personas:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | Yes | OpenAI API key for LLM/STT |
+| `OPENAI_API_KEY` | Yes* | OpenAI API key for LLM/STT |
+| `ANTHROPIC_API_KEY` | Yes* | Anthropic API key for LLM (if using `llm: anthropic`) |
 | `DISCORD_TOKEN` | Yes | Discord bot token |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for TTS |
 | `CLANKER_CONFIG_PATH` | No | Path to config.yaml |

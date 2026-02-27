@@ -2,15 +2,15 @@
 
 SDK-first Discord bot with chat, voice pipeline, shitposts, and a standalone CLI.
 
-Clanker9000 separates a reusable SDK (`clanker`) from its Discord host (`clanker_bot`). Build multi-personality bots with LLM chat, voice transcription, and meme generation — all with pluggable provider abstractions. Use the SDK standalone via the CLI without any Discord infrastructure.
+Clanker9000 separates a reusable SDK (`clanker`) from its Discord host (`clanker_bot`). Build multi-personality bots with LLM chat, voice transcription, TTS output, and meme generation — all with pluggable provider abstractions. Use the SDK standalone via the CLI without any Discord infrastructure.
 
 ## Features
 
 - **Multi-Persona Support** - YAML-configured bot personalities with custom system prompts and voice settings
 - **Voice Pipeline** - Real-time voice activity detection (Silero VAD), chunking, idle flush, and speech-to-text
 - **Voice Resilience** - Keepalive packets, automatic reconnection, and actor-based voice management
-- **CLI Interface** - Chat, transcribe, and generate memes from the command line
-- **Provider Architecture** - Pluggable adapters for LLM (OpenAI, Anthropic), STT (Whisper), and image generation (Memegen)
+- **CLI Interface** - Chat, speak, transcribe, and generate memes from the command line
+- **Provider Architecture** - Pluggable adapters for LLM (OpenAI, Anthropic), STT (Whisper), TTS (ElevenLabs), and image generation (Memegen)
 - **Shitpost Generator** - Context-aware meme generation with ephemeral preview/post/regenerate workflow
 - **VC Monitoring** - Auto-leave when alone, nudge-to-join when humans gather
 - **Feedback Persistence** - Track user interactions (accepted/rejected/regenerated) with SQLite via sqlc
@@ -21,16 +21,20 @@ Clanker9000 separates a reusable SDK (`clanker`) from its Discord host (`clanker
 | Command | Description |
 |---------|-------------|
 | `/chat <prompt>` | Chat with Clanker |
-| `/speak <prompt>` | Chat with TTS audio response (requires ElevenLabs — see below) |
+| `/speak <prompt>` | Chat with TTS audio response |
 | `/shitpost [n] [guidance]` | Generate meme previews with Post/Regenerate/Dismiss buttons |
 | `/join` | Join your voice channel for transcription |
 | `/leave` | Leave the current voice channel |
 | `/transcript` | Show recent voice transcripts (ephemeral) |
+| `/admin_active_meetings` | List active voice meetings |
+| `/admin_stop_new_meetings` | Prevent new voice meetings |
+| `/admin_allow_new_meetings` | Allow new voice meetings |
 
 ## CLI Commands
 
 ```bash
 clanker chat "What is the meaning of life?"    # Chat with the LLM
+clanker speak "Hello world" -o hello.mp3       # Generate TTS audio
 clanker transcribe audio.wav                   # Transcribe audio file
 clanker shitpost --guidance "programming"       # Generate a shitpost
 clanker meme --guidance "cats"                  # Generate a meme image
@@ -46,10 +50,26 @@ Use `--config path/to/config.yaml` and `--persona <id>` to control persona selec
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) package manager
 
-### Setup
+### Install from GitHub
 
 ```bash
-# Install dependencies
+# Install the CLI tool (lightweight — SDK + CLI only)
+uv tool install git+https://github.com/safurrier/clanker.git
+
+# Install as a library
+uv pip install git+https://github.com/safurrier/clanker.git
+
+# Install with Discord bot support
+uv pip install "clanker9000[bot] @ git+https://github.com/safurrier/clanker.git"
+
+# Install with everything (bot + voice)
+uv pip install "clanker9000[bot,voice] @ git+https://github.com/safurrier/clanker.git"
+```
+
+### Local Development Setup
+
+```bash
+# Install all dependencies (including bot, voice, dev)
 make setup
 
 # Run quality checks
@@ -59,11 +79,17 @@ make check
 ### Environment Variables
 
 ```bash
-# Required for LLM and STT
+# Required for LLM and STT (when using OpenAI provider)
 export OPENAI_API_KEY="sk-..."
+
+# Required for LLM (when using Anthropic provider)
+export ANTHROPIC_API_KEY="sk-ant-..."
 
 # Required for Discord bot
 export DISCORD_TOKEN="..."
+
+# Required for TTS
+export ELEVENLABS_API_KEY="..."
 
 # Optional
 export CLANKER_CONFIG_PATH="./config.yaml"   # Custom config path
@@ -75,25 +101,6 @@ export VOICE_LOG_LEVEL="INFO"                 # Voice-specific log level
 export DATABASE_URL="sqlite:///data/clanker.db"  # Database path
 export USE_VOICE_ACTOR=1                      # Enable actor-based voice management
 ```
-
-## TTS (Text-to-Speech)
-
-> **Not yet deployed.** The `/speak` command and the `ElevenLabsTTS` provider are implemented in code but TTS is not currently enabled. Enabling it requires an [ElevenLabs](https://elevenlabs.io) API key and setting `tts: elevenlabs` in your config.
-
-To enable TTS when you're ready:
-
-```bash
-export ELEVENLABS_API_KEY="..."
-```
-
-And update your `config.yaml`:
-
-```yaml
-providers:
-  tts: elevenlabs
-```
-
-Then configure a `tts_voice` on your persona (e.g. `"Rachel"`, `"Alice"`). Without a `tts_voice` set, `/speak` falls back to text-only output.
 
 ## Quick Start
 
@@ -144,6 +151,8 @@ print(transcript)
 
 ### Run the Discord Bot
 
+Requires the `[bot]` extra (included by `make setup`):
+
 ```bash
 make run
 
@@ -162,7 +171,7 @@ Create a `config.yaml` file:
 providers:
   llm: openai    # or: anthropic
   stt: openai
-  # tts: elevenlabs  # not yet deployed — see TTS section above
+  tts: elevenlabs
   image: memegen
 
 personas:
@@ -171,12 +180,13 @@ personas:
     system_prompt: |
       You are Clanker9000, a witty and slightly sarcastic Discord bot.
       Keep responses concise and entertaining.
-    # tts_voice: "Rachel"  # uncomment when ElevenLabs is configured
+    tts_voice: "Rachel"
 
   - id: helper
     display_name: Helper Bot
     system_prompt: |
       You are a helpful assistant. Be clear and informative.
+    tts_voice: "Alice"
 
 default_persona: clanker
 ```
@@ -186,14 +196,11 @@ default_persona: clanker
 ```
 src/
   clanker/                  # Core SDK (no Discord dependencies)
-    cli/                    # Click-based CLI
-      commands/             # chat, transcribe, shitpost, meme, config
-      main.py               # CLI entry point and shared context
     config/                 # Configuration loading (YAML)
     providers/              # Pluggable provider adapters
       openai/               # LLM (GPT) and STT (Whisper)
       anthropic/            # LLM (Claude)
-      elevenlabs/           # TTS (not yet deployed)
+      elevenlabs/           # TTS
       memegen/              # Meme image generation
       audio_utils.py        # Stereo-to-mono, resampling
       base.py               # Protocol definitions (LLM, STT, TTS, ImageGen)
@@ -207,6 +214,10 @@ src/
       debug/                # Debug capture system
     models.py               # Domain models (Context, Persona, Message)
     respond.py              # Core response orchestration
+
+  clanker_cli/              # Click-based CLI (consumes SDK)
+    commands/               # chat, speak, transcribe, shitpost, meme, config
+    main.py                 # CLI entry point and shared context
 
   clanker_bot/              # Discord bot host
     command_handlers/       # /chat, /speak, /shitpost, /join, /leave, etc.

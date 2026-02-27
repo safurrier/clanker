@@ -33,7 +33,7 @@ COPY src /tmp/deps/src
 
 RUN pip install -U pip uv \
     && cd /tmp/deps \
-    && uv pip install --system ".[voice]" \
+    && uv pip install --system ".[bot,voice]" \
     && rm -rf /tmp/deps
 
 # Copy pre-downloaded Silero model for voice support

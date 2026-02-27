@@ -101,11 +101,11 @@ class LLM(Protocol):
 
 | Type | Provider | Implementation |
 |------|----------|----------------|
-| LLM | OpenAI | `openai_llm.py` |
-| STT | OpenAI Whisper | `openai_stt.py` |
-| TTS | ElevenLabs | `elevenlabs_tts.py` |
-| Image | Memegen | `memegen.py` |
-| Policy | Profanity Filter | `policies/profanity.py` |
+| LLM | OpenAI | `providers/openai/llm.py` |
+| LLM | Anthropic | `providers/anthropic/llm.py` |
+| STT | OpenAI Whisper | `providers/openai/stt.py` |
+| TTS | ElevenLabs | `providers/elevenlabs/tts.py` |
+| Image | Memegen | `providers/memegen/image.py` |
 
 **Factory Pattern:**
 
