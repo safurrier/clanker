@@ -1,0 +1,11 @@
+# Runner image configuration - use maintained catthehacker images
+-P ubuntu-latest=catthehacker/ubuntu:act-22.04
+
+# Container architecture (explicit for M1/M2 Macs)
+--container-architecture=linux/amd64
+
+# Container daemon socket (will be overridden by Makefile)
+--container-daemon-socket=-
+
+# Verbose output by default
+--verbose
