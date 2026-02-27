@@ -50,10 +50,26 @@ Use `--config path/to/config.yaml` and `--persona <id>` to control persona selec
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) package manager
 
-### Setup
+### Install from GitHub
 
 ```bash
-# Install dependencies
+# Install the CLI tool (lightweight — SDK + CLI only)
+uv tool install git+https://github.com/safurrier/clanker.git
+
+# Install as a library
+uv pip install git+https://github.com/safurrier/clanker.git
+
+# Install with Discord bot support
+uv pip install "clanker9000[bot] @ git+https://github.com/safurrier/clanker.git"
+
+# Install with everything (bot + voice)
+uv pip install "clanker9000[bot,voice] @ git+https://github.com/safurrier/clanker.git"
+```
+
+### Local Development Setup
+
+```bash
+# Install all dependencies (including bot, voice, dev)
 make setup
 
 # Run quality checks
@@ -131,6 +147,8 @@ print(transcript)
 ```
 
 ### Run the Discord Bot
+
+Requires the `[bot]` extra (included by `make setup`):
 
 ```bash
 make run

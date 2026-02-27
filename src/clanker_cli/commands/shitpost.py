@@ -21,14 +21,39 @@ from clanker_cli.main import CliContext, build_cli_context, run_async
 from clanker_cli.output import output_json, output_text
 
 
-@click.command()
-@click.argument("topic", required=False)
-@click.option("--template", "template_name", default=None, help="Template name.")
-@click.option("--category", default=None, help="Template category.")
-@click.option(
-    "--list-templates", is_flag=True, help="List available templates and exit."
+@click.command(
+    epilog="""\b
+Examples:
+  clanker shitpost "python"
+  clanker shitpost --template hot_take "javascript"
+  clanker shitpost --category rant "meetings"
+  clanker shitpost --list-templates
+  clanker shitpost --list-templates --json
+""",
 )
-@click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
+@click.argument("topic", required=False)
+@click.option(
+    "--template",
+    "template_name",
+    default=None,
+    help="Use a specific template by name. See --list-templates for options.",
+)
+@click.option(
+    "--category",
+    default=None,
+    help="Pick a random template from this category.",
+)
+@click.option(
+    "--list-templates",
+    is_flag=True,
+    help="List available templates and exit.",
+)
+@click.option(
+    "--json",
+    "use_json",
+    is_flag=True,
+    help="Output as JSON (includes template name and category).",
+)
 @click.pass_obj
 def shitpost(
     ctx: CliContext,
@@ -38,7 +63,12 @@ def shitpost(
     list_templates: bool,
     use_json: bool,
 ) -> None:
-    """Generate a shitpost."""
+    """Generate a shitpost on a given topic.
+
+    Picks a template (randomly or by name/category), fills it via the
+    LLM using TOPIC as the subject, and prints the result. If no TOPIC
+    is given, a generic shitpost is generated.
+    """
     if list_templates:
         templates = load_templates()
         if use_json:
@@ -95,13 +125,33 @@ async def _shitpost(
         output_text(result.content)
 
 
-@click.command()
-@click.argument("topic", required=False)
-@click.option("--template", "template_id", default=None, help="Meme template ID.")
-@click.option(
-    "--list-templates", is_flag=True, help="List available meme templates and exit."
+@click.command(
+    epilog="""\b
+Examples:
+  clanker meme "mondays"
+  clanker meme --template drake "tabs vs spaces"
+  clanker meme --list-templates
+  clanker meme --json "deadlines"
+""",
 )
-@click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
+@click.argument("topic", required=False)
+@click.option(
+    "--template",
+    "template_id",
+    default=None,
+    help="Meme template ID (e.g. 'drake'). See --list-templates for options.",
+)
+@click.option(
+    "--list-templates",
+    is_flag=True,
+    help="List available meme templates and exit.",
+)
+@click.option(
+    "--json",
+    "use_json",
+    is_flag=True,
+    help="Output as JSON with template info, lines, and image URL.",
+)
 @click.pass_obj
 def meme(
     ctx: CliContext,
@@ -110,7 +160,12 @@ def meme(
     list_templates: bool,
     use_json: bool,
 ) -> None:
-    """Generate meme text and a memegen URL."""
+    """Generate meme text and a memegen.link image URL.
+
+    Picks a meme template (randomly or by ID), generates caption
+    text via the LLM using TOPIC, and prints the text lines followed
+    by a memegen.link image URL you can open in a browser.
+    """
     if list_templates:
         templates = load_meme_templates()
         if use_json:

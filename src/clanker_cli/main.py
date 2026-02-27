@@ -110,21 +110,31 @@ def read_prompt(prompt: str | None) -> str:
     raise click.UsageError("Provide a prompt as an argument or via stdin.")
 
 
-@click.group()
+@click.group(
+    epilog="""\b
+Examples:
+  clanker chat "Tell me a joke"           Chat with the LLM
+  clanker speak "Hello world" -o hi.mp3   Generate spoken audio
+  clanker transcribe recording.wav        Transcribe a WAV file
+  clanker shitpost "python"               Generate a shitpost
+  clanker meme "mondays"                  Generate a meme URL
+  clanker config show                     Show resolved config
+""",
+)
 @click.option(
     "--config",
     "config_path",
     type=click.Path(exists=True),
     default=None,
-    help="Path to config YAML (or set CLANKER_CONFIG_PATH).",
+    help="Path to config YAML. Falls back to CLANKER_CONFIG_PATH env var.",
 )
 @click.option(
     "--persona",
     "persona_id",
     default=None,
-    help="Persona ID to use.",
+    help="Persona ID from config. Defaults to the config's default persona.",
 )
-@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output.")
+@click.option("--verbose", "-v", is_flag=True, help="Show extra diagnostic output.")
 @click.pass_context
 def cli(
     ctx: click.Context,
@@ -132,7 +142,12 @@ def cli(
     persona_id: str | None,
     verbose: bool,
 ) -> None:
-    """Clanker SDK command-line interface."""
+    """clanker - Chat, speak, transcribe, and shitpost from the terminal.
+
+    Clanker CLI wraps the Clanker SDK to provide LLM chat, text-to-speech,
+    audio transcription, and shitpost/meme generation without Discord.
+    Requires OPENAI_API_KEY for most commands; ELEVENLABS_API_KEY for TTS.
+    """
     config = _resolve_config(config_path)
     persona = _resolve_persona(config, persona_id)
     ctx.obj = CliContext(

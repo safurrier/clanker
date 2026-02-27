@@ -512,19 +512,21 @@ name = "clanker9000"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "aiohttp" },
-    { name = "aiosqlite" },
     { name = "click" },
-    { name = "discord-ext-voice-recv" },
-    { name = "discord-py" },
     { name = "httpx" },
     { name = "instructor" },
     { name = "loguru" },
     { name = "pyyaml" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
 ]
 
 [package.optional-dependencies]
+bot = [
+    { name = "aiohttp" },
+    { name = "aiosqlite" },
+    { name = "discord-ext-voice-recv" },
+    { name = "discord-py" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+]
 dev = [
     { name = "dpytest" },
     { name = "pre-commit" },
@@ -555,12 +557,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = ">=3.9.5" },
-    { name = "aiosqlite", specifier = ">=0.19.0" },
+    { name = "aiohttp", marker = "extra == 'bot'", specifier = ">=3.9.5" },
+    { name = "aiosqlite", marker = "extra == 'bot'", specifier = ">=0.19.0" },
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29.0" },
     { name = "click", specifier = ">=8.1.0" },
-    { name = "discord-ext-voice-recv", specifier = ">=0.4.0" },
-    { name = "discord-py", specifier = ">=2.4.0" },
+    { name = "discord-ext-voice-recv", marker = "extra == 'bot'", specifier = ">=0.4.0" },
+    { name = "discord-py", marker = "extra == 'bot'", specifier = ">=2.4.0" },
     { name = "dpytest", marker = "extra == 'dev'", specifier = ">=0.7.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "instructor", specifier = ">=1.13.0" },
@@ -573,14 +575,14 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.3.0" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
+    { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'bot'", specifier = ">=2.0.0" },
     { name = "tomli", marker = "extra == 'dev'", specifier = ">=2.0.1" },
     { name = "tomli-w", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "torch", marker = "extra == 'voice'", specifier = ">=2.0.1" },
     { name = "torchaudio", marker = "extra == 'voice'", specifier = ">=2.0.1" },
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.2" },
 ]
-provides-extras = ["dev", "voice", "postgres"]
+provides-extras = ["bot", "dev", "voice", "postgres"]
 
 [package.metadata.requires-dev]
 dev = [

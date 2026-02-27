@@ -14,17 +14,40 @@ from clanker_cli.main import CliContext, run_async
 from clanker_cli.output import output_json, output_text
 
 
-@click.command()
+@click.command(
+    epilog="""\b
+Audio requirements:
+  Input must be a mono 16-bit WAV file. Convert with ffmpeg:
+    ffmpeg -i input.mp3 -ac 1 -sample_fmt s16 output.wav
+
+\b
+Examples:
+  clanker transcribe recording.wav
+  clanker transcribe --no-vad recording.wav
+  clanker transcribe --vad-type silero recording.wav
+  clanker transcribe --json recording.wav
+""",
+)
 @click.argument("audio_file", type=click.Path(exists=True, path_type=Path))
-@click.option("--vad/--no-vad", default=True, show_default=True, help="Use VAD.")
+@click.option(
+    "--vad/--no-vad",
+    default=True,
+    show_default=True,
+    help="Filter speech with Voice Activity Detection before transcribing.",
+)
 @click.option(
     "--vad-type",
     type=click.Choice(["silero", "energy"]),
     default="energy",
     show_default=True,
-    help="VAD implementation.",
+    help="VAD engine. 'energy' is lightweight; 'silero' is ML-based (requires torch).",
 )
-@click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
+@click.option(
+    "--json",
+    "use_json",
+    is_flag=True,
+    help="Output as JSON with text and segment count.",
+)
 @click.pass_obj
 def transcribe(
     ctx: CliContext,
@@ -33,7 +56,14 @@ def transcribe(
     vad_type: str,
     use_json: bool,
 ) -> None:
-    """Transcribe an audio file (WAV)."""
+    """Transcribe speech from a WAV audio file.
+
+    Runs Voice Activity Detection to isolate speech, then sends
+    the audio to the STT provider (OpenAI Whisper by default).
+    Use --no-vad to skip speech detection and transcribe the
+    entire file. With --verbose, prints detected speech segment
+    timestamps to stderr.
+    """
     run_async(_transcribe(ctx, audio_file, vad, vad_type, use_json))
 
 

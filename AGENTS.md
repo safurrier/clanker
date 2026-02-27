@@ -201,7 +201,7 @@ Update `config.yaml` with new persona definition.
 See `agent_docs/voice-pipeline.md` for the full guide.
 
 ### Update dependencies
-Edit `pyproject.toml`, then `uv sync`.
+Edit `pyproject.toml`, then `uv sync`. Note: bot-specific deps (discord.py, sqlalchemy, aiohttp, aiosqlite) are in the `[bot]` optional group. SDK and CLI deps are in base `dependencies`. `make setup` uses `--all-extras` so all groups are installed locally.
 
 ### Modify database queries (sqlc)
 ```bash

@@ -12,15 +12,31 @@ from clanker_cli.main import CliContext
 from clanker_cli.output import output_text
 
 
-@click.group("config")
+@click.group(
+    "config",
+    epilog="""\b
+Examples:
+  clanker --config config.yaml config show
+  clanker config validate config.yaml
+  clanker --config config.yaml config personas
+""",
+)
 def config_group() -> None:
-    """Inspect and validate configuration."""
+    """Inspect and validate Clanker configuration files.
+
+    Requires --config or the CLANKER_CONFIG_PATH env var for
+    the 'show' and 'personas' subcommands.
+    """
 
 
 @config_group.command()
 @click.pass_obj
 def show(ctx: CliContext) -> None:
-    """Dump the resolved configuration."""
+    """Print the resolved configuration as YAML.
+
+    Shows provider mappings, default persona, and all persona
+    definitions after config loading and merging.
+    """
     if ctx.config is None:
         raise click.ClickException(
             "No config loaded. Use --config or set CLANKER_CONFIG_PATH."
@@ -49,7 +65,11 @@ def show(ctx: CliContext) -> None:
 @config_group.command()
 @click.argument("path", type=click.Path(exists=True, path_type=Path))
 def validate(path: Path) -> None:
-    """Validate a config YAML and check provider env vars."""
+    """Validate a config file and check that required env vars are set.
+
+    Parses the YAML, validates its structure, then checks that each
+    configured provider's API key is available in the environment.
+    """
     try:
         config = load_config(path)
     except (ValueError, yaml.YAMLError) as exc:
@@ -69,7 +89,10 @@ def validate(path: Path) -> None:
 @config_group.command()
 @click.pass_obj
 def personas(ctx: CliContext) -> None:
-    """List available personas."""
+    """List all personas defined in the config.
+
+    Prints each persona's ID, display name, and TTS voice (if set).
+    """
     if ctx.config is None:
         raise click.ClickException(
             "No config loaded. Use --config or set CLANKER_CONFIG_PATH."
