@@ -30,7 +30,7 @@ def _anthropic_response(text: str) -> dict:
         "type": "message",
         "role": "assistant",
         "content": [{"type": "text", "text": text}],
-        "model": "claude-3-5-haiku-latest",
+        "model": "claude-haiku-4-5-20251001",
         "stop_reason": "end_turn",
         "usage": {"input_tokens": 10, "output_tokens": 5},
     }

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound="BaseModel")
 
-DEFAULT_ANTHROPIC_MODEL = "claude-3-5-haiku-latest"
+DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 DEFAULT_MAX_TOKENS = 1024
@@ -97,7 +97,9 @@ class AnthropicLLM(LLM, StructuredLLM):
                 f"Anthropic LLM transient error: {response.status_code}"
             )
         if response.status_code >= 400:
-            raise PermanentProviderError(f"Anthropic LLM error: {response.status_code}")
+            raise PermanentProviderError(
+                f"Anthropic LLM error: {response.status_code} - {response.text}"
+            )
 
         data = response.json()
         content = _extract_content(data)

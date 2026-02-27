@@ -1,7 +1,7 @@
 """End-to-end CLI tests that hit real APIs.
 
 Run with: uv run pytest tests/cli/test_e2e.py -m network
-Requires: OPENAI_API_KEY environment variable.
+Requires: OPENAI_API_KEY and/or ANTHROPIC_API_KEY environment variables.
 """
 
 from __future__ import annotations
@@ -20,6 +20,11 @@ pytestmark = pytest.mark.network
 needs_openai = pytest.mark.skipif(
     not os.getenv("OPENAI_API_KEY"),
     reason="OPENAI_API_KEY not set",
+)
+
+needs_anthropic = pytest.mark.skipif(
+    not os.getenv("ANTHROPIC_API_KEY"),
+    reason="ANTHROPIC_API_KEY not set",
 )
 
 
@@ -176,3 +181,55 @@ class TestConfigE2E:
     def test_config_personas_no_config_errors(self, runner: CliRunner) -> None:
         result = runner.invoke(cli, ["config", "personas"])
         assert result.exit_code != 0
+
+
+# ── Anthropic Chat ──────────────────────────────────────────────────────
+
+
+_ANTHROPIC_CONFIG = """\
+providers:
+  llm: anthropic
+  stt: openai
+  tts: elevenlabs
+  image: memegen
+
+personas:
+  - id: test
+    display_name: Test
+    system_prompt: You are a helpful assistant.
+
+default_persona: test
+"""
+
+
+class TestAnthropicChatE2E:
+    @pytest.fixture()
+    def anthropic_config(self, tmp_path: Path) -> Path:
+        """Write a temp config.yaml that selects the anthropic LLM provider."""
+        cfg = tmp_path / "config.yaml"
+        cfg.write_text(_ANTHROPIC_CONFIG)
+        return cfg
+
+    @needs_anthropic
+    def test_chat_returns_response(
+        self, runner: CliRunner, anthropic_config: Path
+    ) -> None:
+        result = runner.invoke(
+            cli,
+            ["--config", str(anthropic_config), "chat", "Say hello in one sentence."],
+        )
+        assert result.exit_code == 0, result.output
+        assert len(result.output.strip()) > 0
+
+    @needs_anthropic
+    def test_chat_json_valid(
+        self, runner: CliRunner, anthropic_config: Path
+    ) -> None:
+        result = runner.invoke(
+            cli,
+            ["--config", str(anthropic_config), "chat", "--json", "What is 1+1?"],
+        )
+        assert result.exit_code == 0, result.output
+        data = json.loads(result.output)
+        assert data["role"] == "assistant"
+        assert len(data["content"]) > 0
