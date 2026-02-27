@@ -13,13 +13,13 @@ Context for AI agents working on this codebase. `CLAUDE.md` is a symlink to this
 
 ## Architecture
 
-Two main packages plus a CLI:
+Three sibling packages:
 
 | Package | Purpose | Discord Dependencies |
 |---------|---------|---------------------|
 | `src/clanker/` | Core SDK (reusable library) | None |
-| `src/clanker/cli/` | Click-based CLI | None |
-| `src/clanker_bot/` | Discord bot host | Yes |
+| `src/clanker_cli/` | Click-based CLI (consumes SDK) | None |
+| `src/clanker_bot/` | Discord bot host (consumes SDK) | Yes |
 
 This separation enables testing the SDK without Discord infrastructure and using it standalone via the CLI.
 
@@ -67,8 +67,8 @@ Providers are constructed via `ProviderFactory` (`src/clanker/providers/factory.
 | Voice pipeline (SDK) | `src/clanker/voice/` |
 | Shitpost/meme engine | `src/clanker/shitposts/` |
 | Configuration | `src/clanker/config/` |
-| CLI entry point | `src/clanker/cli/main.py` |
-| CLI commands | `src/clanker/cli/commands/` |
+| CLI entry point | `src/clanker_cli/main.py` |
+| CLI commands | `src/clanker_cli/commands/` |
 | Discord bot entry | `src/clanker_bot/main.py` |
 | Discord commands | `src/clanker_bot/commands.py` |
 | Command handlers | `src/clanker_bot/command_handlers/` |
@@ -159,7 +159,7 @@ Module-specific agent instructions for deeper context:
 
 | Module | AGENTS.md | Purpose |
 |--------|-----------|---------|
-| `src/clanker/cli/` | [CLI AGENTS.md](src/clanker/cli/AGENTS.md) | Click CLI patterns, async bridge, testing |
+| `src/clanker_cli/` | [CLI AGENTS.md](src/clanker_cli/AGENTS.md) | Click CLI patterns, async bridge, testing |
 | `src/clanker/voice/` | [Voice AGENTS.md](src/clanker/voice/AGENTS.md) | VAD, chunking, transcription pipeline |
 | `src/clanker_bot/` | [Bot AGENTS.md](src/clanker_bot/AGENTS.md) | Discord integration, commands, voice ingest |
 
@@ -183,8 +183,8 @@ Detailed guides in `agent_docs/`:
 4. Add tests in `tests/test_commands.py`
 
 ### Add a new CLI command
-1. Create command file in `src/clanker/cli/commands/`
-2. Import and register in `src/clanker/cli/main.py` via `cli.add_command()`
+1. Create command file in `src/clanker_cli/commands/`
+2. Import and register in `src/clanker_cli/main.py` via `cli.add_command()`
 3. Add tests in `tests/cli/test_commands.py` using `CliRunner` + `_patch_factory()`
 
 ### Add a new persona
@@ -201,7 +201,7 @@ Update `config.yaml` with new persona definition.
 See `agent_docs/voice-pipeline.md` for the full guide.
 
 ### Update dependencies
-Edit `pyproject.toml`, then `uv sync`.
+Edit `pyproject.toml`, then `uv sync`. Note: bot-specific deps (discord.py, sqlalchemy, aiohttp, aiosqlite) are in the `[bot]` optional group. SDK and CLI deps are in base `dependencies`. `make setup` uses `--all-extras` so all groups are installed locally.
 
 ### Modify database queries (sqlc)
 ```bash

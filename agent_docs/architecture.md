@@ -7,7 +7,7 @@ System design and architectural decisions for Clanker9000.
 Clanker9000 follows an **SDK-first architecture** with clean separation between:
 
 1. **Clanker SDK** (`src/clanker/`) — Reusable library with no Discord dependencies
-2. **CLI** (`src/clanker/cli/`) — Click-based terminal interface using the SDK
+2. **CLI** (`src/clanker_cli/`) — Click-based terminal interface consuming the SDK
 3. **Discord Bot Host** (`src/clanker_bot/`) — Discord.py integration layer
 
 ```
@@ -42,7 +42,7 @@ Clanker9000 follows an **SDK-first architecture** with clean separation between:
       └─────────────────────────────────────┘
 ```
 
-The CLI (`src/clanker/cli/`) sits alongside the bot, accessing the same SDK layer directly:
+The CLI (`src/clanker_cli/`) sits alongside the bot, accessing the same SDK layer directly:
 
 ```
 ┌──────────┐    ┌──────────────┐

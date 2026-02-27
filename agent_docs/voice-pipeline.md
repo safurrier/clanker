@@ -147,7 +147,7 @@ Experimental actor-based voice management:
 
 ## CLI Transcription
 
-The CLI `transcribe` command (`src/clanker/cli/commands/transcribe.py`) uses the same SDK pipeline:
+The CLI `transcribe` command (`src/clanker_cli/commands/transcribe.py`) uses the same SDK pipeline:
 
 1. Reads WAV file (mono 16-bit only)
 2. Optionally runs VAD (`--vad/--no-vad`)

@@ -33,7 +33,7 @@ COPY tests/ ./tests/
 RUN pip install --no-cache-dir uv
 
 # Install dependencies including voice support
-RUN uv pip install --system --no-cache -e ".[voice]"
+RUN uv pip install --system --no-cache -e ".[bot,voice]"
 
 # Copy pre-downloaded Silero model
 COPY --from=silero-vad /silero-vad ./silero-vad

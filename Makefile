@@ -1,4 +1,4 @@
-.PHONY: compile-deps setup clean-pyc clean-test clean-venv clean test ty lint format check run run-debug run-voice-debug run-full-debug run-voice-only-debug clean-example docs-install docs-build docs-serve docs-check docs-clean dev-env refresh-containers rebuild-images build-image push-image setup-agent-docs
+.PHONY: compile-deps setup install clean-pyc clean-test clean-venv clean test ty lint format check run run-debug run-voice-debug run-full-debug run-voice-only-debug clean-example docs-install docs-build docs-serve docs-check docs-clean dev-env refresh-containers rebuild-images build-image push-image setup-agent-docs
 
 # Module name - will be updated by init script
 MODULE_NAME := clanker
@@ -14,6 +14,10 @@ PYTHON_VERSION ?= 3.12
 
 ensure-uv:  # Install uv if not present
 	@which uv > /dev/null || (curl -LsSf https://astral.sh/uv/install.sh | sh)
+
+install: ensure-uv  # Install the CLI tool locally via uv tool
+	uv cache clean clanker9000
+	uv tool install --force .
 
 setup: ensure-uv ensure-scripts  # Install dependencies
 	UV_PYTHON_VERSION=$(PYTHON_VERSION) uv sync --all-extras
