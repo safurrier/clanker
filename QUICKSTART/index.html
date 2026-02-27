@@ -1641,7 +1641,7 @@
 <tbody>
 <tr>
 <td><code>llm</code></td>
-<td><code>openai</code></td>
+<td><code>openai</code>, <code>anthropic</code></td>
 </tr>
 <tr>
 <td><code>stt</code></td>
@@ -1678,8 +1678,13 @@
 <tbody>
 <tr>
 <td><code>OPENAI_API_KEY</code></td>
-<td>Yes</td>
+<td>Yes*</td>
 <td>OpenAI API key for LLM/STT</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td>Yes*</td>
+<td>Anthropic API key for LLM (if using <code>llm: anthropic</code>)</td>
 </tr>
 <tr>
 <td><code>DISCORD_TOKEN</code></td>
