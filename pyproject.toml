@@ -1,6 +1,6 @@
 [project]
 name = "clanker9000"
-version = "0.1.0"
+version = "0.3.0"
 description = "SDK-first Discord bot with chat, shitposts, and voice pipeline."
 authors = [
     { name = "alex furrier", email = "afurrier@gmail.com" }
