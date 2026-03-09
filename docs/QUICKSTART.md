@@ -92,7 +92,7 @@ CLANKER_CONFIG_PATH=./config.yaml python -m clanker_bot.main
 ```python
 import asyncio
 from clanker.models import Context, Persona, Message
-from clanker.providers.openai_llm import OpenAILLM
+from clanker.providers.openai.llm import OpenAILLM
 from clanker.respond import respond
 
 async def main():
