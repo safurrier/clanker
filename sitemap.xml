@@ -1,59 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/ARCHITECTURE/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/AGENTS/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/CONTRIBUTING/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/ARCHITECTURE/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/FUTURE_WORK/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/CONTRIBUTING/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/QUICKSTART/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/FUTURE_WORK/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/audio-capture/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/QUICKSTART/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/config_schema/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/audio-capture/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/container-setup/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/config_schema/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/discordpy_notes/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/container-setup/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/meme-pipeline/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/discordpy_notes/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/transcript-examples/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/meme-pipeline/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/voice-debugging/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/transcript-examples/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/voice_ingest_pipeline/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/voice-debugging/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
     <url>
-         <loc>https://safurrier.github.io/python-collab-template/reference/api/</loc>
-         <lastmod>2026-02-27</lastmod>
+         <loc>https://safurrier.github.io/clanker-bot/voice_ingest_pipeline/</loc>
+         <lastmod>2026-03-09</lastmod>
+    </url>
+    <url>
+         <loc>https://safurrier.github.io/clanker-bot/reference/api/</loc>
+         <lastmod>2026-03-09</lastmod>
     </url>
 </urlset>
