@@ -1,10 +1,10 @@
-site_name: Python Collab Template
-site_url: https://safurrier.github.io/python-collab-template/
-site_description: A collaborative Python project template with modern tooling
+site_name: Clanker9000
+site_url: https://safurrier.github.io/clanker-bot/
+site_description: SDK-first Discord bot with chat, voice pipeline, shitposts, and CLI
 site_author: safurrier
 
-repo_name: safurrier/python-collab-template
-repo_url: https://github.com/safurrier/python-collab-template
+repo_name: safurrier/clanker-bot
+repo_url: https://github.com/safurrier/clanker-bot
 edit_uri: edit/main/docs/
 
 theme:
@@ -76,6 +76,7 @@ nav:
     - Contributing: CONTRIBUTING.md
   - Guides:
     - Audio Capture: audio-capture.md
+    - Voice Debugging: voice-debugging.md
     - Meme Pipeline: meme-pipeline.md
     - Container Setup: container-setup.md
     - Voice Ingest Pipeline: voice_ingest_pipeline.md
@@ -90,4 +91,4 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/safurrier/python-collab-template
+      link: https://github.com/safurrier/clanker-bot
